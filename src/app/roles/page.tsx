@@ -7,12 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { roleSchema } from '@/schemas';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
-import { ArrowUpDown } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { RoleDetails } from '@/components/role-details';
-import { useTableSort } from '@/hooks/useTableSort';
 import { useModalState } from '@/hooks/useModalState';
-import { TableHeader } from '@/components/ui/table-header';
+import { DataTable } from '@/components/ui/table/DataTable';
+import { useTableColumns } from '@/hooks/useTableColumns';
+import { formatCurrency } from '@/lib/utils';
 
 export default function RolesPage() {
   const { roles, addRole, updateRole, deleteRole } = useStore();
@@ -39,11 +39,63 @@ export default function RolesPage() {
     roleCode: '',
   });
 
-  const {
-    sortConfig,
-    handleSort,
-    sortedItems: sortedRoles
-  } = useTableSort<Role>(roles);
+  const columns = useTableColumns<Role>({
+    columns: [
+      {
+        key: 'name',
+        header: 'Name',
+        cell: ({ getValue }) => (
+          <button 
+            onClick={() => viewItem(roles.find(role => role.name === getValue()))}
+            className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors line-clamp-2"
+          >
+            {getValue()}
+          </button>
+        ),
+      },
+      {
+        key: 'roleCode',
+        header: 'Role Code',
+        cell: ({ getValue }) => (
+          <span className="text-xs text-gray-600">{getValue()}</span>
+        ),
+      },
+      {
+        key: 'description',
+        header: 'Description',
+        cell: ({ getValue }) => (
+          <span className="text-xs text-gray-600 line-clamp-2">{getValue()}</span>
+        ),
+      },
+      {
+        key: 'id',
+        header: 'Actions',
+        cell: ({ getValue }) => {
+          const role = roles.find(r => r.id === getValue());
+          if (!role) return null;
+          return (
+            <div className="flex justify-end space-x-2">
+              <Button
+                onClick={() => handleEdit(role)}
+                variant="secondary"
+                className="modal-button"
+              >
+                Edit
+              </Button>
+              <Button
+                onClick={() => handleDelete(role)}
+                variant="danger"
+                className="modal-button"
+              >
+                Delete
+              </Button>
+            </div>
+          );
+        },
+        enableSorting: false,
+      },
+    ],
+  });
 
   React.useEffect(() => {
     setIsClient(true);
@@ -238,60 +290,18 @@ export default function RolesPage() {
             onSave={handleSaveRole}
           />
 
-          <div className="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <TableHeader<Role> column="name" label="Name" sortConfig={sortConfig} onSort={handleSort} />
-                    <TableHeader<Role> column="roleCode" label="Role Code" sortConfig={sortConfig} onSort={handleSort} />
-                    <TableHeader<Role> column="description" label="Description" sortConfig={sortConfig} onSort={handleSort} />
-                    <th scope="col" className="px-4 py-2 text-right text-[0.65rem] font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {sortedRoles.map((role: Role) => (
-                    <tr key={role.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-2">
-                        <button 
-                          onClick={() => viewItem(role)}
-                          className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors line-clamp-2"
-                        >
-                          {role.name}
-                        </button>
-                      </td>
-                      <td className="px-4 py-2">
-                        <span className="text-xs text-gray-600">{role.roleCode}</span>
-                      </td>
-                      <td className="px-4 py-2">
-                        <span className="text-xs text-gray-600 line-clamp-2">{role.description}</span>
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap text-right">
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            onClick={() => handleEdit(role)}
-                            variant="secondary"
-                            className="modal-button"
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            onClick={() => handleDelete(role)}
-                            variant="danger"
-                            className="modal-button"
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <DataTable
+            data={roles}
+            columns={columns}
+            searchPlaceholder="Search roles..."
+            searchableColumns={['name', 'roleCode', 'description']}
+            enableSearch={true}
+            enableFilters={true}
+            enableVisibility={true}
+            enableExport={true}
+            filename="roles"
+            className="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200"
+          />
         </>
       ) : (
         <div className="animate-pulse">

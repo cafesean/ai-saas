@@ -14,6 +14,8 @@ import { ArrowUpDown } from 'lucide-react';
 import { LevelDetails } from '@/components/level-details';
 import { findLevelUsage, removeLevelFromRateCards } from '@/lib/utils';
 import { RoleDetails } from '@/components/role-details';
+import { DataTable } from '@/components/ui/table/DataTable';
+import { useTableColumns } from '@/hooks/useTableColumns';
 
 type SortConfig = {
   key: keyof Level;
@@ -199,6 +201,88 @@ export default function LevelsPage() {
       </div>
     </th>
   );
+
+  const columns = useTableColumns<Level>({
+    columns: [
+      {
+        key: 'name',
+        header: 'Name',
+        cell: ({ getValue }) => {
+          const level = levels.find(level => level.name === getValue());
+          if (!level) return null;
+          return (
+            <button 
+              onClick={() => handleViewLevel(level)}
+              className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors w-full text-left"
+            >
+              {getValue()}
+            </button>
+          );
+        },
+      },
+      {
+        key: 'code',
+        header: 'Code',
+        cell: ({ getValue }) => (
+          <span className="text-xs text-gray-600">{getValue()}</span>
+        ),
+      },
+      {
+        key: 'description',
+        header: 'Description',
+        cell: ({ getValue }) => (
+          <span className="text-xs text-gray-600">{getValue()}</span>
+        ),
+      },
+      {
+        key: 'roles',
+        header: 'Roles',
+        cell: ({ getValue }) => {
+          const roles = getValue() as Role[];
+          return (
+            <div className="flex flex-wrap gap-1">
+              {roles.map((role: Role) => (
+                <button
+                  key={role.id}
+                  onClick={() => handleRoleClick(role.id)}
+                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+                >
+                  {role.name}
+                </button>
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        key: 'id',
+        header: '',
+        cell: ({ getValue }) => {
+          const level = levels.find(l => l.id === getValue());
+          if (!level) return null;
+          return (
+            <div className="flex justify-end space-x-2">
+              <Button
+                onClick={() => handleEdit(level)}
+                variant="secondary"
+                className="modal-button"
+              >
+                Edit
+              </Button>
+              <Button
+                onClick={() => handleDelete(level)}
+                variant="danger"
+                className="modal-button"
+              >
+                Delete
+              </Button>
+            </div>
+          );
+        },
+        enableSorting: false,
+      },
+    ],
+  });
 
   return (
     <div className="space-y-4 max-w-[100vw] px-4 md:px-6">
@@ -407,76 +491,16 @@ export default function LevelsPage() {
             onSave={handleSaveRole}
           />
 
-          <div className="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <SortableHeader column="name" label="Name" />
-                    <SortableHeader column="code" label="Code" />
-                    <SortableHeader column="description" label="Description" />
-                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Roles
-                    </th>
-                    <th scope="col" className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {sortedLevels.map((level: Level) => (
-                    <tr key={level.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-2 whitespace-nowrap">
-                        <button 
-                          onClick={() => handleViewLevel(level)}
-                          className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors"
-                        >
-                          {level.name}
-                        </button>
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap">
-                        <span className="text-xs text-gray-600">{level.code}</span>
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap">
-                        <span className="text-xs text-gray-600">{level.description}</span>
-                      </td>
-                      <td className="px-4 py-2">
-                        <div className="flex flex-wrap gap-1">
-                          {level.roles.map((role: Role) => (
-                            <button
-                              key={role.id}
-                              onClick={() => handleRoleClick(role.id)}
-                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
-                            >
-                              {role.name}
-                            </button>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap text-right">
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            onClick={() => handleEdit(level)}
-                            variant="secondary"
-                            className="h-7 px-2 text-xs font-bold"
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            onClick={() => handleDelete(level)}
-                            variant="danger"
-                            className="h-7 px-2 text-xs font-bold"
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <DataTable
+            data={levels}
+            columns={columns}
+            searchPlaceholder="Search levels..."
+            searchableColumns={['name', 'code', 'description']}
+            enableSearch={true}
+            enableFilters={true}
+            hideOnSinglePage={true}
+            className="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200"
+          />
         </>
       ) : (
         <div className="animate-pulse">

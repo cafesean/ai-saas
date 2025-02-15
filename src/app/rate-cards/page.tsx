@@ -11,6 +11,8 @@ import { formatCurrency } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { ArrowUpDown } from 'lucide-react';
 import { RateCardDetails } from '@/components/rate-card-details';
+import { DataTable } from '@/components/ui/table/DataTable';
+import { useTableColumns } from '@/hooks/useTableColumns';
 
 interface NewRateCard {
   name: string;
@@ -271,6 +273,79 @@ export default function RateCardsPage() {
     }
   };
 
+  const columns = useTableColumns<RateCard>({
+    columns: [
+      {
+        key: 'name',
+        header: 'Name',
+        cell: ({ getValue }) => {
+          const rateCard = rateCards.find(rc => rc.name === getValue());
+          if (!rateCard) return null;
+          return (
+            <button 
+              onClick={() => handleViewRateCard(rateCard)}
+              className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors w-full text-left"
+            >
+              {getValue()}
+            </button>
+          );
+        },
+      },
+      {
+        key: 'description',
+        header: 'Description',
+        cell: ({ getValue }) => (
+          <span className="text-xs text-gray-600">{getValue()}</span>
+        ),
+      },
+      {
+        key: 'effectiveDate',
+        header: 'Effective Date',
+        cell: ({ getValue }) => (
+          <span className="text-xs text-gray-600">
+            {formatDate(getValue() as Date)}
+          </span>
+        ),
+      },
+      {
+        key: 'expireDate',
+        header: 'Expire Date',
+        cell: ({ getValue }) => (
+          <span className="text-xs text-gray-600">
+            {formatDate(getValue() as Date)}
+          </span>
+        ),
+      },
+      {
+        key: 'id',
+        header: '',
+        cell: ({ getValue }) => {
+          const rateCard = rateCards.find(rc => rc.id === getValue());
+          if (!rateCard) return null;
+          return (
+            <div className="flex justify-end space-x-2">
+              <Button
+                onClick={() => handleEdit(rateCard)}
+                variant="secondary"
+                className="modal-button"
+              >
+                Edit
+              </Button>
+              <Button
+                onClick={() => handleDelete(rateCard)}
+                variant="danger"
+                className="modal-button"
+              >
+                Delete
+              </Button>
+            </div>
+          );
+        },
+        enableSorting: false,
+      },
+    ],
+  });
+
   return (
     <div className="space-y-4 max-w-[100vw] px-4 md:px-6">
       <div className="flex justify-between items-center">
@@ -464,60 +539,16 @@ export default function RateCardsPage() {
             onSave={handleSaveRateCard}
           />
 
-          <div className="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <SortableHeader column="name" label="Name" />
-                    <SortableHeader column="description" label="Description" />
-                    <SortableHeader column="effectiveDate" label="Effective Date" />
-                    <th scope="col" className="px-4 py-2 text-right text-[0.65rem] font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {sortedRateCards.map((rateCard: RateCard) => (
-                    <tr key={rateCard.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-2">
-                        <button 
-                          onClick={() => handleViewRateCard(rateCard)}
-                          className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors line-clamp-2"
-                        >
-                          {rateCard.name}
-                        </button>
-                      </td>
-                      <td className="px-4 py-2">
-                        <span className="text-xs text-gray-600 line-clamp-2">{rateCard.description}</span>
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap">
-                        <span className="text-xs text-gray-600">{formatDate(rateCard.effectiveDate)}</span>
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap text-right">
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            onClick={() => handleEdit(rateCard)}
-                            variant="secondary"
-                            className="h-7 px-2 text-xs font-bold"
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            onClick={() => handleDelete(rateCard)}
-                            variant="danger"
-                            className="h-7 px-2 text-xs font-bold"
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <DataTable
+            data={rateCards}
+            columns={columns}
+            searchPlaceholder="Search rate cards..."
+            searchableColumns={['name', 'description']}
+            enableSearch={true}
+            enableFilters={true}
+            hideOnSinglePage={true}
+            className="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200"
+          />
         </>
       ) : (
         <div className="animate-pulse">
