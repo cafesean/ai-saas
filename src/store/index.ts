@@ -15,6 +15,7 @@ interface Store {
   addRateCard: (rateCard: Omit<RateCard, "id">) => void;
   updateRateCard: (id: string, rateCard: Partial<RateCard>) => void;
   deleteRateCard: (id: string) => void;
+  updateRateCards: (rateCards: RateCard[]) => void;
 }
 
 // Mock initial data
@@ -32,12 +33,14 @@ const mockLevels: Level[] = [
 
 // Create a UTC date for mock data
 const mockEffectiveDate = new Date(Date.UTC(2024, 0, 1)); // 2024-01-01 in UTC
+const mockExpireDate = new Date(Date.UTC(2024, 11, 31)); // 2024-12-31 in UTC
 
 const mockRateCards: RateCard[] = [
   {
     id: "1",
     name: "Standard Rate 2024",
     effectiveDate: mockEffectiveDate,
+    expireDate: mockExpireDate,
     description: "Standard rate card for 2024",
     levelRates: [
       { levelId: "1", monthlyRate: 5000 },
@@ -95,5 +98,10 @@ export const useStore = create<Store>((set) => ({
   deleteRateCard: (id) =>
     set((state) => ({
       rateCards: state.rateCards.filter((rc) => rc.id !== id),
+    })),
+
+  updateRateCards: (rateCards) =>
+    set(() => ({
+      rateCards,
     })),
 })); 

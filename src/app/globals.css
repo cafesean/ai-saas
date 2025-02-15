@@ -73,4 +73,50 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@layer components {
+  .modal-content {
+    @apply p-8;
+  }
+
+  .modal-header {
+    @apply mb-8;
+  }
+
+  .modal-title {
+    @apply text-xl font-semibold text-gray-900;
+  }
+
+  .modal-section {
+    @apply space-y-4;
+  }
+
+  .modal-section-title {
+    @apply text-sm font-medium text-gray-700;
+  }
+
+  .modal-section-content {
+    @apply mt-2 space-y-2;
+  }
+
+  .modal-text {
+    @apply text-sm text-gray-600;
+  }
+
+  .modal-value {
+    @apply mt-1 text-sm text-gray-900;
+  }
+
+  .modal-footer {
+    @apply gap-2 mt-8;
+  }
+
+  .modal-button {
+    @apply h-7 px-2 text-xs font-bold;
+  }
+
+  .table-header {
+    @apply px-4 py-2 text-left text-[0.65rem] font-medium text-gray-500 uppercase tracking-wider;
+  }
 } 

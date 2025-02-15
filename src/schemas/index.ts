@@ -33,6 +33,7 @@ export const rateCardSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   description: z.string().min(1, 'Description is required').max(500),
   effectiveDate: z.string().min(1, 'Effective date is required'),
+  expireDate: z.string().min(1, 'Expire date is required'),
   levelRates: z.array(levelRateSchema).min(1, 'At least one level rate must be added'),
 });
 

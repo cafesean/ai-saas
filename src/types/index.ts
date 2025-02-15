@@ -23,6 +23,7 @@ export interface RateCard {
   name: string;
   description: string;
   effectiveDate: Date;
+  expireDate: Date;
   levelRates: LevelRate[];
 }
 
