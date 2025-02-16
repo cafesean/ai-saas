@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowUpDown } from 'lucide-react';
-import { SortConfig } from '@/hooks/useTableSort';
+import { SortConfig } from '@/framework/hooks/useTableSort';
 
 interface TableHeaderProps<T> {
   column: keyof T;

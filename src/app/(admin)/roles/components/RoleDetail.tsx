@@ -1,9 +1,9 @@
 import React from 'react';
-import { RoleView } from '@/types';
+import { RoleView } from '@/framework/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { useFormValidation } from '@/hooks/useFormValidation';
+import { useFormValidation } from '@/framework/hooks/useFormValidation';
 import { roleSchema } from '@/schemas';
 
 interface RoleDetailsProps {
@@ -74,7 +74,7 @@ export function RoleDetails({
         
         <div className="space-y-4">
           <div>
-            <h3 className="text-sm font-medium text-gray-700">Role Code</h3>
+            <h2 className="text-sm font-medium text-gray-700">Role Code</h2>
             {isEditing ? (
               <Input
                 value={formData.roleCode}
@@ -88,7 +88,7 @@ export function RoleDetails({
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-gray-700">Description</h3>
+            <h2 className="text-sm font-medium text-gray-700">Description</h2>
             {isEditing ? (
               <Input
                 value={formData.description}

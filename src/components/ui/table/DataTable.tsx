@@ -1,9 +1,9 @@
 import React from 'react';
 import { Table } from './Table';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@/framework/hooks/useTableState';
 import { ColumnDef } from '@tanstack/react-table';
 import { Input } from '../Input';
-import { cn } from '@/lib/utils';
+import { cn } from '@/framework/lib/utils';
 import { Search } from 'lucide-react';
 
 interface DataTableProps<T> {

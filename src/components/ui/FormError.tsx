@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/framework/lib/utils';
 
 interface FormErrorProps extends React.HTMLAttributes<HTMLParagraphElement> {
   message?: React.ReactNode;

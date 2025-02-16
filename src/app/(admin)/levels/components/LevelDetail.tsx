@@ -1,11 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
-import { LevelView, RateCardView, RoleView } from '@/types';
+import { LevelView, RateCardView, RoleView } from '@/framework/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/framework/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { useFormValidation } from '@/hooks/useFormValidation';
+import { useFormValidation } from '@/framework/hooks/useFormValidation';
 import { levelSchema } from '@/schemas';
 
 interface LevelDetailsProps {
@@ -94,7 +94,7 @@ export function LevelDetails({
         
         <div className="space-y-4">
           <div>
-            <h3 className="text-sm font-medium text-gray-700">Level Code</h3>
+            <h2 className="text-sm font-medium text-gray-700">Level Code</h2>
             {isEditing ? (
               <Input
                 value={formData.code}
@@ -108,7 +108,7 @@ export function LevelDetails({
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-gray-700">Description</h3>
+            <h2 className="text-sm font-medium text-gray-700">Description</h2>
             {isEditing ? (
               <Input
                 value={formData.description}
@@ -122,7 +122,7 @@ export function LevelDetails({
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-gray-700">Assigned Roles</h3>
+            <h2 className="text-sm font-medium text-gray-700">Assigned Roles</h2>
             <div className="mt-2 space-y-2">
               {roles.map((role) => (
                 <div key={role.id} className="flex items-center">
@@ -156,7 +156,7 @@ export function LevelDetails({
 
           {!isEditing && (
             <div>
-              <h3 className="text-sm font-medium text-gray-700">Used in Rate Cards</h3>
+              <h2 className="text-sm font-medium text-gray-700">Used in Rate Cards</h2>
               <div className="mt-2 space-y-2">
                 {usedInRateCards.map(rateCard => (
                   <div key={rateCard.id} className="flex justify-between items-center text-sm">

@@ -3,7 +3,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { roleSchema } from '@/schemas';
-import type { RoleView } from '@/types';
+import type { RoleView } from '@/framework/types';
 import type { z } from 'zod';
 
 export type RoleFormData = z.infer<typeof roleSchema>;

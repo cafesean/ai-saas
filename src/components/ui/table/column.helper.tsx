@@ -1,6 +1,6 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/framework/lib/utils';
 import React from 'react';
 
 interface ColumnConfig<T> {

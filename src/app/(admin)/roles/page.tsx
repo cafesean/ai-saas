@@ -5,11 +5,11 @@ import { FormInput } from '@/components/form';
 import { Button } from '@/components/ui/Button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { DataTable } from '@/components/ui/table/DataTable';
-import { useModalState } from '@/hooks/useModalState';
-import { useRoleForm } from '@/hooks/useRoleForm';
-import { useTableColumns } from '@/hooks/useTableColumn';
-import type { RoleView } from '@/types';
-import { dbToAppRole } from '@/types';
+import { useModalState } from '@/framework/hooks/useModalState';
+import { useRoleForm } from '@/framework/hooks/useRoleForm';
+import { useTableColumns } from '@/framework/hooks/useTableColumn';
+import type { RoleView } from '@/framework/types';
+import { dbToAppRole } from '@/framework/types';
 import { api, useUtils } from '@/utils/trpc';
 import React from 'react';
 

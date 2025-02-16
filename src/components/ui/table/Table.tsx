@@ -1,6 +1,6 @@
 import { Skeleton } from '@/components/ui/Skeleton';
-import { cn } from '@/lib/utils';
-import { TableProps } from '@/types/table';
+import { cn } from '@/framework/lib/utils';
+import { TableProps } from '@/framework/types/table';
 import {
   flexRender,
   getCoreRowModel,

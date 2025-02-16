@@ -3,22 +3,24 @@
 import React from 'react';
 import { NextPage } from "next";
 import { useRouter } from 'next/navigation';
-import type { LevelView, RoleView } from '@/types';
+import type { LevelView, RoleView, LevelRateView } from '@/framework/types';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
-import { useFormValidation } from '@/hooks/useFormValidation';
-import { levelSchema } from '@/schemas';
+import { useFormValidation } from '@/framework/hooks/useFormValidation';
+// import { levelSchema } from '@/schemas';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog';
 import { ArrowUpDown } from 'lucide-react';
 import { LevelDetails } from '@/app/(admin)/levels/components/LevelDetail';
-import { findLevelUsage, formatCurrency } from '@/lib/utils';
+import { findLevelUsage, formatCurrency } from '@/framework/lib/utils';
 import { RoleDetails } from '@/app/(admin)/roles/components/RoleDetail';
 import { DataTable } from '@/components/ui/table/DataTable';
-import { useTableColumns } from '@/hooks/useTableColumn';
+import { useTableColumns } from '@/framework/hooks/useTableColumn';
 import { api, useUtils } from '@/utils/trpc';
-import { useLevelForm } from '@/hooks/useLevelForm';
-import { dbToAppLevel, dbToAppRole, dbToAppRateCard } from '@/types';
+import { useLevelForm } from '@/framework/hooks/useLevelForm';
+import { dbToAppLevel, dbToAppRole, dbToAppRateCard } from '@/framework/types';
+import { RateCardFormData } from '@/framework/hooks/useRateCardForm';
+import { LevelRate } from '@/db/types';
 
 type SortConfig = {
   key: keyof LevelView;
@@ -501,7 +503,7 @@ const LevelsPage: NextPage = () => {
                             <span className="text-gray-600">{rateCard.name}</span>
                             <span className="text-gray-600">
                               {formatCurrency(
-                                Number(rateCard.levelRates.find(rate => rate.level.id === selectedLevel.id)?.monthlyRate) || 0
+                                Number(rateCard.levelRates.find((rate: LevelRateView) => rate.level.id === selectedLevel.id)?.monthlyRate) || 0
                               )}
                             </span>
                           </div>

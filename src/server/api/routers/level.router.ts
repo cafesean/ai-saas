@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { createTRPCRouter, publicProcedure } from "../trpc"
 import { eq, inArray, desc, asc } from 'drizzle-orm';
 import { levels, level_roles, roles } from '@/db/schema';
-import { dbToAppLevel, dbToAppRole } from '@/types';
+import { dbToAppLevel, dbToAppRole } from '@/framework/types';
 import type { InferSelectModel } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/db/config';
@@ -129,7 +129,7 @@ export const levelRouter = createTRPCRouter({
       id: z.number(),
       data: levelSchema.partial(),
     }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const { data } = input;
       const { roles: roleIds, ...levelData } = data;
 

@@ -6,6 +6,6 @@ declare module 'react' {
   }
 }
 
-declare module '@/lib/utils' {
+declare module '@/framework/lib/utils' {
   export function cn(...inputs: (string | boolean | undefined)[]): string;
 } 

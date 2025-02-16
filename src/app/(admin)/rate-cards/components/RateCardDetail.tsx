@@ -1,18 +1,18 @@
 import React from 'react';
-import { RateCardView, LevelView, LevelRateView } from '@/types';
+import { RateCardView, LevelView, LevelRateView } from '@/framework/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { formatCurrency } from '@/lib/utils';
-import { useFormValidation } from '@/hooks/useFormValidation';
+import { formatCurrency } from '@/framework/lib/utils';
+import { useFormValidation } from '@/framework/hooks/useFormValidation';
 import { rateCardSchema } from '@/schemas';
 
 interface FormData {
   name: string;
   description: string;
-  effectiveDate: string;
-  expireDate: string;
-  levelRates: LevelRateView[];
+  effective_date: string;
+  expire_date: string;
+  level_rates: LevelRateView[];
 }
 
 interface RateCardDetailsProps {
@@ -35,12 +35,18 @@ export function RateCardDetails({
   if (!rateCard) return null;
 
   const [isEditing, setIsEditing] = React.useState(false);
-  const [formData, setFormData] = React.useState<FormData>({
+  const [editedRateCard, setEditedRateCard] = React.useState<FormData>({
     name: rateCard.name,
     description: rateCard.description ?? '',
-    effectiveDate: rateCard.effectiveDate.toISOString().split('T')[0],
-    expireDate: rateCard.expireDate ? rateCard.expireDate.toISOString().split('T')[0] : '',
-    levelRates: rateCard.levelRates,
+    effective_date: rateCard.effectiveDate instanceof Date 
+      ? rateCard.effectiveDate.toISOString().split('T')[0]
+      : new Date(rateCard.effectiveDate).toISOString().split('T')[0],
+    expire_date: rateCard.expireDate 
+      ? (rateCard.expireDate instanceof Date 
+        ? rateCard.expireDate.toISOString().split('T')[0]
+        : new Date(rateCard.expireDate).toISOString().split('T')[0])
+      : '',
+    level_rates: rateCard.levelRates,
   });
 
   const { validate, getFieldError, clearErrors } = useFormValidation(rateCardSchema._def.schema);
@@ -64,24 +70,24 @@ export function RateCardDetails({
   };
 
   const handleLevelRateChange = (levelId: number, monthlyRate: number) => {
-    const existingRateIndex = formData.levelRates.findIndex(
+    const existingRateIndex = editedRateCard.level_rates.findIndex(
       (rate: LevelRateView) => rate.level.id === levelId
     );
 
     if (monthlyRate === 0 && existingRateIndex !== -1) {
-      setFormData({
-        ...formData,
-        levelRates: formData.levelRates.filter((_: LevelRateView, index: number) => index !== existingRateIndex),
+      setEditedRateCard({
+        ...editedRateCard,
+        level_rates: editedRateCard.level_rates.filter((_: LevelRateView, index: number) => index !== existingRateIndex),
       });
     } else if (existingRateIndex !== -1) {
-      const updatedRates = [...formData.levelRates];
+      const updatedRates = [...editedRateCard.level_rates];
       updatedRates[existingRateIndex] = {
         ...updatedRates[existingRateIndex],
         monthlyRate: monthlyRate.toString(),
       };
-      setFormData({
-        ...formData,
-        levelRates: updatedRates,
+      setEditedRateCard({
+        ...editedRateCard,
+        level_rates: updatedRates,
       });
     } else if (monthlyRate > 0) {
       const newRate: LevelRateView = {
@@ -90,24 +96,24 @@ export function RateCardDetails({
         level: getLevel(levelId)!,
         rateCard: rateCard,
       };
-      setFormData({
-        ...formData,
-        levelRates: [...formData.levelRates, newRate],
+      setEditedRateCard({
+        ...editedRateCard,
+        level_rates: [...editedRateCard.level_rates, newRate],
       });
     }
   };
 
   const getLevelRate = (levelId: number) => {
-    return formData.levelRates.find((rate: LevelRateView) => rate.level.id === levelId)?.monthlyRate || 0;
+    return editedRateCard.level_rates.find((rate: LevelRateView) => rate.level.id === levelId)?.monthlyRate || 0;
   };
 
   const handleSave = () => {
     const validationData = {
-      name: formData.name,
-      description: formData.description,
-      effectiveDate: new Date(formData.effectiveDate + 'T00:00:00Z'),
-      expireDate: formData.expireDate ? new Date(formData.expireDate + 'T00:00:00Z') : null,
-      levelRates: formData.levelRates.map((rate: LevelRateView) => ({
+      name: editedRateCard.name,
+      description: editedRateCard.description,
+      effectiveDate: new Date(editedRateCard.effective_date + 'T00:00:00Z'),
+      expireDate: editedRateCard.expire_date ? new Date(editedRateCard.expire_date + 'T00:00:00Z') : null,
+      levelRates: editedRateCard.level_rates.map((rate: LevelRateView) => ({
         levelId: rate.level.id,
         monthlyRate: Number(rate.monthlyRate),
       })),
@@ -115,15 +121,14 @@ export function RateCardDetails({
     if (!validate(validationData)) return;
 
     onSave({
-      name: formData.name,
-      description: formData.description,
-      effectiveDate: new Date(formData.effectiveDate + 'T00:00:00Z'),
-      expireDate: formData.expireDate ? new Date(formData.expireDate + 'T00:00:00Z') : null,
-      levelRates: formData.levelRates.map((rate: LevelRateView) => ({
+      name: editedRateCard.name,
+      description: editedRateCard.description,
+      effectiveDate: new Date(editedRateCard.effective_date + 'T00:00:00Z'),
+      expireDate: editedRateCard.expire_date ? new Date(editedRateCard.expire_date + 'T00:00:00Z') : null,
+      levelRates: editedRateCard.level_rates.map((rate: LevelRateView) => ({
         id: rate.id,
         level: rate.level,
         monthlyRate: Number(rate.monthlyRate),
-        rateCard: rateCard,
       })),
     });
     setIsEditing(false);
@@ -131,12 +136,12 @@ export function RateCardDetails({
   };
 
   const handleStartEdit = () => {
-    setFormData({
+    setEditedRateCard({
       name: rateCard.name,
       description: rateCard.description ?? '',
-      effectiveDate: rateCard.effectiveDate.toISOString().split('T')[0],
-      expireDate: rateCard.expireDate?.toISOString().split('T')[0] ?? '',
-      levelRates: rateCard.levelRates.map((rate: LevelRateView) => ({
+      effective_date: rateCard.effectiveDate ? rateCard.effectiveDate.toISOString().split('T')[0] : '',
+      expire_date: rateCard.expireDate ? rateCard.expireDate.toISOString().split('T')[0] : '',
+      level_rates: rateCard.levelRates.map((rate: LevelRateView) => ({
         id: rate.id,
         level: rate.level,
         monthlyRate: rate.monthlyRate,
@@ -155,63 +160,27 @@ export function RateCardDetails({
     <Dialog open={!!rateCard} onOpenChange={onOpenChange}>
       <DialogContent className="modal-content">
         <DialogHeader className="modal-header">
-          <DialogTitle className="modal-title">
-            {isEditing ? (
-              <Input
-                value={formData.name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
-                error={getFieldError('name')}
-                required
-              />
-            ) : (
-              rateCard.name
-            )}
-          </DialogTitle>
+          <DialogTitle className="modal-title">{rateCard.name}</DialogTitle>
         </DialogHeader>
         
         <div className="modal-section">
           <div>
             <h2 className="modal-section-title">Description</h2>
-            {isEditing ? (
-              <Input
-                value={formData.description}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, description: e.target.value })}
-                error={getFieldError('description')}
-                required
-              />
-            ) : (
-              <p className="modal-value">{rateCard.description}</p>
-            )}
+            <p className="modal-value">{rateCard.description}</p>
           </div>
 
           <div>
             <h2 className="modal-section-title">Effective Date</h2>
-            {isEditing ? (
-              <Input
-                type="date"
-                value={formData.effective_date}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, effective_date: e.target.value })}
-                error={getFieldError('effective_date')}
-                required
-              />
-            ) : (
-              <p className="modal-value">{formatDate(rateCard.effectiveDate)}</p>
-            )}
+            <p className="modal-value">
+              {rateCard.effectiveDate ? formatDate(rateCard.effectiveDate) : 'No date set'}
+            </p>
           </div>
 
           <div>
             <h2 className="modal-section-title">Expire Date</h2>
-            {isEditing ? (
-              <Input
-                type="date"
-                value={formData.expireDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, expireDate: e.target.value })}
-                error={getFieldError('expire_date')}
-                required
-              />
-            ) : (
-              <p className="modal-value">{rateCard.expireDate ? formatDate(rateCard.expireDate) : 'No expiration date'}</p>
-            )}
+            <p className="modal-value">
+              {rateCard.expireDate ? formatDate(rateCard.expireDate) : 'No expiration date'}
+            </p>
           </div>
 
           <div>
@@ -220,69 +189,35 @@ export function RateCardDetails({
               {levels.map((level) => (
                 <div key={level.id} className="flex justify-between items-center text-sm">
                   <span className="font-medium text-gray-900">{level.name}</span>
-                  {isEditing ? (
-                    <Input
-                      type="number"
-                      value={getLevelRate(level.id)}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleLevelRateChange(level.id, parseFloat(e.target.value))}
-                      min="0"
-                      step="0.01"
-                      className="w-32 text-right"
-                    />
-                  ) : (
-                    <span className="text-gray-600">
-                      {formatCurrency(Number(rateCard.levelRates.find(r => r.level.id === level.id)?.monthlyRate || 0))}
-                    </span>
-                  )}
+                  <span className="text-gray-600">
+                    {formatCurrency(Number(rateCard.levelRates.find((r: LevelRateView) => r.level.id === level.id)?.monthlyRate || 0))}
+                  </span>
                 </div>
               ))}
             </div>
-            {isEditing && getFieldError('level_rates') && (
-              <p className="text-sm text-red-600">{getFieldError('level_rates')}</p>
-            )}
           </div>
         </div>
 
         <DialogFooter className="modal-footer">
-          {isEditing ? (
-            <>
-              <Button
-                type="button"
-                variant="secondary"
-                className="modal-button"
-                onClick={handleCancel}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                className="modal-button"
-                onClick={handleSave}
-              >
-                Save
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                type="button"
-                variant="secondary"
-                className="modal-button"
-                onClick={handleStartEdit}
-              >
-                Edit
-              </Button>
-              <Button
-                type="button"
-                variant="danger"
-                className="modal-button"
-                onClick={() => onDelete(rateCard)}
-              >
-                Delete
-              </Button>
-            </>
-          )}
+          <Button
+            type="button"
+            variant="secondary"
+            className="modal-button"
+            onClick={() => {
+              onOpenChange(false);
+              onEdit(rateCard);
+            }}
+          >
+            Edit
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            className="modal-button"
+            onClick={() => onDelete(rateCard)}
+          >
+            Delete
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

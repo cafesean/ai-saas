@@ -1,5 +1,3 @@
-'use client';
-
 import { create } from "zustand";
 import type { StateCreator } from "zustand";
 
@@ -18,7 +16,7 @@ interface UIState {
 }
 
 // Store implementation
-const createStore: StateCreator<UIState> = (set) => ({
+const createUIStore: StateCreator<UIState> = (set) => ({
   sidebarOpen: false,
   theme: 'light',
   isLoading: false,
@@ -30,4 +28,4 @@ const createStore: StateCreator<UIState> = (set) => ({
   setError: (error) => set({ error }),
 });
 
-export const useStore = create(createStore); 
+export const useUIStore = create(createUIStore); 

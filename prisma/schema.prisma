@@ -8,14 +8,15 @@ datasource db {
 }
 
 model role {
-  id          Int          @id @default(autoincrement())
-  uuid        String       @unique @default(uuid())
+  id          Int           @id @default(autoincrement())
+  uuid        String        @unique @default(uuid())
   name        String
   description String
   role_code   String
-  created_at  DateTime     @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime?    @updatedAt @db.Timestamptz(6)
+  created_at  DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime?     @updatedAt @db.Timestamptz(6)
   levels      level_role[]
+  role_policy role_policy[]
 
   @@map("roles")
 }
@@ -71,4 +72,102 @@ model level_rate {
   ratecard     ratecard  @relation(fields: [ratecard_id], references: [id], onDelete: Cascade)
 
   @@map("level_rates")
+}
+
+model org {
+  id                Int        @id @default(autoincrement())
+  created_at        DateTime?  @default(now()) @db.Timestamptz(6)
+  name              String?
+  country_id        Int?
+  type              Int?       @db.SmallInt
+  logo_url          String?
+  slug              String?
+  uuid              String?    @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  updated_at        DateTime?  @updatedAt @db.Timestamptz(6)
+  status            Int?       @db.SmallInt
+  tier_id           Int        @default(1)
+  category_id       Int?
+  plan_id           Int?
+  verified_at       DateTime?
+  business_address  String?
+  business_licenses String[]
+  linkedin_url      String?
+  website           String?
+  org_user          org_user[]
+}
+
+model org_user {
+  org_id    Int
+  user_uuid String? @db.Uuid
+  role      String
+  user_id   Int
+  org       org     @relation(fields: [org_id], references: [id])
+  user      user    @relation(fields: [user_id], references: [id])
+
+  @@id([org_id, user_id])
+}
+
+model role_policy {
+  id         Int       @id @default(autoincrement())
+  role_id    Int
+  name       String
+  can_create Boolean   @default(false)
+  can_read   Boolean   @default(false)
+  can_update Boolean   @default(false)
+  can_delete Boolean   @default(false)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @updatedAt @db.Timestamptz(6)
+  metadata   Json?
+  role       role      @relation(fields: [role_id], references: [id])
+}
+
+model user {
+  created_at    DateTime?  @default(now()) @db.Timestamptz(6)
+  status        Int?       @db.SmallInt
+  wallets       String[]
+  wallet_type   Int?
+  attributes    Json?
+  tokens        Json?
+  xp            Json?
+  profile       Json?
+  role_id       Int[]
+  org_id        Int[]
+  updated_at    DateTime?  @updatedAt @db.Timestamptz(6)
+  referred_by   String?
+  is_registered Boolean?
+  name          String?
+  email         Json?      @db.Json
+  password      String?
+  phone         Json?      @db.Json
+  avatar        String?
+  username      String?
+  uuid          String     @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id            Int        @id @default(autoincrement())
+  org_user      org_user[]
+  first_name    String?
+  last_name     String?
+}
+
+model group {
+  id          Int            @id(map: "groups_pkey") @default(autoincrement())
+  name        String
+  created_at  DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime?      @updatedAt @db.Timestamptz(6)
+  policy_ops  Json?          @db.Json
+  policy_org  Json?          @db.Json
+  role_policy group_policy[]
+}
+
+model group_policy {
+  id         Int       @id @default(autoincrement())
+  group_id   Int
+  name       String
+  can_create Boolean   @default(false)
+  can_read   Boolean   @default(false)
+  can_update Boolean   @default(false)
+  can_delete Boolean   @default(false)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @updatedAt @db.Timestamptz(6)
+  metadata   Json?
+  group      group     @relation(fields: [group_id], references: [id])
 }

@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { LevelView, RateCardView } from '@/types';
+import { LevelView, RateCardView } from '@/framework/types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
