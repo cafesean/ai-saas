@@ -17,7 +17,7 @@ export function useTableFilter<T>({
 
   const handleFilterChange = React.useCallback(
     (column: keyof T, value: string) => {
-      setFilters((prev) => ({
+      setFilters((prev: Record<keyof T, string>) => ({
         ...prev,
         [column]: value,
       }));

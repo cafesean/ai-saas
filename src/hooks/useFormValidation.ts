@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { z } from 'zod';
 
 interface ValidationError {
@@ -13,7 +13,7 @@ export function useFormValidation<T extends z.ZodRawShape>(schema: z.ZodObject<T
     const result = schema.safeParse(data);
     if (!result.success) {
       setErrors(
-        result.error.errors.map((error: z.ZodError) => ({
+        result.error.errors.map((error: z.ZodIssue) => ({
           path: error.path,
           message: error.message,
         }))

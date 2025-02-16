@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { Level, RateCard } from '@/types';
+import { LevelView, RateCardView } from '@/types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -17,15 +17,15 @@ export function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36)
 }
 
-export function findLevelUsage(levelId: string, rateCards: RateCard[]): RateCard[] {
+export function findLevelUsage(levelId: number, rateCards: RateCardView[]): RateCardView[] {
   return rateCards.filter(rateCard => 
-    rateCard.levelRates.some(rate => rate.levelId === levelId)
+    rateCard.levelRates.some(rate => rate.level.id === levelId)
   );
 }
 
-export function removeLevelFromRateCards(levelId: string, rateCards: RateCard[]): RateCard[] {
+export function removeLevelFromRateCards(levelId: number, rateCards: RateCardView[]): RateCardView[] {
   return rateCards.map(rateCard => ({
     ...rateCard,
-    levelRates: rateCard.levelRates.filter(rate => rate.levelId !== levelId)
+    levelRates: rateCard.levelRates.filter(rate => rate.level.id !== levelId)
   }));
 } 

@@ -1,0 +1,1 @@
+We are in design mode. We're not going to be building any backend functionality. Use mock endpoints that pass back dummy JSON data for any API fetch calls. For TRPC calls, just return dummy JSON data.`

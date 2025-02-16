@@ -2,7 +2,7 @@ import React from 'react';
 import { Table } from './Table';
 import { useTableState } from '@/hooks/useTableState';
 import { ColumnDef } from '@tanstack/react-table';
-import { Input } from '../input';
+import { Input } from '../Input';
 import { cn } from '@/lib/utils';
 import { Search } from 'lucide-react';
 

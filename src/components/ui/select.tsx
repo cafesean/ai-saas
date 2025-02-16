@@ -1,18 +1,19 @@
 'use client';
 
-import type { SelectHTMLAttributes, ReactNode } from 'react';
+import React from 'react';
 import { cn } from '@/lib/utils';
-import { FormError } from './form-error';
+import { FormError } from './FormError';
 
 export interface Option {
   value: string;
   label: string;
 }
 
-export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label?: ReactNode;
+export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+  label?: React.ReactNode;
   error?: string;
   options: Option[];
+  className?: string;
 }
 
 export function Select({ label, error, options, className, ...props }: SelectProps) {

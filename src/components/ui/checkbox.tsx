@@ -1,11 +1,11 @@
 'use client';
 
-import type { InputHTMLAttributes, ReactNode } from 'react';
+import React from 'react';
 import { cn } from '@/lib/utils';
-import { FormError } from './form-error';
+import { FormError } from './FormError';
 
-export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
-  label?: ReactNode;
+interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
+  label?: string;
   error?: string;
 }
 

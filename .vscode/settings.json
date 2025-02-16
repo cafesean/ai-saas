@@ -1,0 +1,13 @@
+{
+	"files.associations": {
+		"*.css": "tailwindcss"
+	},
+	"editor.quickSuggestions": {
+		"strings": "on"
+	},
+	"tailwindCSS.includeLanguages": {
+		"plaintext": "javascript"
+	},
+	"prettier.printWidth": 120,
+	"yaml.format.proseWrap": "always"
+}

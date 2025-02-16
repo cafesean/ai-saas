@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model role {
+  id          Int          @id @default(autoincrement())
+  uuid        String       @unique @default(uuid())
+  name        String
+  description String
+  role_code   String
+  created_at  DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime?    @updatedAt @db.Timestamptz(6)
+  levels      level_role[]
+
+  @@map("roles")
+}
+
+model level {
+  id          Int          @id @default(autoincrement())
+  uuid        String       @unique @default(uuid())
+  name        String
+  description String
+  code        String
+  created_at  DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime?    @updatedAt @db.Timestamptz(6)
+  roles       level_role[]
+  rates       level_rate[]
+
+  @@map("levels")
+}
+
+model level_role {
+  level_id   Int      @map("level_id")
+  role_id    Int      @map("role_id")
+  created_at DateTime @default(now())
+  level      level    @relation(fields: [level_id], references: [id], onDelete: Cascade)
+  role       role     @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  @@id([level_id, role_id])
+  @@map("level_roles")
+}
+
+model ratecard {
+  id             Int          @id @default(autoincrement())
+  uuid           String       @unique @default(uuid())
+  name           String
+  description    String
+  effective_date DateTime
+  expire_date    DateTime?
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?    @updatedAt @db.Timestamptz(6)
+  level_rates    level_rate[]
+
+  @@map("ratecards")
+}
+
+model level_rate {
+  id           Int       @id @default(autoincrement())
+  uuid         String    @unique @default(uuid())
+  monthly_rate Decimal   @db.Decimal(10, 2)
+  level_id     Int
+  ratecard_id  Int       @map("ratecard_id")
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime? @updatedAt @db.Timestamptz(6)
+  level        level     @relation(fields: [level_id], references: [id], onDelete: Cascade)
+  ratecard     ratecard  @relation(fields: [ratecard_id], references: [id], onDelete: Cascade)
+
+  @@map("level_rates")
+}

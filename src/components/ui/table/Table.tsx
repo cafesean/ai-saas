@@ -1,18 +1,18 @@
-import React from 'react';
-import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  flexRender,
-  SortingState,
-  ColumnDef,
-  OnChangeFn,
-  RowSelectionState,
-} from '@tanstack/react-table';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { cn } from '@/lib/utils';
 import { TableProps } from '@/types/table';
-import { Skeleton } from '@/components/ui/skeleton';
+import {
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  OnChangeFn,
+  RowSelectionState,
+  SortingState,
+  useReactTable
+} from '@tanstack/react-table';
+import Image from 'next/image';
+import React from 'react';
 
 export function Table<T>({
   data,
@@ -177,20 +177,13 @@ export function Table<T>({
                 disabled={!currentPage || currentPage === 1}
               >
                 <span className="sr-only">Previous page</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                <Image
+                  src="/icons/chevron-left.svg"
+                  alt="Previous page"
+                  width={24}
+                  height={24}
                   className="h-4 w-4 mx-auto"
-                >
-                  <path d="m15 18-6-6 6-6" />
-                </svg>
+                />
               </button>
               <button
                 className="h-6 w-6 rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50"
@@ -204,20 +197,13 @@ export function Table<T>({
                 }
               >
                 <span className="sr-only">Next page</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                <Image
+                  src="/icons/chevron-right.svg"
+                  alt="Next page"
+                  width={24}
+                  height={24}
                   className="h-4 w-4 mx-auto"
-                >
-                  <path d="m9 18 6-6-6-6" />
-                </svg>
+                />
               </button>
             </div>
           </div>
