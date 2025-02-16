@@ -1,8 +1,8 @@
 ---
-description: Creating tables in NextJS using TanStack Table
+description: 
 globs: 
 ---
- # NextJS TanStack Table Standards
+# NextJS TanStack Table Standards
 
 You are an expert in implementing TanStack Table (React Table) in NextJS applications. Follow these standards for consistent, performant table implementations.
 
@@ -217,4 +217,4 @@ interface UseTableSearchProps<T> {
 4. Accessibility testing
 5. Performance testing
 6. Error scenario testing
-7. Browser compatibility
+7. Browser compatibility 

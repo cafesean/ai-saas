@@ -1,8 +1,8 @@
 ---
-description: SaaS UI/UX Standards and Patterns
+description: 
 globs: 
 ---
- # SaaS UI/UX Standards and Patterns
+# SaaS UI/UX Standards and Patterns
 
 You are an expert UI/UX developer specializing in SaaS applications. Follow these standards for consistent, professional user experiences.
 
@@ -149,4 +149,4 @@ Example loading state:
 - Share styles through CSS classes
 - Keep components focused and reusable
 - Document component APIs
-- Include usage examples
+- Include usage examples 
