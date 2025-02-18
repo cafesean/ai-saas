@@ -48,13 +48,13 @@ export function useRateCardState() {
     const today = getInitialDate();
     const nextYear = new Date();
     nextYear.setFullYear(nextYear.getFullYear() + 1);
-    const expireDate = nextYear.toISOString().split('T')[0];
+    const expire_date = nextYear.toISOString().split('T')[0];
 
     return {
       ...emptyRateCard,
       name: getDefaultRateCardName(),
       effective_date: today,
-      expire_date: expireDate,
+      expire_date: expire_date,
     };
   });
   const [isConfirming, setIsConfirming] = React.useState(false);
@@ -108,13 +108,13 @@ export function useRateCardState() {
     const today = getInitialDate();
     const nextYear = new Date();
     nextYear.setFullYear(nextYear.getFullYear() + 1);
-    const expireDate = nextYear.toISOString().split('T')[0];
+    const expire_date = nextYear.toISOString().split('T')[0];
 
     setNewRateCard({
       ...emptyRateCard,
       name: getDefaultRateCardName(),
       effective_date: today,
-      expire_date: expireDate,
+      expire_date: expire_date,
     });
     setSelectedRateCard(null);
     setIsConfirming(false);

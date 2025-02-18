@@ -1,6 +1,6 @@
 // File: /components/modals/ConfirmDelete.tsx
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog';
-import { Button } from '@/components/ui/Button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/form/Button';
 import type { RateCardView } from '@/framework/types';
 
 interface ConfirmDeleteProps {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { RoleView } from '@/framework/types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog';
-import { Button } from '@/components/ui/Button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/form/Button';
 import { Input } from '@/components/ui/Input';
 import { useFormValidation } from '@/framework/hooks/useFormValidation';
 import { roleSchema } from '@/schemas';
@@ -91,7 +91,7 @@ export function RoleDetails({
             <h2 className="text-sm font-medium text-gray-700">Description</h2>
             {isEditing ? (
               <Input
-                value={formData.description}
+                value={formData.description as string}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, description: e.target.value })}
                 error={getFieldError('description')}
                 required

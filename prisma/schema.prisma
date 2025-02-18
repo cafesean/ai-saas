@@ -8,29 +8,31 @@ datasource db {
 }
 
 model role {
-  id          Int           @id @default(autoincrement())
-  uuid        String        @unique @default(uuid())
-  name        String
-  description String
-  role_code   String
-  created_at  DateTime      @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime?     @updatedAt @db.Timestamptz(6)
-  levels      level_role[]
-  role_policy role_policy[]
+  id            Int             @id @default(autoincrement())
+  name          String
+  description   String
+  role_code     String
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime?       @updatedAt @db.Timestamptz(6)
+  uuid          String?         @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  levels        level_role[]
+  pricing_roles pricing_roles[]
+  role_policy   role_policy[]
 
   @@map("roles")
 }
 
 model level {
-  id          Int          @id @default(autoincrement())
-  uuid        String       @unique @default(uuid())
-  name        String
-  description String
-  code        String
-  created_at  DateTime     @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime?    @updatedAt @db.Timestamptz(6)
-  roles       level_role[]
-  rates       level_rate[]
+  id            Int             @id @default(autoincrement())
+  name          String
+  description   String
+  code          String
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime?       @updatedAt @db.Timestamptz(6)
+  uuid          String?         @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  rates         level_rate[]
+  roles         level_role[]
+  pricing_roles pricing_roles[]
 
   @@map("levels")
 }
@@ -48,26 +50,27 @@ model level_role {
 
 model ratecard {
   id             Int          @id @default(autoincrement())
-  uuid           String       @unique @default(uuid())
   name           String
   description    String
   effective_date DateTime
   expire_date    DateTime?
   created_at     DateTime     @default(now()) @db.Timestamptz(6)
   updated_at     DateTime?    @updatedAt @db.Timestamptz(6)
+  uuid           String?      @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   level_rates    level_rate[]
+  pricings       pricings[]
 
   @@map("ratecards")
 }
 
 model level_rate {
   id           Int       @id @default(autoincrement())
-  uuid         String    @unique @default(uuid())
   monthly_rate Decimal   @db.Decimal(10, 2)
   level_id     Int
   ratecard_id  Int       @map("ratecard_id")
   created_at   DateTime  @default(now()) @db.Timestamptz(6)
   updated_at   DateTime? @updatedAt @db.Timestamptz(6)
+  uuid         String?   @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   level        level     @relation(fields: [level_id], references: [id], onDelete: Cascade)
   ratecard     ratecard  @relation(fields: [ratecard_id], references: [id], onDelete: Cascade)
 
@@ -141,11 +144,11 @@ model user {
   phone         Json?      @db.Json
   avatar        String?
   username      String?
-  uuid          String     @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  uuid          String?    @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   id            Int        @id @default(autoincrement())
-  org_user      org_user[]
   first_name    String?
   last_name     String?
+  org_user      org_user[]
 }
 
 model group {
@@ -170,4 +173,38 @@ model group_policy {
   updated_at DateTime? @updatedAt @db.Timestamptz(6)
   metadata   Json?
   group      group     @relation(fields: [group_id], references: [id])
+}
+
+model pricing_roles {
+  id             Int      @id @default(autoincrement())
+  uuid           String?  @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  pricing_id     Int
+  role_id        Int
+  level_id       Int
+  quantity       Int
+  base_price     Decimal  @db.Decimal(10, 2)
+  override_price Decimal? @db.Decimal(10, 2)
+  discount_rate  Decimal? @db.Decimal(5, 2)
+  multiplier     Decimal  @db.Decimal(5, 2)
+  final_price    Decimal  @db.Decimal(10, 2)
+  levels         level    @relation(fields: [level_id], references: [id])
+  pricings       pricings @relation(fields: [pricing_id], references: [id])
+  roles          role     @relation(fields: [role_id], references: [id])
+}
+
+model pricings {
+  id                Int             @id @default(autoincrement())
+  uuid              String?         @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  code              String          @unique
+  description       String
+  customer_id       String
+  created_by        String
+  created_at        DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?       @db.Timestamptz(6)
+  ratecard_id       Int
+  total_amount      Decimal         @db.Decimal(10, 2)
+  resource_count    Int
+  overall_discounts Json?           @db.Json
+  pricing_roles     pricing_roles[]
+  ratecards         ratecard        @relation(fields: [ratecard_id], references: [id])
 }

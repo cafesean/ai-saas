@@ -1,0 +1,489 @@
+{
+  "name": "RAG Chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "dataType": "binary",
+        "binaryMode": "specificField",
+        "options": {}
+      },
+      "id": "215f0519-4359-4e4b-a90c-7e54b1cc52b5",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "position": [
+        1000,
+        580
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "chunkSize": 500,
+        "chunkOverlap": 100,
+        "options": {}
+      },
+      "id": "863d3d1d-1621-406e-8320-688f64b07b09",
+      "name": "Recursive Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "position": [
+        1280,
+        780
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a helpful assistant designed to answer employee questions based on company policies.\n\nRetrieve relevant information from the provided internal documents and provide a concise, accurate, and informative answer to the employee's question.\n\nUse the tool called \"company_documents_tool\" to retrieve any information from the company's documents.\n\nIf the answer cannot be found in the provided documents, respond with \"I cannot find the answer in the available resources.\""
+        }
+      },
+      "id": "5af1efb1-ea69-466e-bb3b-2b7e6b1ceef7",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        880,
+        1060
+      ],
+      "typeVersion": 1.7
+    },
+    {
+      "parameters": {
+        "name": "company_documents_tool",
+        "description": "Retrieve information from any company documents"
+      },
+      "id": "825632ac-1edf-4e63-948d-b1a498b2b962",
+      "name": "Vector Store Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "position": [
+        1160,
+        1260
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "modelName": "models/text-embedding-004"
+      },
+      "id": "eeff81cb-6aec-4e7f-afe0-432d87085fb2",
+      "name": "Embeddings Google Gemini (retrieval)",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "position": [
+        1160,
+        1620
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "yqRa96kV845jXFuW",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "1e38f1c8-7bd0-4eeb-addc-62339582d350",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "position": [
+        960,
+        1360
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-exp",
+        "options": {}
+      },
+      "id": "f2133a06-0088-46de-9f74-a3f9fe478f98",
+      "name": "Google Gemini Chat Model (retrieval)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "position": [
+        1540,
+        1460
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "yqRa96kV845jXFuW",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        820,
+        360
+      ],
+      "id": "cdc06835-a24e-464d-928d-6a6b7e6e4ce4",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "bTRoTtQ500Nqj18I",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "b8478dd6-0b76-4412-93ca-c6d69cc7498f",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        400
+      ],
+      "id": "a48faf2b-4f00-44b6-8b7a-d7383dd6f2ff",
+      "name": "Webhook",
+      "webhookId": "b8478dd6-0b76-4412-93ca-c6d69cc7498f"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        740,
+        1280
+      ],
+      "id": "35864fdc-c6a8-44a7-be70-bd15f9a1b519",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "yqRa96kV845jXFuW",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/text-embedding-004"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        720,
+        580
+      ],
+      "id": "51c2e0bd-f641-4c2e-ab26-f4feeb877452",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "yqRa96kV845jXFuW",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        1440
+      ],
+      "id": "1b997c9b-b5a3-4a9b-b22b-f1f929a5c36e",
+      "name": "Supabase Vector Store1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "bTRoTtQ500Nqj18I",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#notif-test",
+          "mode": "name"
+        },
+        "text": "={{ $json.output }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1240,
+        1060
+      ],
+      "id": "950bfe31-7d97-4c9a-a5ed-de3381be50af",
+      "name": "Slack",
+      "webhookId": "872745ea-cdc3-4dbd-804a-8ca895330f03",
+      "credentials": {
+        "slackApi": {
+          "id": "JmHaChqSBsEn8bCb",
+          "name": "Slack - JetDevs"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "0fa5d8d7-f9ca-4cbf-87b7-b320a0eaa7f7",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        1060
+      ],
+      "id": "f93e8164-b006-4bb2-8987-5359de17830d",
+      "name": "Webhook1",
+      "webhookId": "0fa5d8d7-f9ca-4cbf-87b7-b320a0eaa7f7"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.event.bot_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "IsBot"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1a89f891-d820-4786-b8d5-43564ef40e02",
+                    "leftValue": "={{ $json.body.event.bot_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notExists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "NotBot"
+            }
+          ]
+        },
+        "options": {
+          "allMatchingOutputs": true
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        660,
+        1060
+      ],
+      "id": "7cb4a423-9d0f-4f80-bdbb-b56108dcd9b2",
+      "name": "Switch"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector Store Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini (retrieval)": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model (retrieval)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Vector Store Tool",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store1": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Vector Store Tool",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "73ad3ba8-ec49-444b-8713-078db972499a",
+  "meta": {
+    "templateId": "2753",
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f66938e5f2abf7e101e0569dc334144149265077765aa6e39e07dd7916ee0141"
+  },
+  "id": "mX0rjFVvbzw5q5vJ",
+  "tags": []
+}

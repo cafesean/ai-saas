@@ -1,4 +1,4 @@
-import { Skeleton } from '@/components/ui/Skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/framework/lib/utils';
 import { TableProps } from '@/framework/types/table';
 import {

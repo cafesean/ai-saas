@@ -3,7 +3,7 @@
 import React from 'react';
 import type { RateCardView, LevelView } from '@/framework/types';
 import type { Row } from '@tanstack/react-table';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/form/Button';
 import { formatCurrency } from '@/framework/lib/utils';
 import { ArrowUpDown } from 'lucide-react';
 import { RateCardDetails } from '@/app/(admin)/rate-cards/components/RateCardDetail';
@@ -145,8 +145,8 @@ export default function RateCardsPage() {
     const newCard = {
       name: rateCard.name,
       description: rateCard.description ?? '',
-      effective_date: rateCard.effectiveDate.toISOString().split('T')[0],
-      expire_date: rateCard.expireDate ? rateCard.expireDate.toISOString().split('T')[0] : '',
+      effective_date: rateCard.effective_date.toISOString().split('T')[0],
+      expire_date: rateCard.expire_date ? rateCard.expire_date.toISOString().split('T')[0] : '',
       level_rates: rateCard.levelRates.map(rate => ({
         id: rate.id.toString(),
         level_id: rate.level.id,
@@ -154,7 +154,7 @@ export default function RateCardsPage() {
         level: rate.level,
       })),
     };
-    setNewRateCard(newCard);
+    setNewRateCard(newCard as NewRateCard);
     setIsModalOpen(true);
   };
 
@@ -215,10 +215,10 @@ export default function RateCardsPage() {
           ? a.name.localeCompare(b.name)
           : b.name.localeCompare(a.name);
       }
-      if (sortConfig.key === 'effectiveDate') {
+      if (sortConfig.key === 'effective_date') {
         return sortConfig.direction === 'asc'
-          ? a.effectiveDate.getTime() - b.effectiveDate.getTime()
-          : b.effectiveDate.getTime() - a.effectiveDate.getTime();
+          ? a.effective_date.getTime() - b.effective_date.getTime()
+          : b.effective_date.getTime() - a.effective_date.getTime();
       }
       return 0;
     });
@@ -255,7 +255,7 @@ export default function RateCardsPage() {
         },
       },
       {
-        key: 'effectiveDate',
+        key: 'effective_date',
         header: 'Effective Date',
         cell: ({ getValue }) => {
           const date = getValue() as Date;
@@ -267,7 +267,7 @@ export default function RateCardsPage() {
         },
       },
       {
-        key: 'expireDate',
+        key: 'expire_date',
         header: 'Expire Date',
         cell: ({ getValue }) => {
           const date = getValue() as Date | null;
@@ -400,8 +400,8 @@ export default function RateCardsPage() {
                   data: {
                     name: rateCardData.name,
                     description: rateCardData.description,
-                    effective_date: rateCardData.effectiveDate,
-                    expire_date: rateCardData.expireDate,
+                    effective_date: rateCardData.effective_date,
+                    expire_date: rateCardData.expire_date,
                     level_rates: rateCardData.levelRates.map((rate) => ({
                       level_id: rate.level.id,
                       monthly_rate: rate.monthlyRate,

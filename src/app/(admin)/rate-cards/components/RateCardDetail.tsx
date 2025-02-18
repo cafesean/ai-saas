@@ -1,7 +1,7 @@
 import React from 'react';
 import { RateCardView, LevelView, LevelRateView } from '@/framework/types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog';
-import { Button } from '@/components/ui/Button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/form/Button';
 import { Input } from '@/components/ui/Input';
 import { formatCurrency } from '@/framework/lib/utils';
 import { useFormValidation } from '@/framework/hooks/useFormValidation';
@@ -38,13 +38,13 @@ export function RateCardDetails({
   const [editedRateCard, setEditedRateCard] = React.useState<FormData>({
     name: rateCard.name,
     description: rateCard.description ?? '',
-    effective_date: rateCard.effectiveDate instanceof Date 
-      ? rateCard.effectiveDate.toISOString().split('T')[0]
-      : new Date(rateCard.effectiveDate).toISOString().split('T')[0],
-    expire_date: rateCard.expireDate 
-      ? (rateCard.expireDate instanceof Date 
-        ? rateCard.expireDate.toISOString().split('T')[0]
-        : new Date(rateCard.expireDate).toISOString().split('T')[0])
+    effective_date: rateCard.effective_date instanceof Date 
+      ? rateCard.effective_date.toISOString().split('T')[0]
+      : new Date(rateCard.effective_date).toISOString().split('T')[0],
+    expire_date: rateCard.expire_date 
+      ? (rateCard.expire_date instanceof Date 
+        ? rateCard.expire_date.toISOString().split('T')[0]
+        : new Date(rateCard.expire_date).toISOString().split('T')[0])
       : '',
     level_rates: rateCard.levelRates,
   });
@@ -111,8 +111,8 @@ export function RateCardDetails({
     const validationData = {
       name: editedRateCard.name,
       description: editedRateCard.description,
-      effectiveDate: new Date(editedRateCard.effective_date + 'T00:00:00Z'),
-      expireDate: editedRateCard.expire_date ? new Date(editedRateCard.expire_date + 'T00:00:00Z') : null,
+      effective_date: new Date(editedRateCard.effective_date + 'T00:00:00Z'),
+      expire_date: editedRateCard.expire_date ? new Date(editedRateCard.expire_date + 'T00:00:00Z') : null,
       levelRates: editedRateCard.level_rates.map((rate: LevelRateView) => ({
         levelId: rate.level.id,
         monthlyRate: Number(rate.monthlyRate),
@@ -123,8 +123,8 @@ export function RateCardDetails({
     onSave({
       name: editedRateCard.name,
       description: editedRateCard.description,
-      effectiveDate: new Date(editedRateCard.effective_date + 'T00:00:00Z'),
-      expireDate: editedRateCard.expire_date ? new Date(editedRateCard.expire_date + 'T00:00:00Z') : null,
+      effective_date: new Date(editedRateCard.effective_date + 'T00:00:00Z'),
+      expire_date: editedRateCard.expire_date ? new Date(editedRateCard.expire_date + 'T00:00:00Z') : null,
       levelRates: editedRateCard.level_rates.map((rate: LevelRateView) => ({
         id: rate.id,
         level: rate.level,
@@ -139,8 +139,8 @@ export function RateCardDetails({
     setEditedRateCard({
       name: rateCard.name,
       description: rateCard.description ?? '',
-      effective_date: rateCard.effectiveDate ? rateCard.effectiveDate.toISOString().split('T')[0] : '',
-      expire_date: rateCard.expireDate ? rateCard.expireDate.toISOString().split('T')[0] : '',
+      effective_date: rateCard.effective_date ? rateCard.effective_date.toISOString().split('T')[0] : '',
+      expire_date: rateCard.expire_date ? rateCard.expire_date.toISOString().split('T')[0] : '',
       level_rates: rateCard.levelRates.map((rate: LevelRateView) => ({
         id: rate.id,
         level: rate.level,
@@ -172,14 +172,14 @@ export function RateCardDetails({
           <div>
             <h2 className="modal-section-title">Effective Date</h2>
             <p className="modal-value">
-              {rateCard.effectiveDate ? formatDate(rateCard.effectiveDate) : 'No date set'}
+              {rateCard.effective_date ? formatDate(rateCard.effective_date) : 'No date set'}
             </p>
           </div>
 
           <div>
             <h2 className="modal-section-title">Expire Date</h2>
             <p className="modal-value">
-              {rateCard.expireDate ? formatDate(rateCard.expireDate) : 'No expiration date'}
+              {rateCard.expire_date ? formatDate(rateCard.expire_date) : 'No expiration date'}
             </p>
           </div>
 

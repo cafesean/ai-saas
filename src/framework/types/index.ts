@@ -35,8 +35,8 @@ export interface RateCardView {
   id: number;
   name: string;
   description: string | null;
-  effectiveDate: Date;
-  expireDate: Date | null;
+  effective_date: Date;
+  expire_date: Date | null;
   levelRates: LevelRateView[];
 }
 
@@ -69,8 +69,8 @@ export function dbToAppLevelRate(rate: DbLevelRate & { level: DbLevel, rate_card
       id: rate.rate_card.id,
       name: rate.rate_card.name,
       description: rate.rate_card.description,
-      effectiveDate: rate.rate_card.effective_date,
-      expireDate: rate.rate_card.expire_date,
+      effective_date: rate.rate_card.effective_date,
+      expire_date: rate.rate_card.expire_date,
       levelRates: [],
     },
   };
@@ -81,8 +81,8 @@ export function dbToAppRateCard(card: DbRateCard & { level_rates?: Array<DbLevel
     id: card.id,
     name: card.name,
     description: card.description,
-    effectiveDate: card.effective_date,
-    expireDate: card.expire_date,
+    effective_date: card.effective_date,
+    expire_date: card.expire_date,
     levelRates: card.level_rates?.map(rate => dbToAppLevelRate(rate)) ?? [],
   };
 } 

@@ -1,5 +1,5 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog';
-import { Button } from '@/components/ui/Button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/form/Button';
 import { Input } from '@/components/ui/Input';
 import type { RateCardView, LevelView } from '@/framework/types';
 import { useFormValidation } from '@/framework/hooks/useFormValidation';

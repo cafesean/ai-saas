@@ -2,8 +2,8 @@
 
 import { RoleDetails } from '@/app/(admin)/roles/components/RoleDetail';
 import { FormInput } from '@/components/form';
-import { Button } from '@/components/ui/Button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
+import { Button } from '@/components/form/Button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DataTable } from '@/components/ui/table/DataTable';
 import { useModalState } from '@/framework/hooks/useModalState';
 import { useRoleForm } from '@/framework/hooks/useRoleForm';
