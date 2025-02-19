@@ -52,8 +52,8 @@ export const RoleLevelPricingRow = ({ role, roles, levels, onUpdate }: RoleLevel
           updates.override_price === ''
             ? undefined
             : Number(updates.override_price),
-        discountRate:
-          updates.discountRate === '' ? undefined : Number(updates.discountRate),
+        discount_rate:
+          updates.discount_rate === '' ? undefined : Number(updates.discount_rate),
         quantity: updates.quantity === '' ? undefined : Number(updates.quantity),
       };
 
@@ -122,10 +122,10 @@ export const RoleLevelPricingRow = ({ role, roles, levels, onUpdate }: RoleLevel
     [role.id, onUpdate, handleUpdateRole]
   );
 
-  const handleDiscountRateChange = useCallback(
+  const handlediscount_rateChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
-      const updates = { discountRate: value };
+      const updates = { discount_rate: value };
       onUpdate(role.id, updates);
       handleUpdateRole(updates);
     },
@@ -209,7 +209,7 @@ export const RoleLevelPricingRow = ({ role, roles, levels, onUpdate }: RoleLevel
             type="number"
             placeholder="Discount rate"
             value={role.discount_rate ?? ''}
-            onChange={handleDiscountRateChange}
+            onChange={handlediscount_rateChange}
           />
         </div>
 

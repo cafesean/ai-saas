@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { cn } from '@/framework/lib/utils';
-import { FormError } from './FormError';
+import FormError from './FormError';
 
 interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label?: string;

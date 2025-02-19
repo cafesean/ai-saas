@@ -13,7 +13,7 @@ export function useRoleForm(defaultValues?: Partial<RoleFormData>) {
     resolver: zodResolver(roleSchema),
     defaultValues: {
       name: '',
-      roleCode: '',
+      role_code: '',
       description: '',
       ...defaultValues,
     },

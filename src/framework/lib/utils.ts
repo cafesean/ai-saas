@@ -19,13 +19,13 @@ export function generateId(): string {
 
 export function findLevelUsage(levelId: number, rateCards: RateCardView[]): RateCardView[] {
   return rateCards.filter(rateCard => 
-    rateCard.levelRates.some(rate => rate.level.id === levelId)
+    rateCard.level_rates.some(rate => rate.level.id === levelId)
   );
 }
 
 export function removeLevelFromRateCards(levelId: number, rateCards: RateCardView[]): RateCardView[] {
   return rateCards.map(rateCard => ({
     ...rateCard,
-    levelRates: rateCard.levelRates.filter(rate => rate.level.id !== levelId)
+    level_rates: rateCard.level_rates.filter(rate => rate.level.id !== levelId)
   }));
 } 

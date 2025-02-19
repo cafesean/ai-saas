@@ -4,7 +4,7 @@ import { LevelView, RateCardView, RoleView } from '@/framework/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { formatCurrency } from '@/framework/lib/utils';
 import { Button } from '@/components/form/Button';
-import { Input } from '@/components/ui/Input';
+import { Input } from '@/components/form/Input';
 import { useFormValidation } from '@/framework/hooks/useFormValidation';
 import { levelSchema } from '@/schemas';
 
@@ -71,7 +71,7 @@ export function LevelDetails({
   };
 
   const usedInRateCards = rateCards.filter(rateCard =>
-    rateCard.levelRates.some(rate => rate.level.id === level.id)
+    rateCard.level_rates.some(rate => rate.level.id === level.id)
   );
 
   return (
@@ -168,7 +168,7 @@ export function LevelDetails({
                     </Link>
                     <span className="text-gray-600">
                       {formatCurrency(
-                        Number(rateCard.levelRates.find(rate => rate.level.id === level.id)?.monthlyRate) || 0
+                        Number(rateCard.level_rates.find(rate => rate.level.id === level.id)?.monthly_rate) || 0
                       )}
                     </span>
                   </div>

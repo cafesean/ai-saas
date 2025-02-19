@@ -4,9 +4,9 @@ import React from 'react';
 import { NextPage } from "next";
 import { useRouter } from 'next/navigation';
 import type { LevelView, RoleView, LevelRateView } from '@/framework/types';
-import { Input } from '@/components/ui/Input';
+import { Input } from '@/components/form/Input';
 import { Button } from '@/components/form/Button';
-import { Checkbox } from '@/components/ui/Checkbox';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useFormValidation } from '@/framework/hooks/useFormValidation';
 // import { levelSchema } from '@/schemas';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -503,7 +503,7 @@ const LevelsPage: NextPage = () => {
                             <span className="text-gray-600">{rateCard.name}</span>
                             <span className="text-gray-600">
                               {formatCurrency(
-                                Number(rateCard.levelRates.find((rate: LevelRateView) => rate.level.id === selectedLevel.id)?.monthlyRate) || 0
+                                Number(rateCard.level_rates.find((rate: LevelRateView) => rate.level.id === selectedLevel.id)?.monthly_rate) || 0
                               )}
                             </span>
                           </div>

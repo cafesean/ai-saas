@@ -13,7 +13,7 @@ export interface RoleView {
   id: number;
   name: string;
   description: string | null;
-  roleCode: string;
+  role_code: string;
 }
 
 export interface LevelView {
@@ -26,9 +26,9 @@ export interface LevelView {
 
 export interface LevelRateView {
   id: number;
-  monthlyRate: number;
+  monthly_rate: number;
   level: LevelView;
-  rateCard: RateCardView;
+  ratecard: RateCardView;
 }
 
 export interface RateCardView {
@@ -37,7 +37,7 @@ export interface RateCardView {
   description: string | null;
   effective_date: Date;
   expire_date: Date | null;
-  levelRates: LevelRateView[];
+  level_rates: LevelRateView[];
 }
 
 // Conversion functions
@@ -46,7 +46,7 @@ export function dbToAppRole(dbRole: DbRole): RoleView {
     id: dbRole.id,
     name: dbRole.name,
     description: dbRole.description,
-    roleCode: dbRole.role_code,
+    role_code: dbRole.role_code,
   };
 }
 
@@ -63,15 +63,15 @@ export function dbToAppLevel(dbLevel: DbLevel & { roles?: DbRole[] }): LevelView
 export function dbToAppLevelRate(rate: DbLevelRate & { level: DbLevel, rate_card: DbRateCard }): LevelRateView {
   return {
     id: rate.id,
-    monthlyRate: rate.monthly_rate,
+    monthly_rate: rate.monthly_rate,
     level: dbToAppLevel({ ...rate.level, roles: [] }),
-    rateCard: {
+    ratecard: {
       id: rate.rate_card.id,
       name: rate.rate_card.name,
       description: rate.rate_card.description,
       effective_date: rate.rate_card.effective_date,
       expire_date: rate.rate_card.expire_date,
-      levelRates: [],
+      level_rates: [],
     },
   };
 }
@@ -83,6 +83,6 @@ export function dbToAppRateCard(card: DbRateCard & { level_rates?: Array<DbLevel
     description: card.description,
     effective_date: card.effective_date,
     expire_date: card.expire_date,
-    levelRates: card.level_rates?.map(rate => dbToAppLevelRate(rate)) ?? [],
+    level_rates: card.level_rates?.map(rate => dbToAppLevelRate(rate)) ?? [],
   };
 } 

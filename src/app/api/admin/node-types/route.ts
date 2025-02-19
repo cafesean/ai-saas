@@ -12,10 +12,10 @@ const nodeTypeSchema = z.object({
 
 export async function GET() {
   try {
-    const nodeTypes = await db.select()
+    const nodeTypesList = await db.select()
       .from(nodeTypes)
       .orderBy(desc(nodeTypes.type));
-    return NextResponse.json(nodeTypes);
+    return NextResponse.json(nodeTypesList);
   } catch (error) {
     console.error('Error fetching node types:', error);
     return NextResponse.json(

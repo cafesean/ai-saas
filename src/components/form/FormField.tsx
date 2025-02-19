@@ -1,12 +1,12 @@
 'use client';
 
 import React from 'react';
-import { useController, Control, FieldValues, Path } from 'react-hook-form';
+import { useController, Control, FieldValues, Path, ControllerRenderProps } from 'react-hook-form';
 
 type FormFieldProps<T extends FieldValues> = {
   name: Path<T>;
   control: Control<T>;
-  render: (props: { field: ReturnType<typeof useController>['field'] }) => React.ReactElement;
+  render: (props: { field: ControllerRenderProps<T, Path<T>> }) => React.ReactElement;
 };
 
 export function FormField<T extends FieldValues>({
@@ -24,5 +24,4 @@ export function FormField<T extends FieldValues>({
 
   return render({ field });
 }
-
 export default FormField; 

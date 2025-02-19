@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useController, Control, FieldValues, Path } from 'react-hook-form';
-import { Checkbox } from '@/components/ui/Checkbox';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label?: string;

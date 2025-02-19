@@ -34,7 +34,7 @@ export function ConfirmDelete({
           <Button variant="outline" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={isLoading}>
+          <Button variant="primary" onClick={onConfirm} disabled={isLoading}>
             Delete
           </Button>
         </DialogFooter>

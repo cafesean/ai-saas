@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useController, Control, FieldValues, Path } from 'react-hook-form';
-import { Input } from '@/components/ui/Input';
+import { Input } from '@/components/form/Input';
 
 type FormInputProps<T extends FieldValues> = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'name' | 'onChange' | 'onBlur' | 'value' | 'defaultValue'> & {
   name: Path<T>;

@@ -2,7 +2,7 @@ import React from 'react';
 import { RateCardView, LevelView, LevelRateView } from '@/framework/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/form/Button';
-import { Input } from '@/components/ui/Input';
+import { Input } from '@/components/form/Input';
 import { formatCurrency } from '@/framework/lib/utils';
 import { useFormValidation } from '@/framework/hooks/useFormValidation';
 import { rateCardSchema } from '@/schemas';
@@ -38,15 +38,9 @@ export function RateCardDetails({
   const [editedRateCard, setEditedRateCard] = React.useState<FormData>({
     name: rateCard.name,
     description: rateCard.description ?? '',
-    effective_date: rateCard.effective_date instanceof Date 
-      ? rateCard.effective_date.toISOString().split('T')[0]
-      : new Date(rateCard.effective_date).toISOString().split('T')[0],
-    expire_date: rateCard.expire_date 
-      ? (rateCard.expire_date instanceof Date 
-        ? rateCard.expire_date.toISOString().split('T')[0]
-        : new Date(rateCard.expire_date).toISOString().split('T')[0])
-      : '',
-    level_rates: rateCard.levelRates,
+    effective_date: rateCard.effective_date.toISOString(),
+    expire_date: rateCard.expire_date ? rateCard.expire_date.toISOString() : '',
+    level_rates: rateCard.level_rates,
   });
 
   const { validate, getFieldError, clearErrors } = useFormValidation(rateCardSchema._def.schema);
@@ -69,12 +63,12 @@ export function RateCardDetails({
     });
   };
 
-  const handleLevelRateChange = (levelId: number, monthlyRate: number) => {
+  const handleLevelRateChange = (levelId: number, monthly_rate: number) => {
     const existingRateIndex = editedRateCard.level_rates.findIndex(
       (rate: LevelRateView) => rate.level.id === levelId
     );
 
-    if (monthlyRate === 0 && existingRateIndex !== -1) {
+    if (monthly_rate === 0 && existingRateIndex !== -1) {
       setEditedRateCard({
         ...editedRateCard,
         level_rates: editedRateCard.level_rates.filter((_: LevelRateView, index: number) => index !== existingRateIndex),
@@ -82,19 +76,19 @@ export function RateCardDetails({
     } else if (existingRateIndex !== -1) {
       const updatedRates = [...editedRateCard.level_rates];
       updatedRates[existingRateIndex] = {
-        ...updatedRates[existingRateIndex],
-        monthlyRate: monthlyRate.toString(),
+        ...(updatedRates[existingRateIndex] as LevelRateView),
+        monthly_rate: monthly_rate,
       };
       setEditedRateCard({
         ...editedRateCard,
         level_rates: updatedRates,
       });
-    } else if (monthlyRate > 0) {
+    } else if (monthly_rate > 0) {
       const newRate: LevelRateView = {
         id: levelId,
-        monthlyRate: monthlyRate,
+        monthly_rate: monthly_rate,
         level: getLevel(levelId)!,
-        rateCard: rateCard,
+        ratecard: rateCard,
       };
       setEditedRateCard({
         ...editedRateCard,
@@ -104,7 +98,7 @@ export function RateCardDetails({
   };
 
   const getLevelRate = (levelId: number) => {
-    return editedRateCard.level_rates.find((rate: LevelRateView) => rate.level.id === levelId)?.monthlyRate || 0;
+    return editedRateCard.level_rates.find((rate: LevelRateView) => rate.level.id === levelId)?.monthly_rate || 0;
   };
 
   const handleSave = () => {
@@ -113,9 +107,9 @@ export function RateCardDetails({
       description: editedRateCard.description,
       effective_date: new Date(editedRateCard.effective_date + 'T00:00:00Z'),
       expire_date: editedRateCard.expire_date ? new Date(editedRateCard.expire_date + 'T00:00:00Z') : null,
-      levelRates: editedRateCard.level_rates.map((rate: LevelRateView) => ({
+      level_rates: editedRateCard.level_rates.map((rate: LevelRateView) => ({
         levelId: rate.level.id,
-        monthlyRate: Number(rate.monthlyRate),
+        monthly_rate: Number(rate.monthly_rate),
       })),
     };
     if (!validate(validationData)) return;
@@ -125,10 +119,11 @@ export function RateCardDetails({
       description: editedRateCard.description,
       effective_date: new Date(editedRateCard.effective_date + 'T00:00:00Z'),
       expire_date: editedRateCard.expire_date ? new Date(editedRateCard.expire_date + 'T00:00:00Z') : null,
-      levelRates: editedRateCard.level_rates.map((rate: LevelRateView) => ({
+      level_rates: editedRateCard.level_rates.map((rate: LevelRateView) => ({
         id: rate.id,
         level: rate.level,
-        monthlyRate: Number(rate.monthlyRate),
+        monthly_rate: rate.monthly_rate,
+        ratecard: rate.ratecard,
       })),
     });
     setIsEditing(false);
@@ -139,13 +134,13 @@ export function RateCardDetails({
     setEditedRateCard({
       name: rateCard.name,
       description: rateCard.description ?? '',
-      effective_date: rateCard.effective_date ? rateCard.effective_date.toISOString().split('T')[0] : '',
-      expire_date: rateCard.expire_date ? rateCard.expire_date.toISOString().split('T')[0] : '',
-      level_rates: rateCard.levelRates.map((rate: LevelRateView) => ({
+      effective_date: rateCard.effective_date.toISOString(),
+      expire_date: rateCard.expire_date ? rateCard.expire_date.toISOString() : '',
+      level_rates: rateCard.level_rates.map((rate: LevelRateView) => ({
         id: rate.id,
         level: rate.level,
-        monthlyRate: rate.monthlyRate,
-        rateCard: rateCard,
+        monthly_rate: rate.monthly_rate,
+        ratecard: rateCard,
       })),
     });
     setIsEditing(true);
@@ -190,7 +185,7 @@ export function RateCardDetails({
                 <div key={level.id} className="flex justify-between items-center text-sm">
                   <span className="font-medium text-gray-900">{level.name}</span>
                   <span className="text-gray-600">
-                    {formatCurrency(Number(rateCard.levelRates.find((r: LevelRateView) => r.level.id === level.id)?.monthlyRate || 0))}
+                    {formatCurrency(Number(rateCard.level_rates.find((r: LevelRateView) => r.level.id === level.id)?.monthly_rate || 0))}
                   </span>
                 </div>
               ))}

@@ -210,7 +210,7 @@ export const RoleLevelPricing = ({ pricing, roles, levels }: RoleLevelPricingPro
       role: defaultRole ? {
         id: defaultRole.id,
         name: defaultRole.name,
-        role_code: defaultRole.role_code, // Note: using roleCode to match type
+        role_code: defaultRole.role_code, // Note: using role_code to match type
         description: null, // Add description to match type
       } : null,
       level: defaultLevel ? {
@@ -241,7 +241,7 @@ export const RoleLevelPricing = ({ pricing, roles, levels }: RoleLevelPricingPro
   };
 
   const table = useReactTable({
-    data: tableData as import("/Users/seanliao/Dropbox/_engineering/code/palantir/platform-n8n/src/app/(admin)/pricing/components/columns").TableRow[], // Type assertion to fix type error
+    data: tableData as import("./columns").TableRow[], // Type assertion to fix type error
     columns,
     getCoreRowModel: getCoreRowModel(),
     meta: {

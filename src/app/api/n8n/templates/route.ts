@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { WorkflowParser } from '@/lib/parser/workflow-parser';
+import { parseWorkflow } from '@/lib/parser/workflow-parser';
 
 export async function POST(request: Request) {
   try {
     const workflowJson = await request.json();
-    const parser = new WorkflowParser();
-    const result = await parser.parseWorkflow(workflowJson);
+    const result = await parseWorkflow(workflowJson);
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

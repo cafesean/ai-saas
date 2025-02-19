@@ -8,7 +8,7 @@ import { eq } from "drizzle-orm"
 export const userRouter = createTRPCRouter({
   list: publicProcedure
     .query(async () => {
-      return await db.select().from(users).orderBy(users.createdAt)
+      return await db.select().from(users).orderBy(users.created_at)
     }),
 
   create: publicProcedure

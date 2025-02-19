@@ -147,10 +147,10 @@ export default function RateCardsPage() {
       description: rateCard.description ?? '',
       effective_date: rateCard.effective_date.toISOString().split('T')[0],
       expire_date: rateCard.expire_date ? rateCard.expire_date.toISOString().split('T')[0] : '',
-      level_rates: rateCard.levelRates.map(rate => ({
+      level_rates: rateCard.level_rates.map(rate => ({
         id: rate.id.toString(),
         level_id: rate.level.id,
-        monthly_rate: rate.monthlyRate,
+        monthly_rate: rate.monthly_rate,
         level: rate.level,
       })),
     };
@@ -358,10 +358,10 @@ export default function RateCardsPage() {
         onSubmit={handleSubmit}
         rateCard={newRateCard}
         onRateCardChange={handleRateCardChange}
-        onLevelRateChange={(levelId: number, monthlyRate: number) => {
-          const level = levels?.find(l => l.id === levelId);
+        onLevelRateChange={(level_id: number, monthly_rate: number) => {
+          const level = levels?.find(l => l.id === level_id);
           if (level) {
-            handleLevelRateChange(levelId, monthlyRate, dbToAppLevel({ ...level, roles: [] }));
+            handleLevelRateChange(level_id, monthly_rate, dbToAppLevel({ ...level, roles: [] }));
           }
         }}
         levels={levels?.map(level => dbToAppLevel({ ...level, roles: [] })) || []}
@@ -402,9 +402,9 @@ export default function RateCardsPage() {
                     description: rateCardData.description,
                     effective_date: rateCardData.effective_date,
                     expire_date: rateCardData.expire_date,
-                    level_rates: rateCardData.levelRates.map((rate) => ({
+                    level_rates: rateCardData.level_rates.map((rate) => ({
                       level_id: rate.level.id,
-                      monthly_rate: rate.monthlyRate,
+                      monthly_rate: rate.monthly_rate,
                     })),
                   },
                 });

@@ -16,7 +16,7 @@ export const n8nRouter = createTRPCRouter({
         .returning();
     }),
 
-  listTemplates: publicProcedure
+  getAll: publicProcedure
     .query(async () => {
       return db.select()
         .from(templates)

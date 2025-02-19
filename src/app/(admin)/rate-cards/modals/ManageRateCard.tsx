@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/form/Button';
-import { Input } from '@/components/ui/Input';
+import { Input } from '@/components/form/Input';
 import type { RateCardView, LevelView } from '@/framework/types';
 import { useFormValidation } from '@/framework/hooks/useFormValidation';
 import { rateCardSchema } from '@/schemas';
@@ -27,7 +27,7 @@ interface ManageRateCardProps {
   onSubmit: (e: React.FormEvent) => void;
   rateCard: NewRateCard;
   onRateCardChange: (field: keyof NewRateCard, value: string) => void;
-  onLevelRateChange: (levelId: number, monthlyRate: number) => void;
+  onLevelRateChange: (level_id: number, monthly_rate: number) => void;
   levels?: LevelView[];
   isEdit?: boolean;
   getLevelRate: (levelId: number) => number;

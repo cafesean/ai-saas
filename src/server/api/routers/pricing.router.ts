@@ -304,7 +304,7 @@ export const pricingRouter = createTRPCRouter({
             base_price: role.base_price,
             multiplier: role.multiplier,
             final_price: role.final_price,
-            discountRate: role.discount_rate ?? undefined,
+            discount_rate: role.discount_rate ?? undefined,
             role: role.role ?? { id: 0, name: '', code: '' },
             level: role.level ?? { id: 0, name: '', multiplier: '1' }
           }))
@@ -446,7 +446,7 @@ export const pricingRouter = createTRPCRouter({
               base_price: role.base_price,
               multiplier: role.multiplier,
               final_price: role.final_price,
-              discountRate: role.discount_rate ?? undefined,
+              discount_rate: role.discount_rate ?? undefined,
               role: role.role ?? { id: 0, name: '', code: '' },
               level: role.level ?? { id: 0, name: '', multiplier: '1' }
             }))

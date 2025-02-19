@@ -20,7 +20,7 @@ Building a Next.js backend API system to parse n8n workflow JSON files and manag
      - instanceId (String)
      - userInputs (Json)
      - workflowJson (Json)
-     - createdAt (DateTime)
+     - created_at (DateTime)
      - updatedAt (DateTime)
    
    - `node-types`
@@ -28,7 +28,7 @@ Building a Next.js backend API system to parse n8n workflow JSON files and manag
      - type (String, unique) - e.g. "@n8n/n8n-nodes-langchain.documentDefaultDataLoader"
      - category (String) - e.g. "Document", "Social Login Auth"
      - description (String, optional)
-     - createdAt (DateTime)
+     - created_at (DateTime)
      - updatedAt (DateTime)
 
 ### 2. tRPC Router Setup

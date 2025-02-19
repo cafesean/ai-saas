@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm"
 
 
 export const user = pgTable("user", {
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
 	status: smallint(),
 	wallets: text().array(),
 	walletType: integer("wallet_type"),
@@ -37,7 +37,7 @@ export const rolePolicy = pgTable("role_policy", {
 	canRead: boolean("can_read").default(false).notNull(),
 	canUpdate: boolean("can_update").default(false).notNull(),
 	canDelete: boolean("can_delete").default(false).notNull(),
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
 	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
 	metadata: jsonb(),
 }, (table) => [
@@ -53,7 +53,7 @@ export const levels = pgTable("levels", {
 	name: text().notNull(),
 	description: text().notNull(),
 	code: text().notNull(),
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
 	uuid: uuid().default(sql`uuid_generate_v4()`),
 });
@@ -62,8 +62,8 @@ export const roles = pgTable("roles", {
 	id: serial().primaryKey().notNull(),
 	name: text().notNull(),
 	description: text().notNull(),
-	roleCode: text("role_code").notNull(),
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	role_code: text("role_code").notNull(),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
 	uuid: uuid().default(sql`uuid_generate_v4()`),
 });
@@ -73,7 +73,7 @@ export const levelRates = pgTable("level_rates", {
 	monthlyRate: numeric("monthly_rate", { precision: 10, scale:  2 }).notNull(),
 	levelId: integer("level_id").notNull(),
 	ratecardId: integer("ratecard_id").notNull(),
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
 	uuid: uuid().default(sql`uuid_generate_v4()`),
 }, (table) => [
@@ -95,14 +95,14 @@ export const ratecards = pgTable("ratecards", {
 	description: text().notNull(),
 	effectiveDate: timestamp("effective_date", { precision: 3, mode: 'string' }).notNull(),
 	expireDate: timestamp("expire_date", { precision: 3, mode: 'string' }),
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
 	uuid: uuid().default(sql`uuid_generate_v4()`),
 });
 
 export const org = pgTable("org", {
 	id: serial().primaryKey().notNull(),
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
 	name: text(),
 	countryId: integer("country_id"),
 	type: smallint(),
@@ -128,7 +128,7 @@ export const pricings = pgTable("pricings", {
 	description: text().notNull(),
 	customerId: text("customer_id").notNull(),
 	createdBy: text("created_by").notNull(),
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
 	ratecardId: integer("ratecard_id").notNull(),
 	totalAmount: numeric("total_amount", { precision: 10, scale:  2 }).notNull(),
@@ -152,7 +152,7 @@ export const pricingRoles = pgTable("pricingRoles", {
 	quantity: integer().notNull(),
 	basePrice: numeric("base_price", { precision: 10, scale:  2 }).notNull(),
 	overridePrice: numeric("override_price", { precision: 10, scale:  2 }),
-	discountRate: numeric("discount_rate", { precision: 5, scale:  2 }),
+	discount_rate: numeric("discount_rate", { precision: 5, scale:  2 }),
 	multiplier: numeric({ precision: 5, scale:  2 }).notNull(),
 	finalPrice: numeric("final_price", { precision: 10, scale:  2 }).notNull(),
 }, (table) => [
@@ -176,7 +176,7 @@ export const pricingRoles = pgTable("pricingRoles", {
 export const group = pgTable("group", {
 	id: serial().primaryKey().notNull(),
 	name: text().notNull(),
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
 	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
 	policyOps: json("policy_ops"),
 	policyOrg: json("policy_org"),
@@ -190,7 +190,7 @@ export const groupPolicy = pgTable("group_policy", {
 	canRead: boolean("can_read").default(false).notNull(),
 	canUpdate: boolean("can_update").default(false).notNull(),
 	canDelete: boolean("can_delete").default(false).notNull(),
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
 	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
 	metadata: jsonb(),
 }, (table) => [
@@ -204,7 +204,7 @@ export const groupPolicy = pgTable("group_policy", {
 export const levelRoles = pgTable("level_roles", {
 	levelId: integer("level_id").notNull(),
 	roleId: integer("role_id").notNull(),
-	createdAt: timestamp("created_at", { precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	created_at: timestamp("created_at", { precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
 	foreignKey({
 			columns: [table.levelId],

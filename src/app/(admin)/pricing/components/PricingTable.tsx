@@ -43,12 +43,12 @@ export function PricingTable({ initialData }: PricingTableProps) {
     }
   );
 
-  const columns: ColumnDef<PricingItem, unknown>[] = useMemo<ColumnDef<PricingItem>[]>(
+  const columns = useMemo<ColumnDef<PricingItem, unknown>[]>(
     () => [
       {
         accessorKey: 'code',
         header: 'Code',
-        cell: ({ row }: { row: Row<PricingItem>; }) => (
+        cell: ({ row }) => (
           <Link
             href={`/pricing/${row.original.code}`}
             className="inline-flex items-center text-primary hover:underline"
@@ -67,15 +67,14 @@ export function PricingTable({ initialData }: PricingTableProps) {
         header: 'Customer',
       },
       {
-        id: 'ratecard',
+        accessorKey: 'ratecard.name',
         header: 'Rate Card',
-        accessorFn: (row: PricingItem) => row.ratecard?.name,
         cell: ({ row }) => row.original.ratecard?.name ?? '-',
       },
       {
         accessorKey: 'resource_count',
         header: 'Resources',
-        cell: ({ row }: { row: Row<PricingItem>; }) => (
+        cell: ({ row }) => (
           <Badge variant="secondary">
             {row.original.resource_count}
           </Badge>
@@ -84,7 +83,7 @@ export function PricingTable({ initialData }: PricingTableProps) {
       {
         accessorKey: 'total_amount',
         header: 'Total Amount',
-        cell: ({ row }: { row: Row<PricingItem>; }) => 
+        cell: ({ row }) => 
           formatCurrency(Number(row.original.total_amount)),
       },
     ],
@@ -98,7 +97,7 @@ export function PricingTable({ initialData }: PricingTableProps) {
   return (
     <DataTable
       data={data.items}
-      columns={columns}
+      columns={columns as any}
     />
   );
 } 

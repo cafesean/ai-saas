@@ -3,7 +3,7 @@ import React from 'react';
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   className?: string;
   disabled?: boolean;
-  value?: React.ReactNode;
+  value?: string | number | readonly string[] | undefined;
 }
 
 const Textarea = ({ className = "", value, disabled, ...props }: TextareaProps) => {

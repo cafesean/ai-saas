@@ -52,7 +52,7 @@ export default function RolesPage() {
   } = useRoleForm(selectedRole ? {
     name: selectedRole.name,
     description: selectedRole.description ?? '',
-    roleCode: selectedRole.roleCode,
+    role_code: selectedRole.role_code,
   } : undefined);
 
   const { control, handleSubmit, reset } = form;
@@ -74,14 +74,14 @@ export default function RolesPage() {
           data: {
             name: formData.name,
             description: formData.description,
-            role_code: formData.roleCode,
+            role_code: formData.role_code,
           },
         });
       } else {
         await createRole.mutateAsync({
           name: formData.name,
           description: formData.description,
-          role_code: formData.roleCode,
+          role_code: formData.role_code,
         });
       }
       handleCloseModal();
@@ -95,7 +95,7 @@ export default function RolesPage() {
     reset({
       name: '',
       description: '',
-      roleCode: '',
+      role_code: '',
     });
   };
 
@@ -104,7 +104,7 @@ export default function RolesPage() {
     reset({
       name: role.name,
       description: role.description ?? '',
-      roleCode: role.roleCode,
+      role_code: role.role_code,
     });
   };
 
@@ -161,7 +161,7 @@ export default function RolesPage() {
         },
       },
       {
-        key: 'roleCode',
+        key: 'role_code',
         header: 'Role Code',
         cell: ({ getValue }) => (
           <span className="text-xs text-gray-600">{getValue()}</span>
@@ -266,7 +266,7 @@ export default function RolesPage() {
 
                   <div>
                     <p className="modal-section-title">Role Code</p>
-                    <p className="modal-value">{form.getValues('roleCode')}</p>
+                    <p className="modal-value">{form.getValues('role_code')}</p>
                   </div>
 
                   <div>
@@ -305,7 +305,7 @@ export default function RolesPage() {
                     />
                     <FormInput
                       control={control}
-                      name="roleCode"
+                      name="role_code"
                       label="Role Code"
                       required
                     />
@@ -379,7 +379,7 @@ export default function RolesPage() {
             data={(roles.data ?? []).map(dbToAppRole)}
             columns={columns}
             searchPlaceholder="Search roles..."
-            searchableColumns={['name', 'roleCode', 'description']}
+            searchableColumns={['name', 'role_code', 'description']}
             enableSearch={true}
             enableFilters={true}
             filename="roles"

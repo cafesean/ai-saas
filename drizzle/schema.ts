@@ -16,14 +16,14 @@ export const prismaMigrations = pgTable("_prisma_migrations", {
 
 export const org = pgTable("org", {
 	id: serial().primaryKey().notNull(),
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
 	name: text(),
 	countryId: integer("country_id"),
 	type: smallint(),
 	logoUrl: text("logo_url"),
 	slug: text(),
 	uuid: uuid().default(sql`uuid_generate_v4()`),
-	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
+	updated_at: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
 	status: smallint(),
 	tierId: integer("tier_id").default(1).notNull(),
 	categoryId: integer("category_id"),
@@ -38,8 +38,8 @@ export const org = pgTable("org", {
 export const group = pgTable("group", {
 	id: serial().primaryKey().notNull(),
 	name: text().notNull(),
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
-	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
+	updated_at: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
 	policyOps: json("policy_ops"),
 	policyOrg: json("policy_org"),
 });
@@ -52,8 +52,8 @@ export const groupPolicy = pgTable("group_policy", {
 	canRead: boolean("can_read").default(false).notNull(),
 	canUpdate: boolean("can_update").default(false).notNull(),
 	canDelete: boolean("can_delete").default(false).notNull(),
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
-	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
+	updated_at: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
 	metadata: jsonb(),
 }, (table) => [
 	foreignKey({
@@ -66,20 +66,20 @@ export const groupPolicy = pgTable("group_policy", {
 export const levelRates = pgTable("level_rates", {
 	id: serial().primaryKey().notNull(),
 	uuid: text().notNull(),
-	monthlyRate: numeric("monthly_rate", { precision: 10, scale:  2 }).notNull(),
-	levelId: integer("level_id").notNull(),
-	ratecardId: integer("ratecard_id").notNull(),
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
+	monthly_rate: numeric("monthly_rate", { precision: 10, scale:  2 }).notNull(),
+	level_id: integer("level_id").notNull(),
+	ratecard_id: integer("ratecard_id").notNull(),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updated_at: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
 }, (table) => [
 	uniqueIndex("level_rates_uuid_key").using("btree", table.uuid.asc().nullsLast().op("text_ops")),
 	foreignKey({
-			columns: [table.levelId],
+			columns: [table.level_id],
 			foreignColumns: [levels.id],
 			name: "level_rates_level_id_fkey"
 		}).onUpdate("cascade").onDelete("cascade"),
 	foreignKey({
-			columns: [table.ratecardId],
+			columns: [table.ratecard_id],
 			foreignColumns: [ratecards.id],
 			name: "level_rates_ratecard_id_fkey"
 		}).onUpdate("cascade").onDelete("cascade"),
@@ -91,8 +91,8 @@ export const levels = pgTable("levels", {
 	name: text().notNull(),
 	description: text().notNull(),
 	code: text().notNull(),
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updated_at: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
 }, (table) => [
 	uniqueIndex("levels_uuid_key").using("btree", table.uuid.asc().nullsLast().op("text_ops")),
 ]);
@@ -102,10 +102,10 @@ export const ratecards = pgTable("ratecards", {
 	uuid: text().notNull(),
 	name: text().notNull(),
 	description: text().notNull(),
-	effectiveDate: timestamp("effective_date", { precision: 3, mode: 'string' }).notNull(),
-	expireDate: timestamp("expire_date", { precision: 3, mode: 'string' }),
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
+	effective_date: timestamp("effective_date", { precision: 3, mode: 'string' }).notNull(),
+	expire_date: timestamp("expire_date", { precision: 3, mode: 'string' }),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updated_at: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
 }, (table) => [
 	uniqueIndex("ratecards_uuid_key").using("btree", table.uuid.asc().nullsLast().op("text_ops")),
 ]);
@@ -115,27 +115,23 @@ export const roles = pgTable("roles", {
 	uuid: text().notNull(),
 	name: text().notNull(),
 	description: text().notNull(),
-	roleCode: text("role_code").notNull(),
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
+	role_code: text("role_code").notNull(),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updated_at: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
 }, (table) => [
 	uniqueIndex("roles_uuid_key").using("btree", table.uuid.asc().nullsLast().op("text_ops")),
 ]);
 
 export const user = pgTable("user", {
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
 	status: smallint(),
-	wallets: text().array(),
-	walletType: integer("wallet_type"),
 	attributes: jsonb(),
-	tokens: jsonb(),
-	xp: jsonb(),
 	profile: jsonb(),
-	roleId: integer("role_id").array(),
-	orgId: integer("org_id").array(),
-	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
-	referredBy: text("referred_by"),
-	isRegistered: boolean("is_registered"),
+	role_id: integer("role_id").array(),
+	org_id: integer("org_id").array(),
+	updated_at: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
+	referred_by: text("referred_by"),
+	is_registered: boolean("is_registered"),
 	name: text(),
 	email: json(),
 	password: text(),
@@ -144,45 +140,45 @@ export const user = pgTable("user", {
 	username: text(),
 	uuid: uuid().default(sql`uuid_generate_v4()`).notNull(),
 	id: serial().primaryKey().notNull(),
-	firstName: text("first_name"),
-	lastName: text("last_name"),
+	first_name: text("first_name"),
+	last_name: text("last_name"),
 });
 
 export const rolePolicy = pgTable("role_policy", {
 	id: serial().primaryKey().notNull(),
-	roleId: integer("role_id").notNull(),
+	role_id: integer("role_id").notNull(),
 	name: text().notNull(),
 	canCreate: boolean("can_create").default(false).notNull(),
 	canRead: boolean("can_read").default(false).notNull(),
 	canUpdate: boolean("can_update").default(false).notNull(),
 	canDelete: boolean("can_delete").default(false).notNull(),
-	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
-	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
+	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
+	updated_at: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }),
 	metadata: jsonb(),
 }, (table) => [
 	foreignKey({
-			columns: [table.roleId],
+			columns: [table.role_id],
 			foreignColumns: [roles.id],
 			name: "role_policy_role_id_fkey"
 		}).onUpdate("cascade").onDelete("restrict"),
 ]);
 
 export const levelRoles = pgTable("level_roles", {
-	levelId: integer("level_id").notNull(),
-	roleId: integer("role_id").notNull(),
-	createdAt: timestamp("created_at", { precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	level_id: integer("level_id").notNull(),
+	role_id: integer("role_id").notNull(),
+	created_at: timestamp("created_at", { precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
 	foreignKey({
-			columns: [table.levelId],
+			columns: [table.level_id],
 			foreignColumns: [levels.id],
 			name: "level_roles_level_id_fkey"
 		}).onUpdate("cascade").onDelete("cascade"),
 	foreignKey({
-			columns: [table.roleId],
+			columns: [table.role_id],
 			foreignColumns: [roles.id],
 			name: "level_roles_role_id_fkey"
 		}).onUpdate("cascade").onDelete("cascade"),
-	primaryKey({ columns: [table.levelId, table.roleId], name: "level_roles_pkey"}),
+	primaryKey({ columns: [table.level_id, table.role_id], name: "level_roles_pkey"}),
 ]);
 
 export const orgUser = pgTable("org_user", {

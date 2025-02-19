@@ -2,7 +2,7 @@ import React from 'react';
 import { RoleView } from '@/framework/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/form/Button';
-import { Input } from '@/components/ui/Input';
+import { Input } from '@/components/form/Input';
 import { useFormValidation } from '@/framework/hooks/useFormValidation';
 import { roleSchema } from '@/schemas';
 
@@ -27,7 +27,7 @@ export function RoleDetails({
   const [formData, setFormData] = React.useState({
     name: role.name,
     description: role.description,
-    roleCode: role.roleCode,
+    role_code: role.role_code,
   });
 
   const { validate, getFieldError, clearErrors } = useFormValidation(roleSchema);
@@ -44,7 +44,7 @@ export function RoleDetails({
     setFormData({
       name: role.name,
       description: role.description,
-      roleCode: role.roleCode,
+      role_code: role.role_code,
     });
     setIsEditing(true);
   };
@@ -77,13 +77,13 @@ export function RoleDetails({
             <h2 className="text-sm font-medium text-gray-700">Role Code</h2>
             {isEditing ? (
               <Input
-                value={formData.roleCode}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, roleCode: e.target.value })}
-                error={getFieldError('roleCode')}
+                value={formData.role_code}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, role_code: e.target.value })}
+                error={getFieldError('role_code')}
                 required
               />
             ) : (
-              <p className="mt-1 text-sm text-gray-900">{role.roleCode}</p>
+              <p className="mt-1 text-sm text-gray-900">{role.role_code}</p>
             )}
           </div>
 

@@ -14,11 +14,11 @@ export const groupRelations = relations(group, ({many}) => ({
 
 export const levelRatesRelations = relations(levelRates, ({one}) => ({
 	level: one(levels, {
-		fields: [levelRates.levelId],
+		fields: [levelRates.level_id],
 		references: [levels.id]
 	}),
 	ratecard: one(ratecards, {
-		fields: [levelRates.ratecardId],
+		fields: [levelRates.ratecard_id],
 		references: [ratecards.id]
 	}),
 }));
@@ -34,7 +34,7 @@ export const ratecardsRelations = relations(ratecards, ({many}) => ({
 
 export const rolePolicyRelations = relations(rolePolicy, ({one}) => ({
 	role: one(roles, {
-		fields: [rolePolicy.roleId],
+		fields: [rolePolicy.role_id],
 		references: [roles.id]
 	}),
 }));
@@ -46,11 +46,11 @@ export const rolesRelations = relations(roles, ({many}) => ({
 
 export const levelRolesRelations = relations(levelRoles, ({one}) => ({
 	level: one(levels, {
-		fields: [levelRoles.levelId],
+		fields: [levelRoles.level_id],
 		references: [levels.id]
 	}),
 	role: one(roles, {
-		fields: [levelRoles.roleId],
+		fields: [levelRoles.role_id],
 		references: [roles.id]
 	}),
 }));

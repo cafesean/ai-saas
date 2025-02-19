@@ -54,7 +54,7 @@ export function useRateCardState() {
       ...emptyRateCard,
       name: getDefaultRateCardName(),
       effective_date: today,
-      expire_date: expire_date,
+      expire_date: expire_date ?? '',
     };
   });
   const [isConfirming, setIsConfirming] = React.useState(false);
@@ -66,7 +66,7 @@ export function useRateCardState() {
     }));
   };
 
-  const handleLevelRateChange = (levelId: number, monthlyRate: number, level: LevelView) => {
+  const handleLevelRateChange = (levelId: number, monthly_rate: number, level: LevelView) => {
     setNewRateCard((prev: NewRateCard) => {
       const existingRateIndex = prev.level_rates.findIndex(
         (rate: LevelRate) => rate.level_id === levelId
@@ -78,14 +78,14 @@ export function useRateCardState() {
         newLevelRates[existingRateIndex] = {
           id: existingRate.id,
           level_id: existingRate.level_id,
-          monthly_rate: monthlyRate,
+          monthly_rate: monthly_rate,
           level: existingRate.level,
         };
       } else {
         newLevelRates.push({
           id: levelId.toString(),
           level_id: levelId,
-          monthly_rate: monthlyRate,
+          monthly_rate: monthly_rate,
           level,
         });
       }
@@ -114,7 +114,7 @@ export function useRateCardState() {
       ...emptyRateCard,
       name: getDefaultRateCardName(),
       effective_date: today,
-      expire_date: expire_date,
+      expire_date: expire_date ?? '',
     });
     setSelectedRateCard(null);
     setIsConfirming(false);

@@ -27,7 +27,7 @@ export const calculateVariance = (basePrice: number, overridePrice: number): num
 export const calculateRoleTotal = (role: PricingRole): number => {
   const baseAmount = role.override_price || calculateWeightedPrice(role.base_price, role.multiplier);
   const discounts = [
-    ...(role.discountRate ? [role.discountRate] : []),
+    ...(role.discount_rate ? [role.discount_rate] : []),
   ];
   return calculateFinalPrice(baseAmount, discounts) * role.quantity;
 };
