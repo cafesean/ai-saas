@@ -12,6 +12,7 @@
 
 ai/composer_history
 scratchpad*.*
+.specstory/
 
 /n8n/*
 # testing

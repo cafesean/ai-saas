@@ -34,6 +34,7 @@ export function NewPricingClient() {
       created_by: 'system',
       pricing_roles: [],
       ratecard: rateCards[0] ?? null,
+      created_at: null,
     };
 
     setCurrentPricing(emptyPricing);

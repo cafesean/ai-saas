@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
 import { Button } from '@/components/form/Button';
 import { usePricingStore } from '../store/usePricingStore';
@@ -34,7 +34,7 @@ const useRoleLevelPricingTable = (initialData: TableRow[]) => {
   const [data, setData] = useState(initialData);
   const [editedRows, setEditedRows] = useState<EditedRows>({});
   const [validRows, setValidRows] = useState<ValidRows>({});
-  const [pendingChanges, setPendingChanges] = useState<{[key: number]: Partial<TableRow>}>({});
+  const [pendingChanges, setPendingChanges] = useState<{ [key: number]: Partial<TableRow>; }>({});
 
   const setEditMode = (rowId: number, enabled: boolean) => {
     setEditedRows((prev) => ({ ...prev, [rowId]: enabled }));
@@ -52,7 +52,7 @@ const useRoleLevelPricingTable = (initialData: TableRow[]) => {
         return row;
       })
     );
-    
+
     // Store in pending changes
     setPendingChanges((prev) => ({
       ...prev,
@@ -148,6 +148,7 @@ const useRoleLevelPricingTable = (initialData: TableRow[]) => {
 export const RoleLevelPricing = ({ pricing, roles, levels }: RoleLevelPricingProps) => {
   const { currentPricing, addPricingRole, updatePricingRole, removePricingRole } = usePricingStore();
   const { getRateCardPrice } = useRateCardPrices();
+  const tempIdCounter = useRef(-1); // Track temporary IDs
 
   if (!currentPricing || !roles.length || !levels.length) return null;
 
@@ -164,13 +165,13 @@ export const RoleLevelPricing = ({ pricing, roles, levels }: RoleLevelPricingPro
       id: role.role.id,
       name: role.role.name,
       description: role.role.description,
-      roleCode: role.role.role_code,
+      role_code: role.role.role_code,
     } : null,
     level: role.level ? {
       id: role.level.id,
       name: role.level.name,
-      code: role.level.code,
       description: role.level.description,
+      code: role.level.code,
     } : null,
   }));
 
@@ -193,8 +194,9 @@ export const RoleLevelPricing = ({ pricing, roles, levels }: RoleLevelPricingPro
     const defaultLevel = levels[0];
     const basePrice = getRateCardPrice(defaultRole?.id ?? 0);
 
-    // Generate a temporary negative ID for new rows
-    const tempId = Math.min(...tableData.map(row => row.id), 0) - 1;
+    // Use ref for stable ID generation
+    const tempId = tempIdCounter.current;
+    tempIdCounter.current -= 1; // Decrement for next use
 
     const newRow: TableRow = {
       id: tempId,
@@ -208,22 +210,23 @@ export const RoleLevelPricing = ({ pricing, roles, levels }: RoleLevelPricingPro
       role: defaultRole ? {
         id: defaultRole.id,
         name: defaultRole.name,
-        description: defaultRole.description,
-        roleCode: defaultRole.role_code,
+        role_code: defaultRole.role_code, // Note: using roleCode to match type
+        description: null, // Add description to match type
       } : null,
       level: defaultLevel ? {
         id: defaultLevel.id,
         name: defaultLevel.name,
         code: defaultLevel.code,
-        description: defaultLevel.description,
+        description: null, // Add description to match type
       } : null,
     };
 
     // Add to table state
     addRow(newRow);
+
     // Add to Zustand store
     addPricingRole({
-      pricing_id: null, // Add missing pricing_id property
+      pricing_id: null,
       role_id: defaultRole?.id ?? null,
       level_id: defaultLevel?.id ?? null,
       quantity: 1,
@@ -277,9 +280,9 @@ export const RoleLevelPricing = ({ pricing, roles, levels }: RoleLevelPricingPro
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                   </th>
                 ))}
               </tr>

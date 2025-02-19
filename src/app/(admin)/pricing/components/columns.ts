@@ -19,7 +19,7 @@ export type TableRow = {
     id: number
     name: string
     description: string | null
-    roleCode: string
+    role_code: string
   } | null
   level: {
     id: number

@@ -122,6 +122,7 @@ export const pricingRouter = createTRPCRouter({
           created_by: true,
           total_amount: true,
           resource_count: true,
+          created_at: true,
         },
         with: {
           pricing_roles: {
@@ -142,6 +143,7 @@ export const pricingRouter = createTRPCRouter({
                 columns: {
                   id: true,
                   name: true,
+                  description: true,
                   role_code: true,
                 }
               },
@@ -149,6 +151,7 @@ export const pricingRouter = createTRPCRouter({
                 columns: {
                   id: true,
                   name: true,
+                  description: true,
                   code: true,
                 }
               },
@@ -180,11 +183,13 @@ export const pricingRouter = createTRPCRouter({
         role: role.role ? {
           id: role.role.id,
           name: role.role.name,
+          description: role.role.description,
           role_code: role.role.role_code ?? '',
         } : null,
         level: role.level ? {
           id: role.level.id,
           name: role.level.name,
+          description: role.level.description,
           code: role.level.code ?? '',
         } :  null
       }));
