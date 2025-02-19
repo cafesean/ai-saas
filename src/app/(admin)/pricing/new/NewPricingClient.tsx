@@ -24,19 +24,16 @@ export function NewPricingClient() {
 
     const emptyPricing = {
       id: -1,
-      uuid: uuidv4(),
       code: '',
       description: '',
-      customerId: '',
-      ratecardId: rateCards[0]?.id ?? 0,
+      customer_id: '',
+      ratecard_id: rateCards[0]?.id ?? 0,
       overall_discounts: [],
       total_amount: '0',
       resource_count: 0,
       created_by: 'system',
-      created_at: new Date(),
-      updated_at: new Date(),
       pricing_roles: [],
-      ratecard: rateCards[0],
+      ratecard: rateCards[0] ?? null,
     };
 
     setCurrentPricing(emptyPricing);
@@ -69,8 +66,8 @@ export function NewPricingClient() {
     uuid: uuidv4(),
     code: '',
     description: '',
-    customerId: '',
-    ratecardId: rateCards[0]?.id ?? 0,
+    customer_id: '',
+    ratecard_id: rateCards[0]?.id ?? 0,
     overall_discounts: [],
     total_amount: '0',
     resource_count: 0,
@@ -78,7 +75,7 @@ export function NewPricingClient() {
     created_at: new Date(),
     updated_at: new Date(),
     pricing_roles: [],
-    ratecard: rateCards[0],
+    ratecard: rateCards[0] ?? null,
   };
 
   return (

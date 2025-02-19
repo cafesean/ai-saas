@@ -1,0 +1,9 @@
+Let's create a set of NextJS 15 code samples from our codebase that can be used by ai later as references for best practices to follow when build or debugging features. Each code sample includes all files and folders necessary to represent all the parts of the functionality. In ai/code_samples, let's create the following samples:
+- a full featured table used typically used in backend system modules such as Order Management, User Management. Table features should include sorting, filtering, action buttons for edit/delete, pagination or infinite scroll, clickable rows to open a detail page, mouse hover for tooltips, adustable columns, in-row editing of row data, add new row using modal workflow, atomic-updated data without requiring refresh. Specifically for code reference for this sample, use RateCard module.
+- client components for hero section, cards, detail page, header, footer, rail or slider, search and filter, search results list and grid, featured section
+- nextauth implementation integrated with Zustand store
+
+Notes:
+Each code-sample should be 100% self-contained with a single folder. The code-sampes folder will have a library of self-contained code samples, each containing the complete folder structure and all files necessary to represent a complete mini-solution for that topic.
+
+Notice carefully how folder and file names should be cased and the use of snake vs camel. Components, hooks, and state that are specific to that Page and not reusable globally should be put directly within the Page's folder. Zustand stores should really be used for table state unless it needs to persist throught the session.

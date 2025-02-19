@@ -24,18 +24,18 @@ export const calculateVariance = (basePrice: number, overridePrice: number): num
  * Calculate total amount for a pricing role
  */
 export const calculateRoleTotal = (role: {
-  id: number;
-  pricing_id: number;
-  role_id: number;
-  level_id: number;
+  // id: number;
+  pricing_id: number| null;
+  role_id: number| null;
+  level_id: number| null;
   quantity: number;
   base_price: string | null;
   multiplier: string | null;
   final_price: string | null;
   discount_rate?: string | null;
   override_price?: string | null;
-  role: { id: number; name: string; /* ... */ };
-  level: { id: number; name: string; /* ... */ };
+  role: { id: number; name: string; /* ... */ }| null;
+  level: { id: number; name: string; /* ... */ }| null;
 }): number => {
   const baseAmount = role.override_price ? parseFloat(role.override_price) : calculateWeightedPrice(parseFloat(role.base_price ?? '0'), parseFloat(role.multiplier ?? '1'));
   const discounts = [
@@ -49,17 +49,17 @@ export const calculateRoleTotal = (role: {
  */
 export function calculatePricingTotal(
   roles: Array<{
-    id: number;
-    pricing_id: number;
-    role_id: number;
-    level_id: number;
+    // id: number;
+    pricing_id: number | null;
+    role_id: number | null;
+    level_id: number | null;
     quantity: number;
     base_price: string | null;
     multiplier: string | null;
     final_price: string | null;
     discount_rate?: string | null;
-    role: { id: number; name: string; /* ... */ };
-    level: { id: number; name: string; /* ... */ };
+    role: { id: number; name: string; /* ... */ } | null;
+    level: { id: number; name: string; /* ... */ } | null;
   }>,
   overallDiscounts: Array<{ rate: number }> | null
 ) {
@@ -75,17 +75,17 @@ export function calculatePricingTotal(
  */
 export const calculateResourceCount = (
   roles: Array<{
-    id: number;
-    pricingId: number;
-    roleId: number;
-    levelId: number;
+    // id: number;
+    pricing_id: number | null;
+    role_id: number | null;
+    level_id: number | null;
     quantity: number;
     base_price: string | null;
     multiplier: string | null;
     final_price: string | null;
-    discountRate?: string | null;
-    role: { id: number; name: string; /* ... */ };
-    level: { id: number; name: string; /* ... */ };
+    discount_rate?: string | null;
+    role: { id: number; name: string; /* ... */ } | null;
+    level: { id: number; name: string; /* ... */ } | null;
   }>
 ): number => {
   return roles.reduce((acc, role) => acc + role.quantity, 0);

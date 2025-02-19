@@ -1,0 +1,21 @@
+Requirements: Build a pricing module based on the following user stories:
+- User can view a list of previous project pricings
+- User can create a new project pricing by clicking "Add New Pricing" button
+- User sees a new page that the user can:
+  - select a rate card
+  - Add multiple roles to a table. A level would be selected for each role.
+  - The price from the rate card would be displayed based on the level selected.
+  - The price would display the "weighted price" which is based on a multiplier that is saved with each level per role. Example: if "Java Developer" role is selected, then "Specialist 2" level is selected based on the available levels for that role, the multiplier for Specialist 2 developers might be +20%. The price shown would be Rate Card price for that level * (1+20%).
+  - User can manually add an override price. A variance % would be displayed next to the price entered
+  - User can add individual discount rates to be applied per role (row).
+  - User can also add one or more overall discount rates to be applied to the entire pricing. Discounts are based on the gross total of the roles pricing.
+  - The page will auto-save after every change to the page.
+  - User can delete the pricing which will require a confirmation modal popup
+  - User can export the pricing as a csv file
+- Add this module code under src/apps/pricing route
+- The live routes for each pricing page should be: 
+  - localhost:3000/pricing <- this is the main pricing page with pricing table
+  - localhost:3000/pricing/{some unique pricing code} <- this is the pricing detail page 
+- Table columns should include Description, Customer, Last Update, Created By, Total, Resource Count
+- The edit page should be a full page, not a modal
+- Allow the user to return to the main pricing page from Detail page

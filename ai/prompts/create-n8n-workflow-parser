@@ -1,0 +1,134 @@
+# Prompt for AI Coding Agent (Updated with Admin Function Requirement)
+
+I want to build a Next.js backend API endpoint that performs the following tasks:
+
+1. **Accept a POST request** containing a JSON payload (an example of this payload is included below).
+2. **Parse the n8n JSON file** (the request body) to:
+   - Identify each node’s type.
+   - Determine which nodes require **user input**.  
+     - **Important**: This determination should be based on a **separate admin function** or configuration that allows a backend user to add or remove node types that are considered “user input” types.  
+     - For instance, a user might define:  
+       - `"@n8n/n8n-nodes-langchain.documentDefaultDataLoader"` = **Document type**  
+       - `"n8n-nodes-base.telegramTrigger"` = **Social Login Auth type**  
+       - And so on.  
+   - Gather **all required inputs** from these nodes into a **JSON object**.
+3. **Generate a new record** (template record) in the **Postgres** database. This record should include:
+   - `id` (unique identifier for this record in the DB)
+   - `templateId`
+   - `versionId`
+   - `instanceId`
+   - A JSON field that stores all the **user inputs** discovered
+   - Another JSON field that stores the **entire n8n JSON object**
+4. **Return a response** confirming that the record has been created successfully.
+
+---
+
+## New Admin Function
+
+- Create a separate function, endpoint, or service where an admin can **define** which node types are considered “User Input” types.
+  - For example, an admin might specify `"@n8n/n8n-nodes-langchain.documentDefaultDataLoader"` should be treated as a **Document type**, or `"n8n-nodes-base.telegramTrigger"` as a **Social Login Auth type**.
+  - These definitions should be persisted in a way that the main workflow parsing logic can reference them (e.g., stored in a Postgres table, or an in-memory object, whichever is preferred initially).
+  - This admin function can also support reading and updating the list of recognized node types.
+
+---
+
+## Example n8n Workflow JSON
+
+Below is an example JSON (representing an n8n workflow definition) for reference. A real request will look similar:
+
+```json
+{
+  "name": "RAG Chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "dataType": "binary",
+        "binaryMode": "specificField",
+        "options": {}
+      },
+      "id": "215f0519-4359-4e4b-a90c-7e54b1cc52b5",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "position": [1000, 580],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "chunkSize": 500,
+        "chunkOverlap": 100,
+        "options": {}
+      },
+      "id": "863d3d1d-1621-406e-8320-688f64b07b09",
+      "name": "Recursive Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "position": [1280, 780],
+      "typeVersion": 1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "...": "redacted for brevity"
+  },
+  "active": true,
+  "settings": {
+    "...": "redacted for brevity"
+  },
+  "versionId": "73ad3ba8-ec49-444b-8713-078db972499a",
+  "meta": {
+    "templateId": "2753",
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f66938e5f2abf7e101e0569dc334144149265077765aa6e39e07dd7916ee0141"
+  },
+  "id": "mX0rjFVvbzw5q5vJ",
+  "tags": []
+}
+
+## Implementation Details and Requirements
+
+1. **Framework & Language**  
+   Use Next.js (latest version) and TypeScript for type safety.
+
+2. **API Route**  
+   Create a route (for example: `app/api/n8n/`) that accepts a POST request for creating templates.
+
+3. **Admin Function**  
+- Create a backend module that can manage, add, and edit these templates under `app/(admin)/templates/` route
+- An additional backend module (`app/(admin)/settings/templates`) for adding, removing, or listing node types that require user input.
+- These mappings should be stored so that the primary endpoint can reference them. (Consider storing them in Postgres, a config file, or an in-memory object for simplicity.)
+
+4. **JSON Parsing**  
+   - Read the incoming JSON from the request.
+   - Extract the `nodes` array.
+   - For each node, compare its `type` property against the **admin-defined user-input types**.
+   - If a node’s type is recognized as a “user input” type, extract the required inputs from its parameters or other fields and store them in a `userInputs` object.
+
+5. **Construct the `userInputs` JSON object**  
+   - **Key** = node name, node ID, or some unique reference
+   - **Value** = user input fields needed by that node
+
+6. **Extract the template metadata**  
+   - For example: `id`, `meta.templateId`, `versionId`, `meta.instanceId`  
+   - These should come from the top-level properties of the workflow JSON.
+
+7. **Database Insertion**  
+   - Use any preferred Postgres integration (Prisma, pg, Sequelize, etc.).
+   - Create a new record in a `templates` (or similarly named) table with these fields:
+     - `id` (use the `id` from the JSON or a generated UUID if you prefer)
+     - `templateId`
+     - `versionId`
+     - `instanceId`
+     - `userInputs` (a JSON column containing the user inputs object)
+     - `workflowJson` (a JSON column containing the entire n8n JSON)
+
+8. **Response**  
+   - Return a JSON response indicating success, plus any relevant data (e.g., the newly created record’s ID).
+
+# Additional Considerations
+•	Handle errors: invalid JSON, missing fields, DB insertion issues, etc.
+•	Type Safety: define interfaces or types in TypeScript for the node structure, user input schema, etc.
+•	Scalability: the admin function should easily accommodate new node types in the future.
+
+# Goal
+You (the coding AI) will provide:
+•	A fully functional Next.js API route (or routes) in TypeScript that accomplish the above steps for creating a template record.
+•	A separate admin function or endpoint to manage the user-input node types list.

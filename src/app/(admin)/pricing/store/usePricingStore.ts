@@ -75,7 +75,7 @@ export const usePricingStore = create<PricingStore>((set, get) => {
         const newRole: PricingRole = {
           ...role,
           id: tempId,
-          uuid: '',
+          // uuid: '',
           pricing_id: pricing.id,
         };
 

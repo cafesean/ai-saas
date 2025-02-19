@@ -43,54 +43,53 @@ export function PricingTable({ initialData }: PricingTableProps) {
     }
   );
 
-  const columns = useMemo<Array<ColumnDef<PricingItem> & { accessorKey: keyof PricingItem }>>(() => [
-    {
-      accessorKey: 'code',
-      header: 'Code',
-      cell: ({ row }: { row: Row<PricingItem>; }) => (
-        <Link
-          href={`/pricing/${row.original.code}`}
-          className="inline-flex items-center text-primary hover:underline"
-        >
-          {row.original.code}
-          <ExternalLink className="ml-1 h-3 w-3" />
-        </Link>
-      ),
-    },
-    {
-      accessorKey: 'description',
-      header: 'Description',
-    },
-    {
-      accessorKey: 'customer_id',
-      header: 'Customer',
-    },
-    {
-      accessorKey: 'ratecard',
-      header: 'Rate Card',
-      cell: ({ row }) => row.original.ratecard?.name ?? '-',
-    },
-    {
-      accessorKey: 'resource_count',
-      header: 'Resources',
-      cell: ({ row }: { row: Row<PricingItem>; }) => (
-        <Badge variant="secondary">
-          {row.original.resource_count}
-        </Badge>
-      ),
-    },
-    {
-      accessorKey: 'total_amount',
-      header: 'Total Amount',
-      cell: ({ row }: { row: Row<PricingItem>; }) => formatCurrency(Number(row.original.total_amount)),
-    },
-    {
-      accessorKey: 'created_at',
-      header: 'Created At',
-      cell: ({ row }: { row: Row<PricingItem>; }) =>
-        row.original.created_at ? new Date(row.original.created_at).toLocaleDateString() : '-',
-    },
-  ], []);
+  const columns: ColumnDef<PricingItem, unknown>[] = useMemo<ColumnDef<PricingItem>[]>(
+    () => [
+      {
+        accessorKey: 'code',
+        header: 'Code',
+        cell: ({ row }: { row: Row<PricingItem>; }) => (
+          <Link
+            href={`/pricing/${row.original.code}`}
+            className="inline-flex items-center text-primary hover:underline"
+          >
+            {row.original.code}
+            <ExternalLink className="ml-1 h-3 w-3" />
+          </Link>
+        ),
+      },
+      {
+        accessorKey: 'description',
+        header: 'Description',
+      },
+      {
+        accessorKey: 'customer_id',
+        header: 'Customer',
+      },
+      {
+        id: 'ratecard',
+        header: 'Rate Card',
+        accessorFn: (row: PricingItem) => row.ratecard?.name,
+        cell: ({ row }) => row.original.ratecard?.name ?? '-',
+      },
+      {
+        accessorKey: 'resource_count',
+        header: 'Resources',
+        cell: ({ row }: { row: Row<PricingItem>; }) => (
+          <Badge variant="secondary">
+            {row.original.resource_count}
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: 'total_amount',
+        header: 'Total Amount',
+        cell: ({ row }: { row: Row<PricingItem>; }) => 
+          formatCurrency(Number(row.original.total_amount)),
+      },
+    ],
+    []
+  );
 
   if (!data?.items) {
     return null;

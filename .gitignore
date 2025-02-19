@@ -10,6 +10,10 @@
 !.yarn/releases
 !.yarn/versions
 
+ai/composer_history
+scratchpad*.*
+
+/n8n/*
 # testing
 /coverage
 

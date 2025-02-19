@@ -153,15 +153,25 @@ export const RoleLevelPricing = ({ pricing, roles, levels }: RoleLevelPricingPro
 
   const data: TableRow[] = currentPricing.pricing_roles.map((role) => ({
     id: role.id,
-    roleId: role.role_id,
-    levelId: role.level_id,
+    role_id: role.role_id,
+    level_id: role.level_id,
     quantity: role.quantity,
     base_price: role.base_price,
     override_price: role.override_price,
-    discountRate: role.discount_rate,
+    discount_rate: role.discount_rate,
     final_price: role.final_price,
-    role: role.role,
-    level: role.level,
+    role: role.role ? {
+      id: role.role.id,
+      name: role.role.name,
+      description: role.role.description,
+      roleCode: role.role.role_code,
+    } : null,
+    level: role.level ? {
+      id: role.level.id,
+      name: role.level.name,
+      code: role.level.code,
+      description: role.level.description,
+    } : null,
   }));
 
   const {
@@ -188,37 +198,47 @@ export const RoleLevelPricing = ({ pricing, roles, levels }: RoleLevelPricingPro
 
     const newRow: TableRow = {
       id: tempId,
-      roleId: defaultRole?.id ?? 0,
-      levelId: defaultLevel?.id ?? 0,
+      role_id: defaultRole?.id ?? null,
+      level_id: defaultLevel?.id ?? null,
       quantity: 1,
-      basePrice: basePrice,
+      base_price: basePrice?.toString() || "0",
       override_price: null,
-      discountRate: null,
-      finalPrice: basePrice,
-      role: defaultRole,
-      level: defaultLevel,
+      discount_rate: null,
+      final_price: basePrice?.toString() || "0",
+      role: defaultRole ? {
+        id: defaultRole.id,
+        name: defaultRole.name,
+        description: defaultRole.description,
+        roleCode: defaultRole.role_code,
+      } : null,
+      level: defaultLevel ? {
+        id: defaultLevel.id,
+        name: defaultLevel.name,
+        code: defaultLevel.code,
+        description: defaultLevel.description,
+      } : null,
     };
 
     // Add to table state
     addRow(newRow);
-
     // Add to Zustand store
     addPricingRole({
-      roleId: defaultRole?.id,
-      levelId: defaultLevel?.id,
+      pricing_id: null, // Add missing pricing_id property
+      role_id: defaultRole?.id ?? null,
+      level_id: defaultLevel?.id ?? null,
       quantity: 1,
-      base_price: basePrice?.toString() || "",
+      base_price: basePrice?.toString() || "0",
       multiplier: '1',
       override_price: null,
-      discountRate: null,
-      final_price: basePrice?.toString() || "",
-      role: defaultRole!,
-      level: defaultLevel!,
+      discount_rate: null,
+      final_price: basePrice?.toString() || "0",
+      role: defaultRole ?? null,
+      level: defaultLevel ?? null,
     });
   };
 
   const table = useReactTable({
-    data: tableData,
+    data: tableData as import("/Users/seanliao/Dropbox/_engineering/code/palantir/platform-n8n/src/app/(admin)/pricing/components/columns").TableRow[], // Type assertion to fix type error
     columns,
     getCoreRowModel: getCoreRowModel(),
     meta: {
