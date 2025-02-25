@@ -4,6 +4,7 @@ import { cn } from '@/framework/lib/utils';
 import React from 'react';
 
 interface ColumnConfig<T> {
+  id?: string;
   header: string;
   accessorKey: keyof T;
   cell?: (info: { getValue: () => any }) => React.ReactNode;
@@ -17,9 +18,10 @@ export function createColumnHelper<T>() {
     key: K,
     config: Omit<ColumnConfig<T>, 'accessorKey'>
   ): ColumnDef<T> & { accessorKey: K } => {
-    const { header, cell, enableSorting = true, enableFiltering = true, width } = config;
+    const { id, header, cell, enableSorting = true, enableFiltering = true, width } = config;
 
     return {
+      id: id,
       accessorKey: key,
       header: ({ column }) => (
         <div
@@ -52,4 +54,4 @@ export function createColumnHelper<T>() {
   };
 
   return { accessor };
-} 
+}

@@ -71,7 +71,7 @@ export function LevelDetails({
   };
 
   const usedInRateCards = rateCards.filter(rateCard =>
-    rateCard.level_rates.some(rate => rate.level.id === level.id)
+    rateCard.levelRates.some(rate => rate.level.id === level.id)
   );
 
   return (
@@ -168,7 +168,7 @@ export function LevelDetails({
                     </Link>
                     <span className="text-gray-600">
                       {formatCurrency(
-                        Number(rateCard.level_rates.find(rate => rate.level.id === level.id)?.monthly_rate) || 0
+                        Number(rateCard.levelRates.find(rate => rate.level.id === level.id)?.monthlyRate) || 0
                       )}
                     </span>
                   </div>

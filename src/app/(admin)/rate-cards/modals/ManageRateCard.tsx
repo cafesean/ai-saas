@@ -27,7 +27,7 @@ interface ManageRateCardProps {
   onSubmit: (e: React.FormEvent) => void;
   rateCard: NewRateCard;
   onRateCardChange: (field: keyof NewRateCard, value: string) => void;
-  onLevelRateChange: (level_id: number, monthly_rate: number) => void;
+  onLevelRateChange: (levelId: number, monthlyRate: number) => void;
   levels?: LevelView[];
   isEdit?: boolean;
   getLevelRate: (levelId: number) => number;

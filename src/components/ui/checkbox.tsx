@@ -9,7 +9,7 @@ interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>
   error?: string;
 }
 
-export function Checkbox({ label, error, className, ...props }: CheckboxProps) {
+const Checkbox = ({ label, error, className, ...props }: CheckboxProps) => {
   return (
     <div className="space-y-2">
       <label className="inline-flex items-center">
@@ -27,4 +27,7 @@ export function Checkbox({ label, error, className, ...props }: CheckboxProps) {
       <FormError message={error} />
     </div>
   );
-} 
+};
+
+export default Checkbox;
+

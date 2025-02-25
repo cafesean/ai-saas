@@ -2,10 +2,7 @@
 
 import React from 'react';
 import type { RateCardView, LevelView } from '@/framework/types';
-import type { Row } from '@tanstack/react-table';
 import { Button } from '@/components/form/Button';
-import { formatCurrency } from '@/framework/lib/utils';
-import { ArrowUpDown } from 'lucide-react';
 import { RateCardDetails } from '@/app/(admin)/rate-cards/components/RateCardDetail';
 import { DataTable } from '@/components/ui/table/DataTable';
 import { useTableColumns } from '@/framework/hooks/useTableColumn';
@@ -15,6 +12,7 @@ import { ConfirmSave } from './modals/ConfirmSave';
 import { ConfirmDelete } from './modals/ConfirmDelete';
 import { useRateCardState } from './hooks/useRateCardState';
 import { dbToAppLevel, dbToAppRateCard } from '@/framework/types';
+import formatDate from '@/lib/formatDate'
 
 interface LevelRate {
   id: string;
@@ -85,20 +83,9 @@ export default function RateCardsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = {
-      name: newRateCard.name,
-      description: newRateCard.description,
-      effective_date: new Date(newRateCard.effective_date + 'T00:00:00Z'),
-      expire_date: newRateCard.expire_date ? new Date(newRateCard.expire_date + 'T00:00:00Z') : null,
-      level_rates: newRateCard.level_rates.map((rate: LevelRate) => ({
-        level_id: rate.level_id,
-        monthly_rate: rate.monthly_rate,
-      })),
-    };
-
     // Check for duplicate names
-    if (rateCards?.some(card => 
-      card.name.toLowerCase() === newRateCard.name.toLowerCase() && 
+    if (rateCards?.some(card =>
+      card.name.toLowerCase() === newRateCard.name.toLowerCase() &&
       (!selectedRateCard || card.id !== selectedRateCard.id)
     )) {
       return;
@@ -145,12 +132,12 @@ export default function RateCardsPage() {
     const newCard = {
       name: rateCard.name,
       description: rateCard.description ?? '',
-      effective_date: rateCard.effective_date.toISOString().split('T')[0],
-      expire_date: rateCard.expire_date ? rateCard.expire_date.toISOString().split('T')[0] : '',
-      level_rates: rateCard.level_rates.map(rate => ({
+      effective_date: rateCard.effectiveDate.toISOString().split('T')[0],
+      expire_date: rateCard.expireDate ? rateCard.expireDate.toISOString().split('T')[0] : '',
+      level_rates: rateCard.levelRates.map(rate => ({
         id: rate.id.toString(),
         level_id: rate.level.id,
-        monthly_rate: rate.monthly_rate,
+        monthly_rate: rate.monthlyRate,
         level: rate.level,
       })),
     };
@@ -179,59 +166,15 @@ export default function RateCardsPage() {
     }
   };
 
-  const handleSort = (key: keyof RateCardView) => {
-    setSortConfig((current: SortConfig) => {
-      if (current?.key === key) {
-        return {
-          key,
-          direction: current.direction === 'asc' ? 'desc' : 'asc',
-        };
-      }
-      return { key, direction: 'asc' };
-    });
-  };
-
-  const sortedRateCards = React.useMemo(() => {
-    if (!rateCards || !sortConfig) return rateCards;
-
-    return [...rateCards].map(card => {
-      const rateCardWithRefs = {
-        ...card,
-        effective_date: new Date(card.effective_date),
-        expire_date: card.expire_date ? new Date(card.expire_date) : null,
-        level_rates: card.level_rates?.map(rate => ({
-          ...rate,
-          rate_card: card,
-          level: {
-            ...rate.level,
-            roles: [],
-          },
-        })),
-      };
-      return dbToAppRateCard(rateCardWithRefs);
-    }).sort((a, b) => {
-      if (sortConfig.key === 'name') {
-        return sortConfig.direction === 'asc'
-          ? a.name.localeCompare(b.name)
-          : b.name.localeCompare(a.name);
-      }
-      if (sortConfig.key === 'effective_date') {
-        return sortConfig.direction === 'asc'
-          ? a.effective_date.getTime() - b.effective_date.getTime()
-          : b.effective_date.getTime() - a.effective_date.getTime();
-      }
-      return 0;
-    });
-  }, [rateCards, sortConfig]);
-
   const columns = useTableColumns<RateCardView>({
     columns: [
       {
-        key: 'name',
+        id: 'name',
+        key: 'id',
         header: 'Name',
         cell: ({ getValue }) => {
-          const name = getValue() as string;
-          const dbRateCard = rateCards?.find(rc => rc.name === name);
+          const id = getValue() as number;
+          const dbRateCard = rateCards?.find(rc => rc.id === id);
           if (!dbRateCard) return null;
           const rateCard = dbToAppRateCard({
             ...dbRateCard,
@@ -249,36 +192,37 @@ export default function RateCardsPage() {
               onClick={() => handleViewDetail(rateCard)}
               className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors w-full text-left"
             >
-              {name}
+              {rateCard.name}
             </button>
           );
         },
       },
       {
-        key: 'effective_date',
+        key: 'effectiveDate',
         header: 'Effective Date',
         cell: ({ getValue }) => {
           const date = getValue() as Date;
           return (
             <span className="text-xs text-gray-600">
-              {date.toLocaleDateString()}
+              {formatDate(date)}
             </span>
           );
         },
       },
       {
-        key: 'expire_date',
+        key: 'expireDate',
         header: 'Expire Date',
         cell: ({ getValue }) => {
           const date = getValue() as Date | null;
           return (
             <span className="text-xs text-gray-600">
-              {date ? date.toLocaleDateString() : 'Never'}
+              {date ? formatDate(date) : 'Never'}
             </span>
           );
         },
       },
       {
+        id: 'actions',
         key: 'id',
         header: '',
         cell: ({ getValue }) => {
@@ -358,10 +302,10 @@ export default function RateCardsPage() {
         onSubmit={handleSubmit}
         rateCard={newRateCard}
         onRateCardChange={handleRateCardChange}
-        onLevelRateChange={(level_id: number, monthly_rate: number) => {
-          const level = levels?.find(l => l.id === level_id);
+        onLevelRateChange={(levelId: number, monthlyRate: number) => {
+          const level = levels?.find(l => l.id === levelId);
           if (level) {
-            handleLevelRateChange(level_id, monthly_rate, dbToAppLevel({ ...level, roles: [] }));
+            handleLevelRateChange(levelId, monthlyRate, dbToAppLevel({ ...level, roles: [] }));
           }
         }}
         levels={levels?.map(level => dbToAppLevel({ ...level, roles: [] })) || []}
@@ -400,11 +344,11 @@ export default function RateCardsPage() {
                   data: {
                     name: rateCardData.name,
                     description: rateCardData.description,
-                    effective_date: rateCardData.effective_date,
-                    expire_date: rateCardData.expire_date,
-                    level_rates: rateCardData.level_rates.map((rate) => ({
+                    effective_date: rateCardData.effectiveDate || '',
+                    expire_date: rateCardData.expireDate || null,
+                    level_rates: rateCardData.levelRates.map((rate) => ({
                       level_id: rate.level.id,
-                      monthly_rate: rate.monthly_rate,
+                      monthly_rate: rate.monthlyRate,
                     })),
                   },
                 });
@@ -418,4 +362,4 @@ export default function RateCardsPage() {
       )}
     </div>
   );
-} 
+}

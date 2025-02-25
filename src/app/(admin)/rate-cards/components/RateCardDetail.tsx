@@ -2,18 +2,8 @@ import React from 'react';
 import { RateCardView, LevelView, LevelRateView } from '@/framework/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/form/Button';
-import { Input } from '@/components/form/Input';
 import { formatCurrency } from '@/framework/lib/utils';
-import { useFormValidation } from '@/framework/hooks/useFormValidation';
-import { rateCardSchema } from '@/schemas';
-
-interface FormData {
-  name: string;
-  description: string;
-  effective_date: string;
-  expire_date: string;
-  level_rates: LevelRateView[];
-}
+import formatDate from '@/lib/formatDate';
 
 interface RateCardDetailsProps {
   rateCard: RateCardView | null;
@@ -21,7 +11,7 @@ interface RateCardDetailsProps {
   onOpenChange: (open: boolean) => void;
   onEdit: (rateCard: RateCardView) => void;
   onDelete: (rateCard: RateCardView) => void;
-  onSave: (rateCard: Omit<RateCardView, 'id'>) => void;
+  onSave?: (rateCardData: Omit<RateCardView, 'id'>) => Promise<void>;
 }
 
 export function RateCardDetails({ 
@@ -30,126 +20,9 @@ export function RateCardDetails({
   onOpenChange, 
   onEdit, 
   onDelete,
-  onSave 
+  onSave
 }: RateCardDetailsProps) {
   if (!rateCard) return null;
-
-  const [isEditing, setIsEditing] = React.useState(false);
-  const [editedRateCard, setEditedRateCard] = React.useState<FormData>({
-    name: rateCard.name,
-    description: rateCard.description ?? '',
-    effective_date: rateCard.effective_date.toISOString(),
-    expire_date: rateCard.expire_date ? rateCard.expire_date.toISOString() : '',
-    level_rates: rateCard.level_rates,
-  });
-
-  const { validate, getFieldError, clearErrors } = useFormValidation(rateCardSchema._def.schema);
-
-  const getLevel = (levelId: number): LevelView | undefined => 
-    levels.find((l) => l.id === levelId);
-
-  const formatDate = (date: Date) => {
-    const utcDate = new Date(Date.UTC(
-      date.getUTCFullYear(),
-      date.getUTCMonth(),
-      date.getUTCDate()
-    ));
-    
-    return utcDate.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      timeZone: 'UTC'
-    });
-  };
-
-  const handleLevelRateChange = (levelId: number, monthly_rate: number) => {
-    const existingRateIndex = editedRateCard.level_rates.findIndex(
-      (rate: LevelRateView) => rate.level.id === levelId
-    );
-
-    if (monthly_rate === 0 && existingRateIndex !== -1) {
-      setEditedRateCard({
-        ...editedRateCard,
-        level_rates: editedRateCard.level_rates.filter((_: LevelRateView, index: number) => index !== existingRateIndex),
-      });
-    } else if (existingRateIndex !== -1) {
-      const updatedRates = [...editedRateCard.level_rates];
-      updatedRates[existingRateIndex] = {
-        ...(updatedRates[existingRateIndex] as LevelRateView),
-        monthly_rate: monthly_rate,
-      };
-      setEditedRateCard({
-        ...editedRateCard,
-        level_rates: updatedRates,
-      });
-    } else if (monthly_rate > 0) {
-      const newRate: LevelRateView = {
-        id: levelId,
-        monthly_rate: monthly_rate,
-        level: getLevel(levelId)!,
-        ratecard: rateCard,
-      };
-      setEditedRateCard({
-        ...editedRateCard,
-        level_rates: [...editedRateCard.level_rates, newRate],
-      });
-    }
-  };
-
-  const getLevelRate = (levelId: number) => {
-    return editedRateCard.level_rates.find((rate: LevelRateView) => rate.level.id === levelId)?.monthly_rate || 0;
-  };
-
-  const handleSave = () => {
-    const validationData = {
-      name: editedRateCard.name,
-      description: editedRateCard.description,
-      effective_date: new Date(editedRateCard.effective_date + 'T00:00:00Z'),
-      expire_date: editedRateCard.expire_date ? new Date(editedRateCard.expire_date + 'T00:00:00Z') : null,
-      level_rates: editedRateCard.level_rates.map((rate: LevelRateView) => ({
-        levelId: rate.level.id,
-        monthly_rate: Number(rate.monthly_rate),
-      })),
-    };
-    if (!validate(validationData)) return;
-
-    onSave({
-      name: editedRateCard.name,
-      description: editedRateCard.description,
-      effective_date: new Date(editedRateCard.effective_date + 'T00:00:00Z'),
-      expire_date: editedRateCard.expire_date ? new Date(editedRateCard.expire_date + 'T00:00:00Z') : null,
-      level_rates: editedRateCard.level_rates.map((rate: LevelRateView) => ({
-        id: rate.id,
-        level: rate.level,
-        monthly_rate: rate.monthly_rate,
-        ratecard: rate.ratecard,
-      })),
-    });
-    setIsEditing(false);
-    clearErrors();
-  };
-
-  const handleStartEdit = () => {
-    setEditedRateCard({
-      name: rateCard.name,
-      description: rateCard.description ?? '',
-      effective_date: rateCard.effective_date.toISOString(),
-      expire_date: rateCard.expire_date ? rateCard.expire_date.toISOString() : '',
-      level_rates: rateCard.level_rates.map((rate: LevelRateView) => ({
-        id: rate.id,
-        level: rate.level,
-        monthly_rate: rate.monthly_rate,
-        ratecard: rateCard,
-      })),
-    });
-    setIsEditing(true);
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    clearErrors();
-  };
 
   return (
     <Dialog open={!!rateCard} onOpenChange={onOpenChange}>
@@ -167,14 +40,14 @@ export function RateCardDetails({
           <div>
             <h2 className="modal-section-title">Effective Date</h2>
             <p className="modal-value">
-              {rateCard.effective_date ? formatDate(rateCard.effective_date) : 'No date set'}
+              {rateCard.effectiveDate ? formatDate(rateCard.effectiveDate) : 'No date set'}
             </p>
           </div>
 
           <div>
             <h2 className="modal-section-title">Expire Date</h2>
             <p className="modal-value">
-              {rateCard.expire_date ? formatDate(rateCard.expire_date) : 'No expiration date'}
+              {rateCard.expireDate ? formatDate(rateCard.expireDate) : 'No expiration date'}
             </p>
           </div>
 
@@ -185,7 +58,7 @@ export function RateCardDetails({
                 <div key={level.id} className="flex justify-between items-center text-sm">
                   <span className="font-medium text-gray-900">{level.name}</span>
                   <span className="text-gray-600">
-                    {formatCurrency(Number(rateCard.level_rates.find((r: LevelRateView) => r.level.id === level.id)?.monthly_rate || 0))}
+                    {formatCurrency(Number(rateCard.levelRates.find((r: LevelRateView) => r.level.id === level.id)?.monthlyRate || 0))}
                   </span>
                 </div>
               ))}

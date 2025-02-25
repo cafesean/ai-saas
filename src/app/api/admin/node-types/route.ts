@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/db';
-import { nodeTypes } from '@/db/schema/n8n';
+import { nodeTypes as nodeTypesTable } from '@/db/schema/n8n';
 import { desc } from 'drizzle-orm';
 
 const nodeTypeSchema = z.object({
@@ -12,10 +12,11 @@ const nodeTypeSchema = z.object({
 
 export async function GET() {
   try {
-    const nodeTypesList = await db.select()
-      .from(nodeTypes)
-      .orderBy(desc(nodeTypes.type));
-    return NextResponse.json(nodeTypesList);
+    const nodeTypesResults = await db.select()
+      .from(nodeTypesTable)
+      .orderBy(desc(nodeTypesTable.type));
+
+    return NextResponse.json(nodeTypesResults);
   } catch (error) {
     console.error('Error fetching node types:', error);
     return NextResponse.json(
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = nodeTypeSchema.parse(body);
 
-    const [nodeType] = await db.insert(nodeTypes)
+    const [nodeType] = await db.insert(nodeTypesTable)
       .values(data)
       .returning();
 

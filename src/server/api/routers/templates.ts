@@ -1,18 +1,29 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import { db } from "@/db";
-import { templates, insertTemplateSchema } from "@/db/schema/n8n";
+import { templates, InsertTemplate } from "@/db/schema/n8n";
 import { parseWorkflow } from "@/lib/parser/workflow-parser";
-import { and, eq, desc, sql } from 'drizzle-orm';
+import { desc, eq } from "drizzle-orm";
 
 export const templatesRouter = createTRPCRouter({
 	create: publicProcedure.input(z.unknown()).mutation(async ({ input }) => {
 		const parsedTemplate = await parseWorkflow(input);
-		return db.insert(templates).values(parsedTemplate).returning();
+		return db
+			.insert(templates)
+			.values({
+				templateId: parsedTemplate.templateId,
+				versionId: parsedTemplate.versionId,
+				instanceId: parsedTemplate.instanceId,
+				userInputs: parsedTemplate.userInputs,
+				workflowJson: parsedTemplate.workflowJson,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			})
+			.returning();
 	}),
 
 	list: publicProcedure.query(async () => {
-		return db.select().from(templates).orderBy(desc(templates.created_at));
+		return db.select().from(templates).orderBy(desc(templates.createdAt));
 	}),
 
 	get: publicProcedure.input(z.string().uuid()).query(async ({ input: id }) => {

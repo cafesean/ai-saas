@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const roleSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   description: z.string().min(1, 'Description is required').max(500).nullable(),
-  role_code: z
+  roleCode: z
     .string()
     .min(1, 'Role code is required')
     .max(10)

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { LevelView, RoleView, LevelRateView } from '@/framework/types';
 import { Input } from '@/components/form/Input';
 import { Button } from '@/components/form/Button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Checkbox } from '@/components/form/Checkbox';
 import { useFormValidation } from '@/framework/hooks/useFormValidation';
 // import { levelSchema } from '@/schemas';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -45,7 +45,7 @@ const LevelsPage: NextPage = () => {
   const { data: levels, isLoading: isLoadingLevels } = api.level.getAll.useQuery();
   const { data: roles, isLoading: isLoadingRoles } = api.role.getAll.useQuery();
   const { data: rateCards, isLoading: isLoadingRateCards } = api.rateCard.getAll.useQuery();
-  
+
   const utils = useUtils();
   const createLevel = api.level.create.useMutation({
     onSuccess: () => utils.level.getAll.invalidate(),
@@ -171,7 +171,7 @@ const LevelsPage: NextPage = () => {
   const handleRoleToggle = (role: RoleView) => {
     const currentRoles = watch('roles');
     const isSelected = currentRoles.includes(role.id);
-    setValue('roles', isSelected 
+    setValue('roles', isSelected
       ? currentRoles.filter((roleId: number) => roleId !== role.id)
       : [...currentRoles, role.id]
     );
@@ -196,7 +196,7 @@ const LevelsPage: NextPage = () => {
       const key = sortConfig.key;
       const aValue = (a[key as keyof LevelView] as string | number | null | undefined)?.toString() ?? '';
       const bValue = (b[key as keyof LevelView] as string | number | null | undefined)?.toString() ?? '';
-      
+
       if (aValue < bValue) {
         return sortConfig.direction === 'asc' ? -1 : 1;
       }
@@ -210,19 +210,20 @@ const LevelsPage: NextPage = () => {
   const columns = useTableColumns<LevelView>({
     columns: [
       {
-        key: 'name',
+        id: 'name',
+        key: 'id',
         header: 'Name',
         cell: ({ getValue }) => {
-          const name = getValue() as string;
-          const dbLevel = levels?.find(l => l.name === name);
+          const id = getValue() as number;
+          const dbLevel = levels?.find(l => l.id === id);
           const level = dbLevel ? dbToAppLevel(dbLevel) : null;
           if (!level) return null;
           return (
-            <button 
+            <button
               onClick={() => handleViewLevel(level)}
               className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors w-full text-left"
             >
-              {name}
+              {level.name}
             </button>
           );
         },
@@ -262,6 +263,7 @@ const LevelsPage: NextPage = () => {
         },
       },
       {
+        id: 'actions',
         key: 'id',
         header: '',
         cell: ({ getValue }) => {
@@ -331,9 +333,9 @@ const LevelsPage: NextPage = () => {
         <DialogContent className="modal-content">
           <DialogHeader className="modal-header">
             <DialogTitle className="modal-title">
-              {isConfirming 
+              {isConfirming
                 ? 'Confirm Level Details'
-                : selectedLevel 
+                : selectedLevel
                   ? `Edit ${selectedLevel.name}`
                   : 'Add New Level'
               }
@@ -503,7 +505,7 @@ const LevelsPage: NextPage = () => {
                             <span className="text-gray-600">{rateCard.name}</span>
                             <span className="text-gray-600">
                               {formatCurrency(
-                                Number(rateCard.level_rates.find((rate: LevelRateView) => rate.level.id === selectedLevel.id)?.monthly_rate) || 0
+                                Number(rateCard.levelRates.find((rate: LevelRateView) => rate.level.id === selectedLevel.id)?.monthlyRate) || 0
                               )}
                             </span>
                           </div>

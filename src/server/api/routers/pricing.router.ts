@@ -1,15 +1,13 @@
 import { z } from 'zod';
 import { createTRPCRouter, publicProcedure } from '../trpc';
 import { TRPCError } from '@trpc/server';
-import { and, eq, desc, sql } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { db } from '@/db/config';
 import { pricings, pricing_roles } from '@/db/schema';
-import { v4 as uuidv4 } from 'uuid';
 import {
   createPricingSchema,
   updatePricingSchema,
   updatePricingRoleSchema,
-  type PricingRole,
 } from '@/app/(admin)/pricing/types/schema';
 import {
   calculatePricingTotal,
@@ -60,31 +58,8 @@ export const pricingRouter = createTRPCRouter({
       const items = await db.query.pricings.findMany({
         limit: limit + 1,
         offset: cursor,
-        columns: {
-          id: true,
-          code: true,
-          description: true,
-          customer_id: true,
-          ratecard_id: true,
-          overall_discounts: true,
-          created_by: true,
-          total_amount: true,
-          resource_count: true,
-        },
         with: {
           pricing_roles: {
-            columns: {
-              id: true,
-              pricing_id: true,
-              role_id: true,
-              level_id: true,
-              quantity: true,
-              override_price: true,
-              discount_rate: true,
-              base_price: true,
-              multiplier: true,
-              final_price: true,
-            },
             with: {
               role: true,
               level: true,
@@ -97,7 +72,7 @@ export const pricingRouter = createTRPCRouter({
 
       let nextCursor: typeof cursor | undefined = undefined;
       if (items.length > limit) {
-        const nextItem = items.pop();
+        items.pop(); // Remove the extra item
         nextCursor = cursor ? cursor + limit : limit;
       }
 
@@ -112,49 +87,11 @@ export const pricingRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const pricing = await db.query.pricings.findFirst({
         where: eq(pricings.code, input),
-        columns: {
-          id: true,
-          code: true,
-          description: true,
-          customer_id: true,
-          ratecard_id: true,
-          overall_discounts: true,
-          created_by: true,
-          total_amount: true,
-          resource_count: true,
-          created_at: true,
-        },
         with: {
           pricing_roles: {
-            columns: {
-              id: true,
-              pricing_id: true,
-              role_id: true,
-              level_id: true,
-              quantity: true,
-              override_price: true,
-              discount_rate: true,
-              base_price: true,
-              multiplier: true,
-              final_price: true,
-            },
             with: {
-              role: {
-                columns: {
-                  id: true,
-                  name: true,
-                  description: true,
-                  role_code: true,
-                }
-              },
-              level: {
-                columns: {
-                  id: true,
-                  name: true,
-                  description: true,
-                  code: true,
-                }
-              },
+              role: true,
+              level: true,
             },
           },
           ratecard: true,
@@ -170,28 +107,12 @@ export const pricingRouter = createTRPCRouter({
 
       // Cast price fields to number
       pricing.pricing_roles = pricing.pricing_roles.map((role) => ({
-        id: role.id,
-        pricing_id: role.pricing_id,
-        role_id: role.role_id || null,
-        level_id: role.level_id || null,
-        quantity: role.quantity,
+        ...role,
+        override_price: role.override_price ? role.override_price : null,
+        discount_rate: role.discount_rate ? role.discount_rate : null,
         base_price: role.base_price,
         multiplier: role.multiplier,
         final_price: role.final_price,
-        discount_rate: role.discount_rate ?? null,
-        override_price: role.override_price ?? null,
-        role: role.role ? {
-          id: role.role.id,
-          name: role.role.name,
-          description: role.role.description,
-          role_code: role.role.role_code ?? '',
-        } : null,
-        level: role.level ? {
-          id: role.level.id,
-          name: role.level.name,
-          description: role.level.description,
-          code: role.level.code ?? '',
-        } :  null
       }));
 
       return pricing;
@@ -228,7 +149,7 @@ export const pricingRouter = createTRPCRouter({
 
         // Create pricing roles
         if (input.pricing_roles.length > 0) {
-          const pricing_roles_data: PricingRoleCreate[] = input.pricing_roles.map((role) => ({
+          const pricingRolesData: PricingRoleCreate[] = input.pricing_roles.map((role) => ({
             pricing_id: pricing.id,
             role_id: role.role_id,
             level_id: role.level_id,
@@ -242,18 +163,7 @@ export const pricingRouter = createTRPCRouter({
             updated_at: new Date(),
           }));
 
-          await tx.insert(pricing_roles).values(pricing_roles_data.map(role => ({
-            ...role,
-            pricing_id: role.pricing_id,
-            role_id: role.role_id,
-            level_id: role.level_id,
-            quantity: role.quantity,
-            override_price: role.override_price,
-            discount_rate: role.discount_rate,
-            base_price: role.base_price,
-            multiplier: role.multiplier,
-            final_price: role.final_price,
-          })));
+          await tx.insert(pricing_roles).values(pricingRolesData);
         }
 
         // Get complete pricing with roles
@@ -281,32 +191,33 @@ export const pricingRouter = createTRPCRouter({
         const total_amount = calculatePricingTotal(
           completePricing.pricing_roles.map(role => ({
             id: role.id,
-            pricing_id: role.pricing_id ?? 0,
-            role_id: role.role_id ?? 0,
-            level_id: role.level_id ?? 0,
+            pricing_id: role.pricing_id ?? pricing.id, // Ensure non-null
+            role_id: role.role_id ?? 0, // Ensure non-null
+            level_id: role.level_id ?? 0, // Ensure non-null
             quantity: role.quantity,
             base_price: role.base_price,
             multiplier: role.multiplier,
             final_price: role.final_price,
-            discount_rate: role.discount_rate ?? undefined,
-            role: role.role ?? { id: 0, name: '', code: '' },
-            level: role.level ?? { id: 0, name: '', multiplier: '1' }
+            discount_rate: role.discount_rate ? role.discount_rate : undefined,
+            role: role.role ?? { id: 0, name: "" },
+            level: role.level ?? { id: 0, name: "" },
           })),
           input.overall_discounts ?? null
         );
+        
         const resource_count = calculateResourceCount(
           completePricing.pricing_roles.map(role => ({
             id: role.id,
-            pricing_id: role.pricing_id ?? 0,
-            role_id: role.role_id ?? 0,
-            level_id: role.level_id ?? 0,
+            pricingId: role.pricing_id ?? pricing.id, // Renamed to match expected type
+            roleId: role.role_id ?? 0, // Renamed to match expected type
+            levelId: role.level_id ?? 0, // Renamed to match expected type
             quantity: role.quantity,
             base_price: role.base_price,
             multiplier: role.multiplier,
             final_price: role.final_price,
-            discount_rate: role.discount_rate ?? undefined,
-            role: role.role ?? { id: 0, name: '', code: '' },
-            level: role.level ?? { id: 0, name: '', multiplier: '1' }
+            discountRate: role.discount_rate ? role.discount_rate : undefined, // Renamed to match expected type
+            role: role.role ?? { id: 0, name: "" },
+            level: role.level ?? { id: 0, name: "" },
           }))
         );
 
@@ -408,7 +319,7 @@ export const pricingRouter = createTRPCRouter({
 
         // Update pricing totals
         const pricing = await tx.query.pricings.findFirst({
-          where: pricingRole.pricing_id ? eq(pricings.id, pricingRole.pricing_id) : undefined,
+          where: eq(pricings.id, pricingRole.pricing_id ?? 0), // Ensure non-null
           with: {
             pricing_roles: {
               with: {
@@ -423,32 +334,33 @@ export const pricingRouter = createTRPCRouter({
           const total_amount = calculatePricingTotal(
             pricing.pricing_roles.map(role => ({
               id: role.id,
-              pricing_id: role.pricing_id ?? 0,
-              role_id: role.role_id ?? 0,
-              level_id: role.level_id ?? 0,
+              pricing_id: role.pricing_id ?? 0, // Ensure non-null
+              role_id: role.role_id ?? 0, // Ensure non-null
+              level_id: role.level_id ?? 0, // Ensure non-null
               quantity: role.quantity,
               base_price: role.base_price,
               multiplier: role.multiplier,
               final_price: role.final_price,
-              discount_rate: role.discount_rate ?? undefined,
-              role: role.role ?? { id: 0, name: '', code: '' },
-              level: role.level ?? { id: 0, name: '', multiplier: '1' }
+              discount_rate: role.discount_rate ? role.discount_rate : undefined,
+              role: role.role ?? { id: 0, name: "" },
+              level: role.level ?? { id: 0, name: "" },
             })),
             pricing.overall_discounts as Array<{ rate: number }>
           );
+          
           const resource_count = calculateResourceCount(
             pricing.pricing_roles.map(role => ({
               id: role.id,
-              pricing_id: role.pricing_id ?? 0,
-              role_id: role.role_id ?? 0,
-              level_id: role.level_id ?? 0,
+              pricingId: role.pricing_id ?? 0, // Renamed to match expected type
+              roleId: role.role_id ?? 0, // Renamed to match expected type
+              levelId: role.level_id ?? 0, // Renamed to match expected type
               quantity: role.quantity,
               base_price: role.base_price,
               multiplier: role.multiplier,
               final_price: role.final_price,
-              discount_rate: role.discount_rate ?? undefined,
-              role: role.role ?? { id: 0, name: '', code: '' },
-              level: role.level ?? { id: 0, name: '', multiplier: '1' }
+              discountRate: role.discount_rate ? role.discount_rate : undefined, // Renamed to match expected type
+              role: role.role ?? { id: 0, name: "" },
+              level: role.level ?? { id: 0, name: "" },
             }))
           );
 

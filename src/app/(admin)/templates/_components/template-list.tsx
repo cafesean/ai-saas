@@ -11,7 +11,7 @@ import { Relative_date } from '@/components/ui/date-formatter';
 
 export const TemplateList = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-  const { data: templates, isLoading } = api.n8n.getAll.useQuery();
+  const { data: templates, isLoading } = api.n8n.listTemplates.useQuery();
 
   const columns = useTableColumns<Template>({
     columns: [
@@ -46,7 +46,7 @@ export const TemplateList = () => {
         },
       },
       {
-        key: 'created_at',
+        key: 'createdAt',
         header: 'Created',
         cell: ({ getValue }) => {
           const date = getValue() as Date;

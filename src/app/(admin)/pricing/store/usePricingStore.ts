@@ -46,6 +46,40 @@ export const usePricingStore = create<PricingStore>((set, get) => {
   const getOverallDiscounts = (pricing: Pricing): OverallDiscount[] => 
     (pricing.overall_discounts ?? []) as OverallDiscount[];
 
+  // Helper function to adapt pricing roles for calculatePricingTotal
+  const adaptRolesForPricingTotal = (roles: PricingRole[]) => {
+    return roles.map(role => ({
+      id: role.id,
+      pricing_id: role.pricing_id ?? 0,
+      role_id: role.role_id ?? 0,
+      level_id: role.level_id ?? 0,
+      quantity: role.quantity,
+      base_price: role.base_price,
+      multiplier: role.multiplier,
+      final_price: role.final_price,
+      discount_rate: role.discount_rate,
+      role: role.role ?? { id: 0, name: '', roleCode: '', description: null },
+      level: role.level ?? { id: 0, name: '', code: '', description: null },
+    }));
+  };
+
+  // Helper function to adapt pricing roles for calculateResourceCount
+  const adaptRolesForResourceCount = (roles: PricingRole[]) => {
+    return roles.map(role => ({
+      id: role.id,
+      pricingId: role.pricing_id ?? 0,
+      roleId: role.role_id ?? 0,
+      levelId: role.level_id ?? 0,
+      quantity: role.quantity,
+      base_price: role.base_price,
+      multiplier: role.multiplier,
+      final_price: role.final_price,
+      discountRate: role.discount_rate,
+      role: role.role ?? { id: 0, name: '', roleCode: '', description: null },
+      level: role.level ?? { id: 0, name: '', code: '', description: null },
+    }));
+  };
+
   return {
     // State
     currentPricing: null,
@@ -75,7 +109,7 @@ export const usePricingStore = create<PricingStore>((set, get) => {
         const newRole: PricingRole = {
           ...role,
           id: tempId,
-          // uuid: '',
+          uuid: '',
           pricing_id: pricing.id,
         };
 
@@ -119,11 +153,13 @@ export const usePricingStore = create<PricingStore>((set, get) => {
       if (!currentPricing) return;
 
       const total_amount = calculatePricingTotal(
-        currentPricing.pricing_roles,
+        adaptRolesForPricingTotal(currentPricing.pricing_roles),
         getOverallDiscounts(currentPricing)
       );
 
-      const resource_count = calculateResourceCount(currentPricing.pricing_roles);
+      const resource_count = calculateResourceCount(
+        adaptRolesForResourceCount(currentPricing.pricing_roles)
+      );
 
       set({
         currentPricing: {

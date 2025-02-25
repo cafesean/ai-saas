@@ -76,9 +76,9 @@ export interface RateCard {
 	expire_date?: Date;
 	created_at: Date;
 	updated_at: Date;
-	level_rates?: Array<{
-		level_id: number;
-		monthly_rate: string;
+	levelRates?: Array<{
+		levelId: number;
+		monthlyRate: string;
 	}>;
 }
 

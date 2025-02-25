@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import * as React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink, loggerLink } from '@trpc/client';
 import { api, getBaseUrl } from '@/utils/trpc';
@@ -12,9 +12,19 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
       queries: {
         staleTime: 5 * 1000,
         refetchOnWindowFocus: false,
-        retry: (failureCount, error: any) => {
+        retry: (failureCount, error: unknown) => {
           // Don't retry on 404s or other client errors
-          if (error?.data?.httpStatus >= 400 && error?.data?.httpStatus < 500) {
+          if (
+            typeof error === 'object' && 
+            error !== null && 
+            'data' in error && 
+            typeof error.data === 'object' && 
+            error.data !== null && 
+            'httpStatus' in error.data && 
+            typeof error.data.httpStatus === 'number' && 
+            error.data.httpStatus >= 400 && 
+            error.data.httpStatus < 500
+          ) {
             return false;
           }
           return failureCount < 3;

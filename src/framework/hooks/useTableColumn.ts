@@ -4,6 +4,7 @@ import { createColumnHelper } from '@/components/ui/table/column.helper';
 
 interface UseTableColumnsProps<T> {
   columns: Array<{
+    id?: string;
     key: keyof T;
     header: string;
     cell?: (info: { getValue: () => any }) => React.ReactNode;
@@ -20,6 +21,7 @@ export function useTableColumns<T>({ columns }: UseTableColumnsProps<T>) {
     () =>
       columns.map((col) =>
         columnHelper.accessor(col.key, {
+          id: col.id,
           header: col.header,
           cell: col.cell,
           enableSorting: col.enableSorting,
@@ -31,4 +33,4 @@ export function useTableColumns<T>({ columns }: UseTableColumnsProps<T>) {
   );
 
   return tableColumns;
-} 
+}

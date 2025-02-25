@@ -8,6 +8,7 @@ import { Card } from '@/components/Card';
 import Label from '@/components/Label';
 import Link from 'next/link';
 import { Button } from '@/components/form/Button';import { Plus } from 'lucide-react';
+import formatDate from '@/lib/formatDate'
 
 type Pricing = RouterOutputs['pricing']['getByCode'];
 
@@ -79,7 +80,7 @@ export function RateCardSelection({ pricing }: RateCardSelectionProps) {
             </div>
             <div className="flex">
               <span className="text-sm text-muted-foreground w-24">Effective Date:</span>
-              <span className="text-sm">{new Date(currentPricing.ratecard.effective_date).toLocaleDateString()}</span>
+              <span className="text-sm">{formatDate(currentPricing.ratecard.effective_date)}</span>
             </div>
           </div>
         </Card>

@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState } from 'react';
 import type { RateCardView, LevelView } from '@/framework/types';
 
 interface LevelRate {
@@ -40,11 +40,11 @@ const emptyRateCard: NewRateCard = {
 };
 
 export function useRateCardState() {
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
-  const [selectedRateCard, setSelectedRateCard] = React.useState<RateCardView | null>(null);
-  const [viewingRateCard, setViewingRateCard] = React.useState<RateCardView | null>(null);
-  const [newRateCard, setNewRateCard] = React.useState<NewRateCard>(() => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [selectedRateCard, setSelectedRateCard] = useState<RateCardView | null>(null);
+  const [viewingRateCard, setViewingRateCard] = useState<RateCardView | null>(null);
+  const [newRateCard, setNewRateCard] = useState<NewRateCard>(() => {
     const today = getInitialDate();
     const nextYear = new Date();
     nextYear.setFullYear(nextYear.getFullYear() + 1);
@@ -54,10 +54,11 @@ export function useRateCardState() {
       ...emptyRateCard,
       name: getDefaultRateCardName(),
       effective_date: today,
-      expire_date: expire_date ?? '',
+      expire_date: expire_date || '',
+      level_rates: [],
     };
   });
-  const [isConfirming, setIsConfirming] = React.useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const handleRateCardChange = (field: keyof NewRateCard, value: string) => {
     setNewRateCard((prev: NewRateCard) => ({
@@ -66,7 +67,7 @@ export function useRateCardState() {
     }));
   };
 
-  const handleLevelRateChange = (levelId: number, monthly_rate: number, level: LevelView) => {
+  const handleLevelRateChange = (levelId: number, monthlyRate: number, level: LevelView) => {
     setNewRateCard((prev: NewRateCard) => {
       const existingRateIndex = prev.level_rates.findIndex(
         (rate: LevelRate) => rate.level_id === levelId
@@ -78,14 +79,14 @@ export function useRateCardState() {
         newLevelRates[existingRateIndex] = {
           id: existingRate.id,
           level_id: existingRate.level_id,
-          monthly_rate: monthly_rate,
+          monthly_rate: monthlyRate,
           level: existingRate.level,
         };
       } else {
         newLevelRates.push({
           id: levelId.toString(),
           level_id: levelId,
-          monthly_rate: monthly_rate,
+          monthly_rate: monthlyRate,
           level,
         });
       }
@@ -114,7 +115,7 @@ export function useRateCardState() {
       ...emptyRateCard,
       name: getDefaultRateCardName(),
       effective_date: today,
-      expire_date: expire_date ?? '',
+      expire_date: expire_date || '',
     });
     setSelectedRateCard(null);
     setIsConfirming(false);

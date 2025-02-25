@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
 import { Button } from '@/components/form/Button';
 import { usePricingStore } from '../store/usePricingStore';
@@ -34,7 +34,7 @@ const useRoleLevelPricingTable = (initialData: TableRow[]) => {
   const [data, setData] = useState(initialData);
   const [editedRows, setEditedRows] = useState<EditedRows>({});
   const [validRows, setValidRows] = useState<ValidRows>({});
-  const [pendingChanges, setPendingChanges] = useState<{ [key: number]: Partial<TableRow>; }>({});
+  const [pendingChanges, setPendingChanges] = useState<{[key: number]: Partial<TableRow>}>({});
 
   const setEditMode = (rowId: number, enabled: boolean) => {
     setEditedRows((prev) => ({ ...prev, [rowId]: enabled }));
@@ -52,7 +52,7 @@ const useRoleLevelPricingTable = (initialData: TableRow[]) => {
         return row;
       })
     );
-
+    
     // Store in pending changes
     setPendingChanges((prev) => ({
       ...prev,
@@ -148,32 +148,41 @@ const useRoleLevelPricingTable = (initialData: TableRow[]) => {
 export const RoleLevelPricing = ({ pricing, roles, levels }: RoleLevelPricingProps) => {
   const { currentPricing, addPricingRole, updatePricingRole, removePricingRole } = usePricingStore();
   const { getRateCardPrice } = useRateCardPrices();
-  const tempIdCounter = useRef(-1); // Track temporary IDs
 
   if (!currentPricing || !roles.length || !levels.length) return null;
 
-  const data: TableRow[] = currentPricing.pricing_roles.map((role) => ({
-    id: role.id,
-    role_id: role.role_id,
-    level_id: role.level_id,
-    quantity: role.quantity,
-    base_price: role.base_price,
-    override_price: role.override_price,
-    discount_rate: role.discount_rate,
-    final_price: role.final_price,
-    role: role.role ? {
-      id: role.role.id,
-      name: role.role.name,
-      description: role.role.description,
-      role_code: role.role.role_code,
-    } : null,
-    level: role.level ? {
-      id: role.level.id,
-      name: role.level.name,
-      description: role.level.description,
-      code: role.level.code,
-    } : null,
-  }));
+  // Create a mapping function to convert DB roles to the expected format
+  const mapToTableRow = (role: PricingRole): TableRow => {
+    // Create default role and level objects that match the expected interface
+    const defaultRole = {
+      id: role.role_id ?? 0,
+      name: role.role?.name ?? '',
+      description: role.role?.description ?? '',
+      roleCode: role.role?.role_code ?? '',
+    };
+
+    const defaultLevel = {
+      id: role.level_id ?? 0,
+      name: role.level?.name ?? '',
+      code: role.level?.code ?? '',
+      description: role.level?.description ?? '',
+    };
+
+    return {
+      id: role.id,
+      role_id: role.role_id ?? 0,
+      level_id: role.level_id ?? 0,
+      quantity: role.quantity,
+      base_price: role.base_price,
+      override_price: role.override_price,
+      discount_rate: role.discount_rate,
+      final_price: role.final_price,
+      role: defaultRole,
+      level: defaultLevel,
+    };
+  };
+
+  const data: TableRow[] = currentPricing.pricing_roles.map(mapToTableRow);
 
   const {
     data: tableData,
@@ -194,31 +203,45 @@ export const RoleLevelPricing = ({ pricing, roles, levels }: RoleLevelPricingPro
     const defaultLevel = levels[0];
     const basePrice = getRateCardPrice(defaultRole?.id ?? 0);
 
-    // Use ref for stable ID generation
-    const tempId = tempIdCounter.current;
-    tempIdCounter.current -= 1; // Decrement for next use
+    // Generate a temporary negative ID for new rows
+    const tempId = Math.min(...tableData.map(row => row.id), 0) - 1;
+
+    // Create properly typed role and level objects
+    const roleObj = defaultRole ? {
+      id: defaultRole.id,
+      name: defaultRole.name,
+      description: defaultRole.description ?? '',
+      roleCode: defaultRole.role_code,
+    } : {
+      id: 0,
+      name: '',
+      description: '',
+      roleCode: '',
+    };
+
+    const levelObj = defaultLevel ? {
+      id: defaultLevel.id,
+      name: defaultLevel.name,
+      code: defaultLevel.code,
+      description: defaultLevel.description ?? '',
+    } : {
+      id: 0,
+      name: '',
+      code: '',
+      description: '',
+    };
 
     const newRow: TableRow = {
       id: tempId,
-      role_id: defaultRole?.id ?? null,
-      level_id: defaultLevel?.id ?? null,
+      role_id: defaultRole?.id ?? 0,
+      level_id: defaultLevel?.id ?? 0,
       quantity: 1,
       base_price: basePrice?.toString() || "0",
       override_price: null,
       discount_rate: null,
       final_price: basePrice?.toString() || "0",
-      role: defaultRole ? {
-        id: defaultRole.id,
-        name: defaultRole.name,
-        role_code: defaultRole.role_code, // Note: using role_code to match type
-        description: null, // Add description to match type
-      } : null,
-      level: defaultLevel ? {
-        id: defaultLevel.id,
-        name: defaultLevel.name,
-        code: defaultLevel.code,
-        description: null, // Add description to match type
-      } : null,
+      role: roleObj,
+      level: levelObj,
     };
 
     // Add to table state
@@ -226,9 +249,9 @@ export const RoleLevelPricing = ({ pricing, roles, levels }: RoleLevelPricingPro
 
     // Add to Zustand store
     addPricingRole({
-      pricing_id: null,
       role_id: defaultRole?.id ?? null,
       level_id: defaultLevel?.id ?? null,
+      pricing_id: currentPricing.id,
       quantity: 1,
       base_price: basePrice?.toString() || "0",
       multiplier: '1',
@@ -241,7 +264,7 @@ export const RoleLevelPricing = ({ pricing, roles, levels }: RoleLevelPricingPro
   };
 
   const table = useReactTable({
-    data: tableData as import("./columns").TableRow[], // Type assertion to fix type error
+    data: tableData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     meta: {
@@ -280,9 +303,9 @@ export const RoleLevelPricing = ({ pricing, roles, levels }: RoleLevelPricingPro
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                   </th>
                 ))}
               </tr>

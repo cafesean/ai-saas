@@ -5,28 +5,27 @@ import { TableCell } from './TableCell';
 import { EditCell } from './EditCell';
 import { formatCurrency } from '@/framework/lib/utils';
 
-
-export type TableRow = {
-  id: number
-  role_id: number | null
-  level_id: number | null
-  quantity: number
-  base_price: string
-  override_price: string | null
-  discount_rate: string | null
-  final_price: string
+export interface TableRow {
+  id: number;
+  role_id: number;
+  level_id: number;
+  quantity: number;
+  base_price: string;
+  override_price: string | null;
+  discount_rate: string | null;
+  final_price: string;
   role: {
-    id: number
-    name: string
-    description: string | null
-    role_code: string
-  } | null
+    id: number;
+    name: string;
+    description: string;
+    roleCode: string;
+  };
   level: {
-    id: number
-    name: string
-    code: string
-    description: string | null
-  } | null
+    id: number;
+    name: string;
+    code: string;
+    description: string;
+  };
 }
 
 export interface ColumnMeta {

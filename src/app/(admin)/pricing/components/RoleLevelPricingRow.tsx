@@ -71,7 +71,7 @@ export const RoleLevelPricingRow = ({ role, roles, levels, onUpdate }: RoleLevel
       if (!selectedRole) return;
 
       const updates = {
-        roleId: selectedRole.id,
+        role_id: selectedRole.id,
         role: selectedRole,
       };
 
@@ -90,7 +90,7 @@ export const RoleLevelPricingRow = ({ role, roles, levels, onUpdate }: RoleLevel
       const basePrice = getRateCardPrice(selectedLevel.id) ?? '0';
 
       const updates = {
-        levelId: selectedLevel.id,
+        level_id: selectedLevel.id,
         level: selectedLevel,
         base_price: basePrice,
         final_price: basePrice, // Initially same as base price
@@ -122,7 +122,7 @@ export const RoleLevelPricingRow = ({ role, roles, levels, onUpdate }: RoleLevel
     [role.id, onUpdate, handleUpdateRole]
   );
 
-  const handlediscount_rateChange = useCallback(
+  const handleDiscountRateChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
       const updates = { discount_rate: value };
@@ -134,7 +134,10 @@ export const RoleLevelPricingRow = ({ role, roles, levels, onUpdate }: RoleLevel
 
   // Update base price when component mounts or when level changes
   useEffect(() => {
-    const basePrice = getRateCardPrice(role.level_id ?? 0) ?? '0';
+    // Handle null level_id safely
+    if (role.level_id === null) return;
+    
+    const basePrice = getRateCardPrice(role.level_id) ?? '0';
     if (basePrice !== role.base_price) {
       onUpdate(role.id, {
         base_price: basePrice,
@@ -148,7 +151,7 @@ export const RoleLevelPricingRow = ({ role, roles, levels, onUpdate }: RoleLevel
       <div className="grid grid-cols-6 gap-4">
         <div>
           <Label>Role</Label>
-          <Select value={String(role.role_id)} onValueChange={handleRoleChange}>
+          <Select value={String(role.role_id ?? '')} onValueChange={handleRoleChange}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select role" />
             </SelectTrigger>
@@ -164,7 +167,7 @@ export const RoleLevelPricingRow = ({ role, roles, levels, onUpdate }: RoleLevel
 
         <div>
           <Label>Level</Label>
-          <Select value={String(role.level_id)} onValueChange={handleLevelChange}>
+          <Select value={String(role.level_id ?? '')} onValueChange={handleLevelChange}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select level" />
             </SelectTrigger>
@@ -209,7 +212,7 @@ export const RoleLevelPricingRow = ({ role, roles, levels, onUpdate }: RoleLevel
             type="number"
             placeholder="Discount rate"
             value={role.discount_rate ?? ''}
-            onChange={handlediscount_rateChange}
+            onChange={handleDiscountRateChange}
           />
         </div>
 

@@ -52,7 +52,7 @@ export default function RolesPage() {
   } = useRoleForm(selectedRole ? {
     name: selectedRole.name,
     description: selectedRole.description ?? '',
-    role_code: selectedRole.role_code,
+    roleCode: selectedRole.roleCode,
   } : undefined);
 
   const { control, handleSubmit, reset } = form;
@@ -74,14 +74,14 @@ export default function RolesPage() {
           data: {
             name: formData.name,
             description: formData.description,
-            role_code: formData.role_code,
+            role_code: formData.roleCode,
           },
         });
       } else {
         await createRole.mutateAsync({
           name: formData.name,
           description: formData.description,
-          role_code: formData.role_code,
+          role_code: formData.roleCode,
         });
       }
       handleCloseModal();
@@ -95,7 +95,7 @@ export default function RolesPage() {
     reset({
       name: '',
       description: '',
-      role_code: '',
+      roleCode: '',
     });
   };
 
@@ -104,7 +104,7 @@ export default function RolesPage() {
     reset({
       name: role.name,
       description: role.description ?? '',
-      role_code: role.role_code,
+      roleCode: role.roleCode,
     });
   };
 
@@ -144,24 +144,26 @@ export default function RolesPage() {
   const columns = useTableColumns<RoleView>({
     columns: [
       {
-        key: 'name',
+        id: 'name',
+        key: 'id',
         header: 'Name',
         cell: ({ getValue }) => {
-          const name = getValue() as string;
-          const dbRole = roles.data?.find(r => r.name === name);
+          const id = getValue() as number;
+          const dbRole = roles.data?.find(r => r.id === id);
           const role = dbRole ? dbToAppRole(dbRole) : null;
+          if (!role) return null;
           return (
             <button
-              onClick={() => role && handleViewDetail(role)}
+              onClick={() => handleViewDetail(role)}
               className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors line-clamp-2"
             >
-              {name}
+              {role.name}
             </button>
           );
         },
       },
       {
-        key: 'role_code',
+        key: 'roleCode',
         header: 'Role Code',
         cell: ({ getValue }) => (
           <span className="text-xs text-gray-600">{getValue()}</span>
@@ -175,6 +177,7 @@ export default function RolesPage() {
         ),
       },
       {
+        id: 'actions',
         key: 'id',
         header: 'Actions',
         cell: ({ getValue }) => {
@@ -266,7 +269,7 @@ export default function RolesPage() {
 
                   <div>
                     <p className="modal-section-title">Role Code</p>
-                    <p className="modal-value">{form.getValues('role_code')}</p>
+                    <p className="modal-value">{form.getValues('roleCode')}</p>
                   </div>
 
                   <div>
@@ -305,7 +308,7 @@ export default function RolesPage() {
                     />
                     <FormInput
                       control={control}
-                      name="role_code"
+                      name="roleCode"
                       label="Role Code"
                       required
                     />
@@ -379,7 +382,7 @@ export default function RolesPage() {
             data={(roles.data ?? []).map(dbToAppRole)}
             columns={columns}
             searchPlaceholder="Search roles..."
-            searchableColumns={['name', 'role_code', 'description']}
+            searchableColumns={['name', 'roleCode', 'description']}
             enableSearch={true}
             enableFilters={true}
             filename="roles"
@@ -389,4 +392,4 @@ export default function RolesPage() {
       )}
     </div>
   );
-} 
+}

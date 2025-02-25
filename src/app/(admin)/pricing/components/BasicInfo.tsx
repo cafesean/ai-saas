@@ -8,6 +8,7 @@ import { usePricingStore } from '../store/usePricingStore';
 import { api } from '@/utils/trpc';
 import { useEffect, ChangeEvent } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import formatDate from '@/lib/formatDate'
 
 type Pricing = RouterOutputs['pricing']['getByCode'];
 
@@ -113,7 +114,7 @@ export const BasicInfo = ({ pricing }: BasicInfoProps) => {
         <div>
           <Label>Created At</Label>
           <Input
-            value={pricing.created_at ? new Date(pricing.created_at).toLocaleDateString() : ''}
+            value={formatDate(pricing.created_at)}
             disabled
           />
         </div>

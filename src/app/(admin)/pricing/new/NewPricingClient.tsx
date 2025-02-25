@@ -1,7 +1,6 @@
 'use client';
 
 import { api } from '@/utils/trpc';
-import { useRouter } from 'next/navigation';
 import { PricingForm } from '../components/PricingForm';
 import { Button } from '@/components/form/Button'; import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -10,7 +9,6 @@ import { useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 export function NewPricingClient() {
-  const router = useRouter();
   const { data: roles, isLoading: isRolesLoading } = api.role.getAll.useQuery();
   const { data: levels, isLoading: isLevelsLoading } = api.level.getAll.useQuery();
   const { data: rateCards, isLoading: isRateCardsLoading } = api.rateCard.getAll.useQuery();
@@ -24,6 +22,7 @@ export function NewPricingClient() {
 
     const emptyPricing = {
       id: -1,
+      uuid: uuidv4(),
       code: '',
       description: '',
       customer_id: '',
@@ -32,9 +31,10 @@ export function NewPricingClient() {
       total_amount: '0',
       resource_count: 0,
       created_by: 'system',
+      created_at: new Date(),
+      updated_at: new Date(),
       pricing_roles: [],
       ratecard: rateCards[0] ?? null,
-      created_at: null,
     };
 
     setCurrentPricing(emptyPricing);

@@ -95,7 +95,7 @@ export const NodeTypeList = () => {
         },
       },
       {
-        key: 'created_at',
+        key: 'createdAt',
         header: 'Created',
         cell: ({ getValue }) => {
           const date = getValue() as Date;

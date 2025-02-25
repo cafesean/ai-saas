@@ -13,7 +13,7 @@ export interface RoleView {
   id: number;
   name: string;
   description: string | null;
-  role_code: string;
+  roleCode: string;
 }
 
 export interface LevelView {
@@ -26,18 +26,18 @@ export interface LevelView {
 
 export interface LevelRateView {
   id: number;
-  monthly_rate: number;
+  monthlyRate: number;
   level: LevelView;
-  ratecard: RateCardView;
+  rateCard: RateCardView;
 }
 
 export interface RateCardView {
   id: number;
   name: string;
   description: string | null;
-  effective_date: Date;
-  expire_date: Date | null;
-  level_rates: LevelRateView[];
+  effectiveDate: Date;
+  expireDate: Date | null;
+  levelRates: LevelRateView[];
 }
 
 // Conversion functions
@@ -46,7 +46,7 @@ export function dbToAppRole(dbRole: DbRole): RoleView {
     id: dbRole.id,
     name: dbRole.name,
     description: dbRole.description,
-    role_code: dbRole.role_code,
+    roleCode: dbRole.role_code,
   };
 }
 
@@ -63,15 +63,15 @@ export function dbToAppLevel(dbLevel: DbLevel & { roles?: DbRole[] }): LevelView
 export function dbToAppLevelRate(rate: DbLevelRate & { level: DbLevel, rate_card: DbRateCard }): LevelRateView {
   return {
     id: rate.id,
-    monthly_rate: rate.monthly_rate,
+    monthlyRate: rate.monthly_rate,
     level: dbToAppLevel({ ...rate.level, roles: [] }),
-    ratecard: {
+    rateCard: {
       id: rate.rate_card.id,
       name: rate.rate_card.name,
       description: rate.rate_card.description,
-      effective_date: rate.rate_card.effective_date,
-      expire_date: rate.rate_card.expire_date,
-      level_rates: [],
+      effectiveDate: rate.rate_card.effective_date,
+      expireDate: rate.rate_card.expire_date,
+      levelRates: [],
     },
   };
 }
@@ -81,8 +81,8 @@ export function dbToAppRateCard(card: DbRateCard & { level_rates?: Array<DbLevel
     id: card.id,
     name: card.name,
     description: card.description,
-    effective_date: card.effective_date,
-    expire_date: card.expire_date,
-    level_rates: card.level_rates?.map(rate => dbToAppLevelRate(rate)) ?? [],
+    effectiveDate: card.effective_date,
+    expireDate: card.expire_date,
+    levelRates: card.level_rates?.map(rate => dbToAppLevelRate(rate)) ?? [],
   };
-} 
+}
