@@ -1,9 +1,11 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 const Upload = ({ addFiles }: { addFiles: (files: any) => void }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
   const doUpload = (e: any) => {
     const files = e.target.files;
     addFiles(files);
@@ -12,8 +14,36 @@ const Upload = ({ addFiles }: { addFiles: (files: any) => void }) => {
     }
   };
 
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      addFiles(files);
+    }
+  };
+
   return (
-    <div className="grid w-full gap-3 rounded-2xl border border-dashed border-gray-300 bg-gray-50 py-9 px-4">
+    <div
+      className={`grid w-full gap-3 rounded-2xl border ${isDragging ? 'border-indigo-600' : 'border-dashed border-gray-300'} bg-gray-50 py-9 px-4`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <div className="grid gap-1">
         <svg
           className="mx-auto"
@@ -31,7 +61,7 @@ const Upload = ({ addFiles }: { addFiles: (files: any) => void }) => {
             />
           </g>
         </svg>
-        <h2 className="text-center text-xs   leading-4 text-gray-400">File, smaller than 15MB</h2>
+        <h2 className="text-center text-xs leading-4 text-gray-400">File, smaller than 15MB</h2>
       </div>
       <div className="grid gap-2">
         <h4 className="text-center text-sm font-medium leading-snug text-gray-900">Drag and Drop your file here or</h4>

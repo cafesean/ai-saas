@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { NavMenu } from "@/components/NavMenu";
 import { TRPCProvider } from "@/framework/providers/TRPCProvider";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,11 +18,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <link rel="shortcut icon" href="/favicon.png" />
       <body className={inter.className}>
         <TRPCProvider>
-          <div className="min-h-screen bg-gray-100">
-            {children}
-          </div>
+          {children}
+          <Toaster
+            className="custom-toaster"
+            richColors
+            position="top-center"
+            duration={5000}
+            closeButton
+            gap={8}
+          />
         </TRPCProvider>
       </body>
     </html>
