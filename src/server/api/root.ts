@@ -4,6 +4,8 @@ import { roleRouter } from "@/server/api/routers/role.router";
 import { pricingRouter } from "@/server/api/routers/pricing.router";
 import { createTRPCRouter } from "./trpc";
 import { n8nRouter } from "./routers/n8n";
+import { workflowRouter } from "./routers/workflow.router";
+import { templateRouter } from "./routers/template.router";
 
 /**
  * This is the primary router for your server.
@@ -17,6 +19,8 @@ export const appRouter = createTRPCRouter({
 	role: roleRouter,
   pricing: pricingRouter,
   n8n: n8nRouter,
+	workflow: workflowRouter,
+	template: templateRouter,
 });
 
 // Export type definition of API

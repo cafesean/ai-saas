@@ -3,7 +3,9 @@ export const Routes = {
 };
 
 export const AdminRoutes = {
-  roles: "/(admin)/roles",
-  levels: "/(admin)/levels",
-  ratecards: "/(admin)/ratecards",
+  roles: "/roles",
+  levels: "/levels",
+  ratecards: "/ratecards",
+  workflows: "/workflows",
+  selectTemplate: "/select-template",
 };

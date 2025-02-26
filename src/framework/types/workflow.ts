@@ -1,0 +1,23 @@
+import type { InferSelectModel } from 'drizzle-orm';
+import type schema from '@/db/schema';
+
+// DB Types
+export type DbWorkflow = InferSelectModel<typeof schema.workflows>;
+
+export interface WorkflowView {
+  uuid: string;
+  name: string;
+  description: string | null;
+  status: string | null;
+  flowId: string | null;
+}
+
+export function dbToWorkflow(dbWorkflow: DbWorkflow): WorkflowView {
+  return {
+    uuid: dbWorkflow.uuid,
+    name: dbWorkflow.name,
+    description: dbWorkflow.description,
+    status: dbWorkflow.status,
+    flowId: dbWorkflow.flowId,
+  };
+}
