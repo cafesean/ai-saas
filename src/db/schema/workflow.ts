@@ -3,6 +3,7 @@ import { relations } from 'drizzle-orm';
 
 import { WorkflowStatus } from "@/constants/general";
 import { endpoints } from "./endpoint";
+import { widgets } from "./widget";
 
 export const workflows = pgTable(
   "workflows",
@@ -22,9 +23,10 @@ export const workflows = pgTable(
 );
 
 // Relations
-export const workflowsRelations = relations(workflows, ({ one }) => ({
+export const workflowsRelations = relations(workflows, ({ one, many }) => ({
   endpoint: one(endpoints, {
     fields: [workflows.uuid],
     references: [endpoints.workflowId],
   }),
+  widgets: many(widgets),
 }));

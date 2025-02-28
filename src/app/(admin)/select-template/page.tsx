@@ -52,7 +52,7 @@ const SelectTemplatePage: React.FC = () => {
     console.error("Roles query error:", templates.error);
     return (
       <div className="text-red-500">
-        <h2 className="text-lg font-semibold mb-2">Error loading roles</h2>
+        <h2 className="text-lg font-semibold mb-2">Error loading templates</h2>
         <p className="mb-2">{templates.error.message}</p>
         <div className="text-sm bg-red-50 p-4 rounded">
           {templates.error.data && JSON.stringify(templates.error.data.zodError, null, 2)}

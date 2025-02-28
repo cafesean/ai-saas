@@ -32,7 +32,7 @@ export const endpoints = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    unique("workflowId_unique").on(table.workflowId),
+    unique("workflowId_endpoints_unique").on(table.workflowId),
   ]
 );
 
