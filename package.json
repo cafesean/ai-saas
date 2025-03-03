@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "terser": "npx terser --compress --mangle --output $npm_config_output -- $npm_config_output"
   },
   "dependencies": {
     "@hookform/resolvers": "^4.1.0",
@@ -42,6 +43,7 @@
     "superjson": "^2.2.2",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
+    "terser": "^5.39.0",
     "uuid": "^11.0.5",
     "zustand": "^5.0.3"
   },

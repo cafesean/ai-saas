@@ -138,7 +138,7 @@ export default function WorkflowsPage() {
     console.error("Roles query error:", workflows.error);
     return (
       <div className="text-red-500">
-        <h2 className="text-lg font-semibold mb-2">Error loading roles</h2>
+        <h2 className="text-lg font-semibold mb-2">Error loading worflows</h2>
         <p className="mb-2">{workflows.error.message}</p>
         <div className="text-sm bg-red-50 p-4 rounded">
           {workflows.error.data && JSON.stringify(workflows.error.data.zodError, null, 2)}

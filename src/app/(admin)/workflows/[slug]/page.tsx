@@ -12,7 +12,7 @@ import { AdminRoutes } from "@/constants/routes";
 import { Input } from "@/components/form/Input";
 import UploadCmp from "@/components/ui/Upload";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
-import { FlowNameTypes } from "@/constants/nodes";
+import { FlowNameTypes, WidgetTypes } from "@/constants/nodes";
 import { WorkflowStatus } from "@/constants/general";
 
 export default function WorkflowDetailPage() {
@@ -63,12 +63,12 @@ export default function WorkflowDetailPage() {
   }, [workflow.isLoading]);
 
   const addFiles = (datasets: File[]) => {
+    setDatasets([]);
     convertToBase64(datasets);
   };
 
   const convertToBase64 = (files: File[]) => {
     for (const file of files) {
-      console.log("file", file);
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onloadend = () => {
@@ -76,7 +76,7 @@ export default function WorkflowDetailPage() {
           name: file.name,
           type: file.type,
           base64file: reader.result as string,
-        }
+        };
         setDatasets((prev) => [...prev, newDataset]);
       };
       reader.onerror = (error) => {
@@ -90,7 +90,6 @@ export default function WorkflowDetailPage() {
       alert("Name is required!");
     } else {
       if (workflow.data?.[0]?.status === WorkflowStatus.ACTIVE) {
-        console.log(workflow.data?.[0]);
         update.mutate({
           uuid: slug,
           name: name ?? "",
@@ -127,7 +126,7 @@ export default function WorkflowDetailPage() {
     console.error("Roles query error:", workflow.error);
     return (
       <div className="text-red-500">
-        <h2 className="text-lg font-semibold mb-2">Error loading roles</h2>
+        <h2 className="text-lg font-semibold mb-2">Error loading Workflow.</h2>
         <p className="mb-2">{workflow.error.message}</p>
         <div className="text-sm bg-red-50 p-4 rounded">
           {workflow.error.data && JSON.stringify(workflow.error.data.zodError, null, 2)}
@@ -156,16 +155,39 @@ export default function WorkflowDetailPage() {
             <div>Status: {workflow.data?.[0]?.status}</div>
             {workflow.data?.[0]?.endpoint && (
               <div>
-                <p>Endpoint:</p>
+                <p>
+                  <b>Endpoint:</b>
+                </p>
                 <div>
+                  <p>Headers:</p>
+                  <p>- x-ai-sass-client-id: {workflow.data?.[0]?.endpoint?.clientId}</p>
+                  <p>- x-ai-sass-client-secret: {workflow.data?.[0]?.endpoint?.clientSecret}</p>
                   <p>URI: {`http://localhost:3000/api/endpoint/${workflow.data?.[0]?.endpoint?.uri}`}</p>
                   <p>Method: {workflow.data?.[0]?.endpoint?.method}</p>
                   <p>Payload: {JSON.stringify(workflow.data?.[0]?.endpoint?.payload)}</p>
-                  <p>Client ID: {workflow.data?.[0]?.endpoint?.clientId}</p>
-                  <p>Client Secret: {workflow.data?.[0]?.endpoint?.clientSecret}</p>
                 </div>
               </div>
             )}
+            {workflow.data?.[0]?.widgets &&
+              workflow.data?.[0]?.widgets.map((widget: any) => {
+                switch (widget.type) {
+                  case WidgetTypes.chat: {
+                    return (
+                      <div key={`widget-${widget.uuid}`}>
+                        <p>
+                          <b>{widget.name}:</b>
+                        </p>
+                        <p className="p-2">Create a div with one id. And Replace the CHAT_DIV_ID with div id and paste the code in the div.</p>
+                        <p>
+                          <textarea className="border-2 rounded-lg w-full h-[200px] p-4" defaultValue={widget.scripts} />
+                        </p>
+                      </div>
+                    );
+                  }
+                  default:
+                    break;
+                }
+              })}
             <div>
               {workflow.data?.[0]?.status === WorkflowStatus.ACTIVE ? (
                 <Button type="button" variant="primary" onClick={publishWorkflow}>

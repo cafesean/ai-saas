@@ -14,6 +14,11 @@ export const EndpointStatus = {
   INACTIVE: "inactive",
 } as const;
 
+export const WidgetStatus = {
+  ACTIVE: "active",
+  INACTIVE: "inactive",
+} as const;
+
 export const HTTPMethod = {
   GET: "GET",
   POST: "POST",

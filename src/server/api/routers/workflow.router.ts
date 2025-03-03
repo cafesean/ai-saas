@@ -7,10 +7,11 @@ import { TRPCError } from "@trpc/server";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { N8N_API } from "@/constants/api";
-import { WorkflowStatus } from "@/constants/general";
-import { CreateflowActions, CreateflowActionTypes, FlowNameTypes } from "@/constants/nodes";
+import { WidgetStatus, WorkflowStatus } from "@/constants/general";
+import { CreateflowActions, CreateflowActionTypes, FlowNameTypes, WidgetTypes, Widgets } from "@/constants/nodes";
 import { EndpointStatus } from "@/constants/general";
 import { base64ToArrayBuffer } from "@/utils/func";
+import { minify } from "terser";
 
 const workflowCreateSchema = z.object({
   name: z.string().min(1),
@@ -28,11 +29,15 @@ const workflowPublishSchema = z.object({
   name: z.string().min(1),
   userInputs: z.record(z.any()).nullable(),
   workflowJson: z.record(z.any()).nullable(),
-  datasets: z.array(z.object({
-    name: z.string().min(1),
-    type: z.string().min(1),
-    base64file: z.string().min(1),
-  })).nullable(),
+  datasets: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        type: z.string().min(1),
+        base64file: z.string().min(1),
+      })
+    )
+    .nullable(),
 });
 
 const instance = axios.create();
@@ -98,6 +103,7 @@ export const workflowRouter = createTRPCRouter({
       where: eq(schema.workflows.uuid, input.uuid),
       with: {
         endpoint: true,
+        widgets: true,
       },
       limit: 1,
     });
@@ -114,6 +120,7 @@ export const workflowRouter = createTRPCRouter({
       data: undefined,
       createdFlowId: "",
     };
+
     try {
       const workflowJson = input.workflowJson as Record<string, any>;
       const userInputsArray = (input.userInputs?.userInputs as Record<string, any>[]) ?? [];
@@ -177,7 +184,6 @@ export const workflowRouter = createTRPCRouter({
                 method: N8N_API.activeWorkflow(`${createResponse.data.id}`).method,
               };
               const activeResponse = await instance(options);
-              console.log("activeResponse", activeResponse);
               if (activeResponse.status == 200) {
                 checkResponse = {
                   ...checkResponse,
@@ -206,35 +212,41 @@ export const workflowRouter = createTRPCRouter({
                 switch (workflowNode.name) {
                   case FlowNameTypes.webhookInputFormData:
                     // Do formdata upload
+                    let uploadResponse: {
+                      status: number;
+                      data: any;
+                    } = {
+                      status: 0,
+                      data: undefined,
+                    };
                     if (input.datasets && input.datasets.length > 0) {
-                      const formData = new FormData();
+                      const uploadAPIURI = `webhook/${workflowNode.parameters.path}`;
                       for (const dataset of input.datasets) {
+                        const formData = new FormData();
                         const base64FileMid = dataset.base64file.split(",")[1];
                         const arrayBuffer = base64ToArrayBuffer(base64FileMid!);
                         const blob = new Blob([arrayBuffer], { type: dataset.type });
-                        formData.append("data[]", blob, `${dataset.name}`);
-                      }
-
-                      const uploadAPIURI = `webhook/${workflowNode.parameters.path}`;
-                      const uploadOptions = {
-                        baseURL: process.env.N8N_API_URL,
-                        headers: {
-                          "Content-Type": "multipart/form-data",
-                          "X-N8N-API-KEY": `${process.env.N8N_API_KEY}`,
-                        },
-                        url: uploadAPIURI,
-                        method: workflowNode.parameters.httpMethod,
-                        data: formData,
-                      };
-                      const uploadResponse = await instance(uploadOptions);
-                      console.log("uploadResponse.data", uploadResponse.data);
-                      if (uploadResponse.status == 200) {
-                        checkResponse = {
-                          ...checkResponse,
-                          success: true,
-                          data: uploadResponse.data,
+                        formData.append("data", blob, `${dataset.name}`);
+                        const uploadOptions = {
+                          baseURL: process.env.N8N_API_URL,
+                          headers: {
+                            "Content-Type": "multipart/form-data",
+                            "X-N8N-API-KEY": `${process.env.N8N_API_KEY}`,
+                          },
+                          url: uploadAPIURI,
+                          method: workflowNode.parameters.httpMethod,
+                          data: formData,
                         };
+                        uploadResponse = await instance(uploadOptions);
+                        console.log("uploadResponse.data", uploadResponse.data);
                       }
+                    }
+                    if (uploadResponse.status == 200) {
+                      checkResponse = {
+                        ...checkResponse,
+                        success: true,
+                        data: uploadResponse.data,
+                      };
                     }
                     break;
                 }
@@ -284,6 +296,59 @@ export const workflowRouter = createTRPCRouter({
                       };
                     }
                     break;
+                }
+              }
+            }
+            break;
+          }
+          case CreateflowActionTypes.generateWidget: {
+            if (!checkResponse.success) {
+              return checkResponse;
+            }
+            const generateWidgetsUserInputsArray = userInputsArray.filter((userInput) =>
+              userInput.type.includes(CreateflowActionTypes.generateWidget)
+            );
+            console.log("generateWidgetsUserInputsArray", generateWidgetsUserInputsArray);
+            for (const userInput of generateWidgetsUserInputsArray) {
+              switch (userInput.widgetType) {
+                case WidgetTypes.chat: {
+                  // Comporess scripts for widget
+                  const fs = require("fs");
+                  const path = require("path");
+                  const widgetScriptsPath = path.join(process.cwd(), Widgets.chat.scriptsPath);
+                  const chatCode = uuidv4();
+                  let originCode = fs.readFileSync(widgetScriptsPath, "utf8");
+                  originCode = originCode
+                    .replace("AI_SASS_CHAT_WIDGET_URL", process.env.AI_SASS_CHAT_WIDGET_URL)
+                    .replace("WIDGET_CODE", chatCode) as string;
+                  const minifiedCode = await minify(originCode);
+                  const chatScripts = `<script>${minifiedCode.code as string}</script>`;
+                  console.log("compressedCode", chatScripts);
+                  const createChatWidgetPayload = {
+                    uuid: uuidv4(),
+                    name: Widgets.chat.name,
+                    type: Widgets.chat.type,
+                    workflowId: input.uuid,
+                    status: WidgetStatus.ACTIVE,
+                    code: chatCode,
+                    scripts: chatScripts,
+                  };
+                  const createChatWidgetResponse = await db
+                    .insert(schema.widgets)
+                    .values(createChatWidgetPayload)
+                    .returning();
+                  console.log("createChatWidgetResponse", createChatWidgetResponse);
+                  if (createChatWidgetResponse.length > 0) {
+                    checkResponse = {
+                      ...checkResponse,
+                      success: true,
+                      data: createChatWidgetResponse[0],
+                    };
+                  }
+                  break;
+                }
+                default: {
+                  break;
                 }
               }
             }
@@ -383,35 +448,33 @@ export const workflowRouter = createTRPCRouter({
                 switch (workflowNode.name) {
                   case FlowNameTypes.webhookInputFormData:
                     // Do formdata upload
+                    let uploadResponse: {
+                      status: number;
+                      data: any;
+                    } = {
+                      status: 0,
+                      data: undefined,
+                    };
                     if (input.datasets && input.datasets.length > 0) {
-                      const formData = new FormData();
+                      const uploadAPIURI = `webhook/${workflowNode.parameters.path}`;
                       for (const dataset of input.datasets) {
+                        const formData = new FormData();
                         const base64FileMid = dataset.base64file.split(",")[1];
                         const arrayBuffer = base64ToArrayBuffer(base64FileMid!);
                         const blob = new Blob([arrayBuffer], { type: dataset.type });
-                        formData.append("data[]", blob, `${dataset.name}`);
-                      }
-
-                      const uploadAPIURI = `webhook/${workflowNode.parameters.path}`;
-                      const uploadOptions = {
-                        baseURL: process.env.N8N_API_URL,
-                        headers: {
-                          "Content-Type": "multipart/form-data",
-                          "X-N8N-API-KEY": `${process.env.N8N_API_KEY}`,
-                        },
-                        url: uploadAPIURI,
-                        method: workflowNode.parameters.httpMethod,
-                        data: formData,
-                      };
-                      console.log("uploadOptions", uploadOptions);
-                      const uploadResponse = await instance(uploadOptions);
-                      console.log("uploadResponse.data", uploadResponse.data);
-                      if (uploadResponse.status == 200) {
-                        checkResponse = {
-                          ...checkResponse,
-                          success: true,
-                          data: uploadResponse.data,
+                        formData.append("data", blob, `${dataset.name}`);
+                        const uploadOptions = {
+                          baseURL: process.env.N8N_API_URL,
+                          headers: {
+                            "Content-Type": "multipart/form-data",
+                            "X-N8N-API-KEY": `${process.env.N8N_API_KEY}`,
+                          },
+                          url: uploadAPIURI,
+                          method: workflowNode.parameters.httpMethod,
+                          data: formData,
                         };
+                        uploadResponse = await instance(uploadOptions);
+                        console.log("uploadResponse.data", uploadResponse.data);
                       }
                     }
                     break;
@@ -459,11 +522,10 @@ export const workflowRouter = createTRPCRouter({
           };
           await instance(deleteOptions);
         }
-        console.log('here');
         await tx.delete(schema.endpoints).where(eq(schema.endpoints.workflowId, input.uuid)).returning();
+        await tx.delete(schema.widgets).where(eq(schema.widgets.workflowId, input.uuid)).returning();
         return await tx.delete(schema.workflows).where(eq(schema.workflows.uuid, input.uuid)).returning();
       });
-      console.log("deleteResponse", deleteResponse);
       return deleteResponse;
     }),
 });

@@ -161,3 +161,7 @@ h5 {
   font-weight: 800;
   padding-bottom: 12px;
 }
+
+.chat-messages::-webkit-scrollbar {
+  display: none;
+}
