@@ -221,12 +221,14 @@ export const workflowRouter = createTRPCRouter({
                     };
                     if (input.datasets && input.datasets.length > 0) {
                       const uploadAPIURI = `webhook/${workflowNode.parameters.path}`;
+                      const uploadId = uuidv4();
                       for (const dataset of input.datasets) {
                         const formData = new FormData();
                         const base64FileMid = dataset.base64file.split(",")[1];
                         const arrayBuffer = base64ToArrayBuffer(base64FileMid!);
                         const blob = new Blob([arrayBuffer], { type: dataset.type });
                         formData.append("data", blob, `${dataset.name}`);
+                        formData.append("uploadId", uploadId);
                         const uploadOptions = {
                           baseURL: process.env.N8N_API_URL,
                           headers: {
@@ -457,12 +459,14 @@ export const workflowRouter = createTRPCRouter({
                     };
                     if (input.datasets && input.datasets.length > 0) {
                       const uploadAPIURI = `webhook/${workflowNode.parameters.path}`;
+                      const uploadId = uuidv4();
                       for (const dataset of input.datasets) {
                         const formData = new FormData();
                         const base64FileMid = dataset.base64file.split(",")[1];
                         const arrayBuffer = base64ToArrayBuffer(base64FileMid!);
                         const blob = new Blob([arrayBuffer], { type: dataset.type });
                         formData.append("data", blob, `${dataset.name}`);
+                        formData.append("uploadId", uploadId);
                         const uploadOptions = {
                           baseURL: process.env.N8N_API_URL,
                           headers: {
