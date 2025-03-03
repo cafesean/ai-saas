@@ -221,8 +221,8 @@ export const workflowRouter = createTRPCRouter({
                     };
                     if (input.datasets && input.datasets.length > 0) {
                       const uploadAPIURI = `webhook/${workflowNode.parameters.path}`;
-                      const uploadId = uuidv4();
                       for (const dataset of input.datasets) {
+                        const uploadId = uuidv4();
                         const formData = new FormData();
                         const base64FileMid = dataset.base64file.split(",")[1];
                         const arrayBuffer = base64ToArrayBuffer(base64FileMid!);
@@ -459,8 +459,8 @@ export const workflowRouter = createTRPCRouter({
                     };
                     if (input.datasets && input.datasets.length > 0) {
                       const uploadAPIURI = `webhook/${workflowNode.parameters.path}`;
-                      const uploadId = uuidv4();
                       for (const dataset of input.datasets) {
+                        const uploadId = uuidv4();
                         const formData = new FormData();
                         const base64FileMid = dataset.base64file.split(",")[1];
                         const arrayBuffer = base64ToArrayBuffer(base64FileMid!);
