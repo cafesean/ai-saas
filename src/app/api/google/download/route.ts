@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { googleDocTypes } from '@/constants/google';
+import { GoogleDocTypes, GoogleDriveFileUrl } from '@/constants/google';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     // First get file metadata
     const metadataResponse = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${fileId}?fields=mimeType,name`,
+      `${GoogleDriveFileUrl}/${fileId}?fields=mimeType,name`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -38,10 +38,10 @@ export async function GET(request: NextRequest) {
     const mimeType = metadata.mimeType;
 
     let fileResponse;
-    if (mimeType in googleDocTypes) {
+    if (mimeType in GoogleDocTypes) {
       // Export Google document
       fileResponse = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=${googleDocTypes[mimeType]?.type}`,
+        `${GoogleDriveFileUrl}/${fileId}/export?mimeType=${GoogleDocTypes[mimeType]?.type}`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     } else {
       // Download regular file
       fileResponse = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+        `${GoogleDriveFileUrl}/${fileId}?alt=media`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,

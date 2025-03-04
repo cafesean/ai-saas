@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { pageSize } from '@/constants/google';
+import { GoogleTokenUrl, GoogleGrantType, CreateGetDriveFilesUrl } from '@/constants/google';
 
 interface GoogleTokenResponse {
   access_token: string;
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     // Handle authorization code flow
     if (code) {
       // Exchange authorization code for access token
-      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      const tokenResponse = await fetch(GoogleTokenUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
           client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
           client_secret: process.env.GOOGLE_CLIENT_SECRET || '',
           redirect_uri: process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI || '',
-          grant_type: 'authorization_code',
+          grant_type: GoogleGrantType.authorizationCode,
         }),
       });
 
@@ -75,7 +75,10 @@ export async function GET(request: NextRequest) {
     
     // Fetch files from Google Drive
     const filesResponse = await fetch(
-      `https://www.googleapis.com/drive/v3/files?fields=files(id,name,mimeType,size,modifiedTime),nextPageToken&pageSize=${pageSize}${pageToken ? `&pageToken=${pageToken}` : ''}${searchParam}`,
+      CreateGetDriveFilesUrl({
+        pageToken,
+        searchParam,
+      }),
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,

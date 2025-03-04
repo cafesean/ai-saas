@@ -20,3 +20,8 @@ export const N8N_API = {
     method: "DELETE",
   }),
 };
+
+export const Google_API = {
+  getFiles: '/api/google/files',
+  downloadFile: '/api/google/download',
+};

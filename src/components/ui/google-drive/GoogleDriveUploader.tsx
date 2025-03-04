@@ -1,10 +1,12 @@
 "use client";
 
+import React, { useState, useRef } from 'react';
 import { toast } from 'sonner';
-import { Button } from "@/components/form/Button";
-import { FileSelectDialog } from "@/components/ui/google-drive/FileSelectDialog";
-import React, { useState, useRef } from "react";
-import { googleDocTypes } from '@/constants/google';
+import { Button } from '@/components/form/Button';
+import { FileSelectDialog } from '@/components/ui/google-drive/FileSelectDialog';
+import { GoogleDocTypes, GoogleAuthMessage, CreateDriveAuthUrl } from '@/constants/google';
+import { Google_API } from '@/constants/api';
+import { LocalStorageKeys } from '@/constants/general';
 
 interface GoogleDriveFile {
   id: string;
@@ -51,15 +53,18 @@ export function GoogleDriveUploader({ onFilesSelected, setFileFetching }: Google
 
   const handleGoogleDriveClick = async () => {
     if (isAuthenticating) return;
-    
+
     try {
       setIsAuthenticating(true);
-      
+
       cleanup(); // Clean up previous state
 
       // Open Google authentication window
       authWindowRef.current = window.open(
-        `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&redirect_uri=${process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI}&response_type=code&scope=https://www.googleapis.com/auth/drive.readonly&access_type=offline&prompt=consent`,
+        CreateDriveAuthUrl({
+          clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
+          redirectUri: process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI || '',
+        }),
         '_blank',
         'width=600,height=600'
       );
@@ -70,12 +75,12 @@ export function GoogleDriveUploader({ onFilesSelected, setFileFetching }: Google
 
       // Create new event handler
       const handleMessage = async (event: MessageEvent) => {
-        if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
+        if (event.data.type === GoogleAuthMessage.success) {
           try {
             setFileFetching(true);
             const { code } = event.data;
             // Use authorization code to get file list
-            const response = await fetch(`/api/google/files?code=${code}`);
+            const response = await fetch(`${Google_API.getFiles}?code=${code}`);
             setFileFetching(false);
 
             if (response.ok) {
@@ -83,7 +88,7 @@ export function GoogleDriveUploader({ onFilesSelected, setFileFetching }: Google
               setGoogleDriveFiles(data.files);
               setNextPageToken(data.nextPageToken);
               setHasMoreFiles(!!data.nextPageToken);
-              localStorage.setItem('google_access_token', data.access_token);
+              localStorage.setItem(LocalStorageKeys.googleAccessToken, data.access_token);
               setIsFileDialogOpen(true);
             } else {
               throw new Error('Failed to fetch Google Drive files');
@@ -139,10 +144,10 @@ export function GoogleDriveUploader({ onFilesSelected, setFileFetching }: Google
         isLoading={isLoadingMore}
         onLoadMore={async () => {
           if (!nextPageToken || isLoadingMore) return;
-          
+
           try {
             setIsLoadingMore(true);
-            const response = await fetch(`/api/google/files?accessToken=${localStorage.getItem('google_access_token')}&pageToken=${nextPageToken}`);
+            const response = await fetch(`${Google_API.getFiles}?accessToken=${localStorage.getItem(LocalStorageKeys.googleAccessToken)}&pageToken=${nextPageToken}`);
 
             if (response.ok) {
               const data = await response.json();
@@ -164,12 +169,12 @@ export function GoogleDriveUploader({ onFilesSelected, setFileFetching }: Google
             setFileFetching(true);
             // Process selected files
             const filePromises = selectedFiles.map(async (file) => {
-              const response = await fetch(`/api/google/download?fileId=${file.id}&access_token=${localStorage.getItem('google_access_token')}`);
+              const response = await fetch(`${Google_API.downloadFile}?fileId=${file.id}&access_token=${localStorage.getItem(LocalStorageKeys.googleAccessToken)}`);
               if (!response.ok) throw new Error('Failed to download file');
               const blob = await response.blob();
               return {
-                name: file.name + googleDocTypes[file.mimeType]?.ext,
-                type: googleDocTypes[file.mimeType]?.type || '',
+                name: file.name + GoogleDocTypes[file.mimeType]?.ext,
+                type: GoogleDocTypes[file.mimeType]?.type || '',
                 base64file: await new Promise<string>((resolve) => {
                   const reader = new FileReader();
                   reader.onloadend = () => resolve(reader.result as string);
