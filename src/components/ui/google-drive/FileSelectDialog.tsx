@@ -1,9 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/form/Button";
 import { Input } from "@/components/form/Input";
-import { useState, useEffect } from "react";
 
 interface GoogleDriveFile {
   id: string;
@@ -23,7 +23,15 @@ interface FileSelectDialogProps {
   isLoading?: boolean;
 }
 
-export function FileSelectDialog({ isOpen, onClose, onSelect, files, onLoadMore, hasMore, isLoading = false }: FileSelectDialogProps) {
+export function FileSelectDialog({
+  isOpen,
+  onClose,
+  onSelect,
+  files,
+  onLoadMore,
+  hasMore,
+  isLoading = false
+}: FileSelectDialogProps) {
   const [selectedFiles, setSelectedFiles] = useState<GoogleDriveFile[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 

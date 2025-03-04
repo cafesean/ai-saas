@@ -157,56 +157,53 @@ export default function WorkflowDetailPage() {
             <div>
               <Input label="Workflow Name" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
-            {userInputs.map((userInput: any, n: number) => {
-              if (userInput.showInUI && userInput.flowNodeName === FlowNameTypes.webhookInputFormData) {
-                return (
-                  <div key={n} className="space-y-4">
-                    <UploadCmp addFiles={addFiles} />
-                    <div className="relative my-4">
-                      <hr className="border-gray-200" />
-                      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-4 text-sm text-gray-500">
-                        Or
-                      </div>
+            {userInputs.map((userInput: any, n: number) => (
+              userInput.showInUI && userInput.flowNodeName === FlowNameTypes.webhookInputFormData ? (
+                <div key={n} className="space-y-4">
+                  <UploadCmp addFiles={addFiles} />
+                  <div className="relative my-4">
+                    <hr className="border-gray-200" />
+                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-4 text-sm text-gray-500">
+                      Or
                     </div>
-                    <div className="flex justify-center w-full">
-                      <GoogleDriveUploader
-                        setFileFetching={setFileFetching}
-                        onFilesSelected={(files) => {
-                          const newFiles = files.filter(file => !checkDuplicateFile(file));
-                          setDatasets(prev => [...prev, ...newFiles]);
-                        }}
-                      />
-                    </div>
-                    {datasets.length > 0 && (
-                      <div className="mt-4">
-                        <div className="text-sm font-medium text-gray-700 mb-2">Selected files</div>
-                        <div className="space-y-2">
-                          {datasets.map((file, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                              <div className="flex items-center space-x-3">
-                                <div>
-                                  <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                                  <p className="text-xs text-gray-500">{file.type}</p>
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => {
-                                  setDatasets(prev => prev.filter((_, i) => i !== index));
-                                }}
-                                className="text-red-600 hover:text-red-800"
-                              >
-                                <img src="/ui/delete.svg" alt="delete" className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
-                );
-              }
-              return null;
-            })}
+                  <div className="flex justify-center w-full">
+                    <GoogleDriveUploader
+                      setFileFetching={setFileFetching}
+                      onFilesSelected={(files) => {
+                        const newFiles = files.filter(file => !checkDuplicateFile(file));
+                        setDatasets(prev => [...prev, ...newFiles]);
+                      }}
+                    />
+                  </div>
+                  {datasets.length > 0 && (
+                    <div className="mt-4">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Selected files</div>
+                      <div className="space-y-2">
+                        {datasets.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{file.name}</p>
+                                <p className="text-xs text-gray-500">{file.type}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setDatasets(prev => prev.filter((_, i) => i !== index));
+                              }}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <img src="/ui/delete.svg" alt="delete" className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null
+            ))}
             <div>Status: {workflow.data?.[0]?.status}</div>
             {workflow.data?.[0]?.endpoint && (
               <div>
