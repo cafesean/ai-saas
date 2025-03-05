@@ -14,6 +14,8 @@ import UploadCmp from "@/components/ui/Upload";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
 import { FlowNameTypes, WidgetTypes } from "@/constants/nodes";
 import { WorkflowStatus } from "@/constants/general";
+import { GoogleDriveUploader } from "@/components/ui/google-drive/GoogleDriveUploader";
+import { toast } from "sonner";
 
 export default function WorkflowDetailPage() {
   const [isClient, setIsClient] = React.useState(false);
@@ -23,6 +25,15 @@ export default function WorkflowDetailPage() {
   const [name, setName] = useState("");
   const [datasets, setDatasets] = useState<any[]>([]);
   const [userInputs, setUserInputs] = useState<Record<string, any>>([]);
+  const [fileFetching, setFileFetching] = React.useState(false);
+
+  const checkDuplicateFile = (file: { base64file: string; name: string }) => {
+    const isDuplicate = datasets.some(existingFile => existingFile.base64file === file.base64file);
+    if (isDuplicate) {
+      toast.warning(`File "${file.name}" already exists, skipped adding`);
+    }
+    return isDuplicate;
+  };
 
   // tRPC hooks
   const utils = useUtils();
@@ -32,10 +43,10 @@ export default function WorkflowDetailPage() {
       utils.workflow.getAll.invalidate();
       utils.workflow.getByUUID.invalidate({ uuid: slug });
       setDatasets([]);
-      console.log(data);
+      toast.success("Workflow published successfully");
     },
     onError: (error) => {
-      setDatasets([]);
+      toast.error(error.message);
     },
   });
 
@@ -44,10 +55,10 @@ export default function WorkflowDetailPage() {
       utils.workflow.getAll.invalidate();
       utils.workflow.getByUUID.invalidate({ uuid: slug });
       setDatasets([]);
-      console.log(data);
+      toast.success("Workflow updated successfully");
     },
     onError: (error) => {
-      setDatasets([]);
+      toast.error(error.message);
     },
   });
 
@@ -63,7 +74,6 @@ export default function WorkflowDetailPage() {
   }, [workflow.isLoading]);
 
   const addFiles = (datasets: File[]) => {
-    setDatasets([]);
     convertToBase64(datasets);
   };
 
@@ -72,14 +82,19 @@ export default function WorkflowDetailPage() {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onloadend = () => {
-        const newDataset = {
+        const base64Result = reader.result as string;
+        const fileData = {
           name: file.name,
           type: file.type,
-          base64file: reader.result as string,
+          base64file: base64Result,
         };
-        setDatasets((prev) => [...prev, newDataset]);
+        
+        if (!checkDuplicateFile(fileData)) {
+          setDatasets((prev) => [...prev, fileData]);
+        }
       };
       reader.onerror = (error) => {
+        toast.error("Error converting file to Base64");
         console.error("Error converting file to Base64:", error);
       };
     }
@@ -87,7 +102,7 @@ export default function WorkflowDetailPage() {
 
   const publishWorkflow = () => {
     if (!name) {
-      alert("Name is required!");
+      toast.error("Name is required!");
     } else {
       if (workflow.data?.[0]?.status === WorkflowStatus.ACTIVE) {
         update.mutate({
@@ -142,16 +157,53 @@ export default function WorkflowDetailPage() {
             <div>
               <Input label="Workflow Name" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
-            {userInputs &&
-              userInputs.map((userInput: any, n: number) => {
-                if (userInput.showInUI) {
-                  switch (userInput.flowNodeName) {
-                    case FlowNameTypes.webhookInputFormData: {
-                      return <UploadCmp key={n} addFiles={addFiles} />;
-                    }
-                  }
-                }
-              })}
+            {userInputs.map((userInput: any, n: number) => (
+              userInput.showInUI && userInput.flowNodeName === FlowNameTypes.webhookInputFormData ? (
+                <div key={n} className="space-y-4">
+                  <UploadCmp addFiles={addFiles} />
+                  <div className="relative my-4">
+                    <hr className="border-gray-200" />
+                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-4 text-sm text-gray-500">
+                      Or
+                    </div>
+                  </div>
+                  <div className="flex justify-center w-full">
+                    <GoogleDriveUploader
+                      setFileFetching={setFileFetching}
+                      onFilesSelected={(files) => {
+                        const newFiles = files.filter(file => !checkDuplicateFile(file));
+                        setDatasets(prev => [...prev, ...newFiles]);
+                      }}
+                    />
+                  </div>
+                  {datasets.length > 0 && (
+                    <div className="mt-4">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Selected files</div>
+                      <div className="space-y-2">
+                        {datasets.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{file.name}</p>
+                                <p className="text-xs text-gray-500">{file.type}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setDatasets(prev => prev.filter((_, i) => i !== index));
+                              }}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <img src="/ui/delete.svg" alt="delete" className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null
+            ))}
             <div>Status: {workflow.data?.[0]?.status}</div>
             {workflow.data?.[0]?.endpoint && (
               <div>
@@ -202,7 +254,7 @@ export default function WorkflowDetailPage() {
           </div>
         </div>
       )}
-      {(publish.isLoading || update.isLoading) && <FullScreenLoading />}
+      {(publish.isLoading || update.isLoading || fileFetching) && <FullScreenLoading />}
     </div>
   );
 }

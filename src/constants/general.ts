@@ -30,3 +30,7 @@ export const Providers = {
   n8n: 'n8n',
   langFlow: 'langFlow',
 } as const;
+
+export const LocalStorageKeys = {
+  googleAccessToken: 'google_access_token',
+} as const;
