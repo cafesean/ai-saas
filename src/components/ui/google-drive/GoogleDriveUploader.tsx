@@ -81,7 +81,6 @@ export function GoogleDriveUploader({ onFilesSelected, setFileFetching }: Google
             const { code } = event.data;
             // Use authorization code to get file list
             const response = await fetch(`${Google_API.getFiles}?code=${code}`);
-            setFileFetching(false);
 
             if (response.ok) {
               const data = await response.json();
@@ -97,6 +96,7 @@ export function GoogleDriveUploader({ onFilesSelected, setFileFetching }: Google
             console.error('Error fetching files:', error);
             toast.error('Failed to fetch Google Drive files');
           } finally {
+            setFileFetching(false);
             cleanup();
           }
         }
@@ -124,6 +124,11 @@ export function GoogleDriveUploader({ onFilesSelected, setFileFetching }: Google
     }
   };
 
+  const handleGoogleDriveClose = () => {
+    setIsFileDialogOpen(false);
+    localStorage.removeItem(LocalStorageKeys.googleAccessToken);
+  };
+
   return (
     <div>
       <Button
@@ -138,7 +143,7 @@ export function GoogleDriveUploader({ onFilesSelected, setFileFetching }: Google
 
       <FileSelectDialog
         isOpen={isFileDialogOpen}
-        onClose={() => setIsFileDialogOpen(false)}
+        onClose={handleGoogleDriveClose}
         files={googleDriveFiles}
         hasMore={hasMoreFiles}
         isLoading={isLoadingMore}
@@ -186,10 +191,11 @@ export function GoogleDriveUploader({ onFilesSelected, setFileFetching }: Google
             const downloadedFiles = await Promise.all(filePromises);
             onFilesSelected(downloadedFiles);
             setIsFileDialogOpen(false);
-            setFileFetching(false);
           } catch (error) {
             console.error('Error downloading files:', error);
             toast.error('Failed to download selected files');
+          } finally {
+            setFileFetching(false);
           }
         }}
       />
