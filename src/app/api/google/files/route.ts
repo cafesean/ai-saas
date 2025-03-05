@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleTokenUrl, GoogleGrantType, CreateGetDriveFilesUrl } from '@/constants/google';
+import { GoogleDriveSource, GoogleTokenUrl, GoogleGrantType, CreateGetDriveFilesUrl } from '@/constants/google';
 
 interface GoogleTokenResponse {
   access_token: string;
@@ -68,16 +68,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Get search query if provided
-    const searchQuery = searchParams.get('q');
-    
-    // Construct search query for file name
-    const searchParam = searchQuery ? `&q=name contains '${searchQuery}'` : '';
-    
+    const source = searchParams.get('source') || GoogleDriveSource[0]?.value;
+    const name = searchParams.get('name');
+    const parentId = searchParams.get('parentId');
+
     // Fetch files from Google Drive
     const filesResponse = await fetch(
       CreateGetDriveFilesUrl({
         pageToken,
-        searchParam,
+        source,
+        name,
+        parentId,
       }),
       {
         headers: {

@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/form/Button';
 import { FileSelectDialog } from '@/components/ui/google-drive/FileSelectDialog';
-import { GoogleDocTypes, GoogleAuthMessage, CreateDriveAuthUrl } from '@/constants/google';
+import { GoogleDriveSource, GoogleDocTypes, GoogleAuthMessage, CreateDriveAuthUrl } from '@/constants/google';
 import { Google_API } from '@/constants/api';
 import { LocalStorageKeys } from '@/constants/general';
 
@@ -28,6 +28,10 @@ export function GoogleDriveUploader({ onFilesSelected, setFileFetching }: Google
   const [hasMoreFiles, setHasMoreFiles] = useState(true);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [currentSource, setCurrentSource] = useState<string>(GoogleDriveSource[0]?.value || '');
+  const [currentFolderId, setCurrentFolderId] = useState<string>('root');
+  const [currentPath, setCurrentPath] = useState<Array<{id: string; name: string}>>([]);
+  const [currentSearchQuery, setCurrentSearchQuery] = useState<string>('');
 
   // Event listener references
   const messageHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
@@ -80,7 +84,7 @@ export function GoogleDriveUploader({ onFilesSelected, setFileFetching }: Google
             setFileFetching(true);
             const { code } = event.data;
             // Use authorization code to get file list
-            const response = await fetch(`${Google_API.getFiles}?code=${code}`);
+            const response = await fetch(`${Google_API.getFiles}?code=${code}&source=${currentSource}`);
 
             if (response.ok) {
               const data = await response.json();
@@ -125,6 +129,10 @@ export function GoogleDriveUploader({ onFilesSelected, setFileFetching }: Google
   };
 
   const handleGoogleDriveClose = () => {
+    setCurrentSource(GoogleDriveSource[0]?.value || '');
+    setCurrentPath([]);
+    setCurrentFolderId('root');
+    setCurrentSearchQuery('');
     setIsFileDialogOpen(false);
     localStorage.removeItem(LocalStorageKeys.googleAccessToken);
   };
@@ -147,12 +155,96 @@ export function GoogleDriveUploader({ onFilesSelected, setFileFetching }: Google
         files={googleDriveFiles}
         hasMore={hasMoreFiles}
         isLoading={isLoadingMore}
+        currentSource={currentSource}
+        currentPath={currentPath}
+        onChangeSource={async (source) => {
+          try {
+            setIsLoadingMore(true);
+            setCurrentSource(source);
+            setCurrentPath([]);
+            setCurrentFolderId('root');
+            setCurrentSearchQuery('');
+            const response = await fetch(`${Google_API.getFiles}?accessToken=${localStorage.getItem(LocalStorageKeys.googleAccessToken)}&source=${source}`);
+            if (response.ok) {
+              const data = await response.json();
+              setGoogleDriveFiles(data.files);
+              setNextPageToken(data.nextPageToken);
+              setHasMoreFiles(!!data.nextPageToken);
+            }
+          } catch (error) {
+            console.error('Error fetching files:', error);
+            toast.error('Failed to fetch Google Drive files');
+          } finally {
+            setIsLoadingMore(false);
+          }
+        }}
+        onFilter={async (query) => {
+          try {
+            setIsLoadingMore(true);
+            setCurrentSearchQuery(query); // Save current search query
+            const response = await fetch(`${Google_API.getFiles}?accessToken=${localStorage.getItem(LocalStorageKeys.googleAccessToken)}&name=${query}&parentId=${currentFolderId}&source=${currentSource}`);
+
+            if (response.ok) {
+              const data = await response.json();
+              setGoogleDriveFiles(data.files);
+              setNextPageToken(data.nextPageToken);
+              setHasMoreFiles(!!data.nextPageToken);
+            } else {
+              throw new Error('Failed to search files');
+            }
+          } catch (error) {
+            console.error('Error searching files:', error);
+            toast.error('Failed to search files');
+          } finally {
+            setIsLoadingMore(false);
+          }
+        }}
+        onFolderClick={async (folderId, folderName) => {
+          try {
+            setIsLoadingMore(true);
+            setCurrentSearchQuery(''); // Reset search query
+
+            // Handle returning to root directory
+            if (folderId === 'root') {
+              setCurrentPath([]);
+              setCurrentFolderId('root');
+            } else {
+              // If clicking a folder in breadcrumbs
+              const existingIndex = currentPath.findIndex(p => p.id === folderId);
+              if (existingIndex >= 0) {
+                // Slice the path up to this position
+                setCurrentPath(currentPath.slice(0, existingIndex + 1));
+              } else {
+                // Add to current path
+                setCurrentPath([...currentPath, { id: folderId, name: folderName }]);
+              }
+              setCurrentFolderId(folderId);
+            }
+
+            const response = await fetch(`${Google_API.getFiles}?accessToken=${localStorage.getItem(LocalStorageKeys.googleAccessToken)}&parentId=${folderId}&source=${currentSource}`);
+
+            if (response.ok) {
+              const data = await response.json();
+              setGoogleDriveFiles(data.files);
+              setNextPageToken(data.nextPageToken);
+              setHasMoreFiles(!!data.nextPageToken);
+            } else {
+              throw new Error('Failed to fetch folder contents');
+            }
+          } catch (error) {
+            console.error('Error navigating to folder:', error);
+            toast.error('Failed to open folder');
+          } finally {
+            setIsLoadingMore(false);
+          }
+        }}
         onLoadMore={async () => {
           if (!nextPageToken || isLoadingMore) return;
 
           try {
             setIsLoadingMore(true);
-            const response = await fetch(`${Google_API.getFiles}?accessToken=${localStorage.getItem(LocalStorageKeys.googleAccessToken)}&pageToken=${nextPageToken}`);
+            const nameParam = currentSearchQuery ? `&name=${currentSearchQuery}` : '';
+            const response = await fetch(`${Google_API.getFiles}?accessToken=${localStorage.getItem(LocalStorageKeys.googleAccessToken)}&pageToken=${nextPageToken}&parentId=${currentFolderId}${nameParam}&source=${currentSource}`);
 
             if (response.ok) {
               const data = await response.json();
@@ -177,9 +269,10 @@ export function GoogleDriveUploader({ onFilesSelected, setFileFetching }: Google
               const response = await fetch(`${Google_API.downloadFile}?fileId=${file.id}&access_token=${localStorage.getItem(LocalStorageKeys.googleAccessToken)}`);
               if (!response.ok) throw new Error('Failed to download file');
               const blob = await response.blob();
+              const returnExt = GoogleDocTypes[file.mimeType]?.ext || '';
               return {
-                name: file.name + GoogleDocTypes[file.mimeType]?.ext,
-                type: GoogleDocTypes[file.mimeType]?.type || '',
+                name: file.name + returnExt,
+                type: GoogleDocTypes[file.mimeType]?.type || file.mimeType,
                 base64file: await new Promise<string>((resolve) => {
                   const reader = new FileReader();
                   reader.onloadend = () => resolve(reader.result as string);
