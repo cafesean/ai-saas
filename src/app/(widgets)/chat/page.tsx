@@ -2,7 +2,9 @@
 
 import React, { useState, useLayoutEffect, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { api, useUtils } from "@/utils/trpc";
+import { v4 as uuidv4 } from "uuid";
+
+import { api } from "@/utils/trpc";
 
 const YOU_NAME = "You";
 const AI_SASS_NAME = "AI Sass";
@@ -13,15 +15,24 @@ const ChatWidgetPage = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
   const code = searchParams.get("id");
-  const utils = useUtils();
   const widget = api.widget.getActiveWidgetByCode.useQuery(code as string);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  useEffect(() => {
+    if (widget.data?.workflow.endpoint?.payload && !sessionId) {
+      const payload = widget.data?.workflow.endpoint?.payload as any;
+      if ("sessionId" in payload) {
+        setSessionId(uuidv4());
+      }
+    }
+  }, [widget.data, sessionId]);
 
   const scrollToBottom = () => {
     const container = messagesEndRef.current;
@@ -50,8 +61,15 @@ const ChatWidgetPage = () => {
     setQuery("");
     const AI_SASS_ENDPOINT_BASE_URL = process.env.NEXT_PUBLIC_AI_SASS_ENDPOINT_BASE_URL;
     const endpoint = widget.data?.workflow.endpoint;
-    const payload = endpoint?.payload as object;
+    let payload = endpoint?.payload as any;
     try {
+      // Check if have sessionId in payload
+      if (sessionId) {
+        payload = {
+          ...payload,
+          sessionId,
+        };
+      }
       const response = await fetch(`${AI_SASS_ENDPOINT_BASE_URL}${endpoint?.uri}`, {
         method: `${endpoint?.method}`,
         headers: {
@@ -68,7 +86,7 @@ const ChatWidgetPage = () => {
       if (!response.ok) {
         throw new Error("Failed to fetch data");
       }
-      
+
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       if (reader) {
@@ -93,6 +111,11 @@ const ChatWidgetPage = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleNewSession = () => {
+    setSessionId(uuidv4());
+    setMessages([]);
   };
   if (widget.isLoading) {
     return (
@@ -196,6 +219,15 @@ const ChatWidgetPage = () => {
           >
             {isLoading ? "Stop" : "Send"}
           </button>
+          {sessionId && (
+            <button
+              type="button"
+              onClick={handleNewSession}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium text-[#f9fafb] disabled:pointer-events-none disabled:opacity-50 bg-black hover:bg-[#111827E6] h-10 px-4 py-2"
+            >
+              New
+            </button>
+          )}
         </form>
       </div>
     </div>

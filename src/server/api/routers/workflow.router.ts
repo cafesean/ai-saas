@@ -170,7 +170,6 @@ export const workflowRouter = createTRPCRouter({
               data: createPayload,
             };
             const createResponse = await instance(createOptions);
-            console.log("createResponse", createResponse);
             // Activate workflow
             if (createResponse.status == 200 && createResponse.data.id) {
               const activeApiURI = `${N8N_API.activeWorkflow(`${createResponse.data.id}`).uri}`;
@@ -240,7 +239,6 @@ export const workflowRouter = createTRPCRouter({
                           data: formData,
                         };
                         uploadResponse = await instance(uploadOptions);
-                        console.log("uploadResponse.data", uploadResponse.data);
                       }
                     }
                     if (uploadResponse.status == 200) {
@@ -289,7 +287,6 @@ export const workflowRouter = createTRPCRouter({
                       .insert(schema.endpoints)
                       .values(createEndpointPayload)
                       .returning();
-                    console.log("createEndpointResponse", createEndpointResponse);
                     if (createEndpointResponse.length > 0) {
                       checkResponse = {
                         ...checkResponse,
@@ -310,7 +307,6 @@ export const workflowRouter = createTRPCRouter({
             const generateWidgetsUserInputsArray = userInputsArray.filter((userInput) =>
               userInput.type.includes(CreateflowActionTypes.generateWidget)
             );
-            console.log("generateWidgetsUserInputsArray", generateWidgetsUserInputsArray);
             for (const userInput of generateWidgetsUserInputsArray) {
               switch (userInput.widgetType) {
                 case WidgetTypes.chat: {
@@ -325,7 +321,6 @@ export const workflowRouter = createTRPCRouter({
                     .replace("WIDGET_CODE", chatCode) as string;
                   const minifiedCode = await minify(originCode);
                   const chatScripts = `<script>${minifiedCode.code as string}</script>`;
-                  console.log("compressedCode", chatScripts);
                   const createChatWidgetPayload = {
                     uuid: uuidv4(),
                     name: Widgets.chat.name,
@@ -339,7 +334,6 @@ export const workflowRouter = createTRPCRouter({
                     .insert(schema.widgets)
                     .values(createChatWidgetPayload)
                     .returning();
-                  console.log("createChatWidgetResponse", createChatWidgetResponse);
                   if (createChatWidgetResponse.length > 0) {
                     checkResponse = {
                       ...checkResponse,
@@ -372,7 +366,6 @@ export const workflowRouter = createTRPCRouter({
           .update(schema.workflows)
           .set(updateWorkflowPayload)
           .where(eq(schema.workflows.uuid, input.uuid));
-        console.log("updateWorkflowResponse", updateWorkflowResponse);
       }
       return checkResponse;
     } catch (error) {
@@ -424,7 +417,6 @@ export const workflowRouter = createTRPCRouter({
                 data: updatePayload,
               };
               const updateResponse = await instance(updateOptions);
-              console.log("updateResponse", updateResponse.data);
               checkResponse = {
                 ...checkResponse,
                 success: true,
@@ -478,7 +470,6 @@ export const workflowRouter = createTRPCRouter({
                           data: formData,
                         };
                         uploadResponse = await instance(uploadOptions);
-                        console.log("uploadResponse.data", uploadResponse.data);
                       }
                     }
                     break;
@@ -500,7 +491,6 @@ export const workflowRouter = createTRPCRouter({
           .update(schema.workflows)
           .set(updateWorkflowPayload)
           .where(eq(schema.workflows.uuid, input.uuid));
-        console.log("updateWorkflowResponse", updateWorkflowResponse);
       }
       return checkResponse;
     } catch (error) {

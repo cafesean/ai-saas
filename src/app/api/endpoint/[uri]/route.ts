@@ -60,7 +60,7 @@ export async function POST(request: NextRequest, { params }: { params: { uri: st
       const readableStream = new ReadableStream({
         start(controller) {
           let currentIndex = 0;
-          const chunkSize = 2;
+          const chunkSize = 64;
           const interval = setInterval(() => {
             if (currentIndex < content.length) {
               const chunk = content.slice(currentIndex, currentIndex + chunkSize);
