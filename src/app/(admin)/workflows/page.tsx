@@ -123,12 +123,14 @@ export default function WorkflowsPage() {
 
   if (workflows.isLoading) {
     return (
-      <div className="animate-pulse">
-        <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-        <div className="space-y-2">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-12 bg-gray-200 rounded w-full"></div>
-          ))}
+      <div className="flex flex-col grow">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-12 bg-gray-200 rounded w-full"></div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -137,11 +139,13 @@ export default function WorkflowsPage() {
   if (workflows.error) {
     console.error("Roles query error:", workflows.error);
     return (
-      <div className="text-red-500">
-        <h2 className="text-lg font-semibold mb-2">Error loading worflows</h2>
-        <p className="mb-2">{workflows.error.message}</p>
-        <div className="text-sm bg-red-50 p-4 rounded">
-          {workflows.error.data && JSON.stringify(workflows.error.data.zodError, null, 2)}
+      <div className="flex flex-col grow">
+        <div className="text-red-500">
+          <h2 className="text-lg font-semibold mb-2">Error loading worflows</h2>
+          <p className="mb-2">{workflows.error.message}</p>
+          <div className="text-sm bg-red-50 p-4 rounded">
+            {workflows.error.data && JSON.stringify(workflows.error.data.zodError, null, 2)}
+          </div>
         </div>
       </div>
     );
@@ -153,7 +157,7 @@ export default function WorkflowsPage() {
   };
 
   return (
-    <div className="space-y-4 max-w-[100vw] px-4 md:px-6">
+    <div className="flex flex-col grow space-y-4 max-w-[100vw] px-4 md:px-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold text-gray-900">Workflows Management</h1>
         {isClient && (
