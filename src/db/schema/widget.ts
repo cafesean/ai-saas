@@ -24,7 +24,6 @@ export const widgets = pgTable(
     type: varchar("type", { length: 100}).notNull(),
     workflowId: uuid("workflowId").notNull().unique(),
     status: varchar("status", { length: 100 }).notNull().default(WidgetStatus.ACTIVE),
-    scripts: text("scripts").notNull(),
     code: text("code").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

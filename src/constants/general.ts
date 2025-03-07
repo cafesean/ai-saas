@@ -34,3 +34,7 @@ export const Providers = {
 export const LocalStorageKeys = {
   googleAccessToken: 'google_access_token',
 } as const;
+
+export const YOU_NAME = "You";
+export const AI_SASS_NAME = "AI Sass";
+export const AI_LOADING_TEXT = "Loading...";
