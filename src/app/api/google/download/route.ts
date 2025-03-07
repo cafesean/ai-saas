@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const fileId = searchParams.get('fileId');
     const accessToken = searchParams.get('access_token');
-    
+
     if (!fileId || !accessToken) {
       return NextResponse.json(
         { error: 'File ID and access token are required' },
@@ -71,12 +71,16 @@ export async function GET(request: NextRequest) {
 
     // Get file content
     const fileBlob = await fileResponse.blob();
-    
+
+
+    // Encode the filename for Content-Disposition header
+    const encodedFilename = encodeURIComponent(metadata.name).replace(/['()]/g, escape);
+
     // Return file content
     return new NextResponse(fileBlob, {
       headers: {
         'Content-Type': fileResponse.headers.get('Content-Type') || 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="${metadata.name}"`,
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodedFilename}`,
       },
     });
   } catch (error) {
