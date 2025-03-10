@@ -38,6 +38,6 @@ export const Widgets = {
   chat: {
     name: 'Chat Widget',
     type: WidgetTypes.chat,
-    scriptsPath: 'widgets_generation/chat/generation.js'
+    scriptsPath: 'widgets_generation/chat/script.html'
   },
 };

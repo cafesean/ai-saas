@@ -310,17 +310,7 @@ export const workflowRouter = createTRPCRouter({
             for (const userInput of generateWidgetsUserInputsArray) {
               switch (userInput.widgetType) {
                 case WidgetTypes.chat: {
-                  // Comporess scripts for widget
-                  const fs = require("fs");
-                  const path = require("path");
-                  const widgetScriptsPath = path.join(process.cwd(), Widgets.chat.scriptsPath);
                   const chatCode = uuidv4();
-                  let originCode = fs.readFileSync(widgetScriptsPath, "utf8");
-                  originCode = originCode
-                    .replace("AI_SASS_CHAT_WIDGET_URL", process.env.AI_SASS_CHAT_WIDGET_URL)
-                    .replace("WIDGET_CODE", chatCode) as string;
-                  const minifiedCode = await minify(originCode);
-                  const chatScripts = `<script>${minifiedCode.code as string}</script>`;
                   const createChatWidgetPayload = {
                     uuid: uuidv4(),
                     name: Widgets.chat.name,
@@ -328,7 +318,6 @@ export const workflowRouter = createTRPCRouter({
                     workflowId: input.uuid,
                     status: WidgetStatus.ACTIVE,
                     code: chatCode,
-                    scripts: chatScripts,
                   };
                   const createChatWidgetResponse = await db
                     .insert(schema.widgets)

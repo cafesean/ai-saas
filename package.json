@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "terser": "npx terser --compress --mangle --output $npm_config_output -- $npm_config_output"
+    "terser": "npx terser --compress --mangle --output $npm_config_output -- $npm_config_input"
   },
   "dependencies": {
     "@hookform/resolvers": "^4.1.0",
