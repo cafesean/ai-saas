@@ -25,3 +25,7 @@ export const Google_API = {
   getFiles: '/api/google/files',
   downloadFile: '/api/google/download',
 };
+
+export const S3_API = {
+  upload: '/api/upload',
+};

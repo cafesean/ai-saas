@@ -1,10 +1,12 @@
 import { templates } from "./n8n";
+import { models } from './model';
 import { workflows, workflowsRelations } from './workflow';
 import { endpoints, endpointsRelations } from './endpoint';
 import { widgets, widgetsRelations } from './widget';
 
 export {
   templates,
+  models,
   workflows,
   endpoints,
   widgets,
@@ -22,5 +24,3 @@ export default {
   endpointsRelations,
   widgetsRelations,
 };
-
-
