@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-export default function GoogleCallback() {
+const GoogleCallbackContent = () => {
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -32,4 +32,12 @@ export default function GoogleCallback() {
   }, [searchParams]);
 
   return null;
+}
+
+export default function GoogleCallback() {
+  return (
+    <Suspense fallback={null}>
+      <GoogleCallbackContent />
+    </Suspense>
+  );
 }
