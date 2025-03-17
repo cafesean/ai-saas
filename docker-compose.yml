@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-30001}:${PORT:-30001}"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=${PORT:-30001}
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run start -- -p ${PORT:-30001}
+
+networks:
+  default:
+    driver: bridge
