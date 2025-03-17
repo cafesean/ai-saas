@@ -28,9 +28,7 @@ export const widgets = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (table) => [
-    unique("workflowId_widgets_unique").on(table.workflowId),
-  ]
+  (table) => [index("widget_id_idx").on(table.id), index("widget_uuid_idx").on(table.uuid)]
 );
 
 export const widgetsRelations = relations(widgets, ({ one }) => ({

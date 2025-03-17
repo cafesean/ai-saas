@@ -3,11 +3,9 @@ import { n8nRouter } from "./routers/n8n";
 import { modelRouter } from "./routers/model.router";
 import { workflowRouter } from "./routers/workflow.router";
 import { templateRouter } from "./routers/template.router";
-import { widgetsRouter} from './routers/widget.router';
-import { pricingRouter } from "./routers/pricing.router";
-import { roleRouter } from "./routers/role.router";
-import { levelRouter } from "./routers/level.router";
-import { rateCardRouter } from "./routers/rateCard.router";
+import { widgetsRouter} from "./routers/widget.router";
+import { rulesRouter } from "./routers/rule.router";
+
 /**
  * This is the primary router for your server.
  *
@@ -20,10 +18,7 @@ export const appRouter = createTRPCRouter({
 	workflow: workflowRouter,
 	template: templateRouter,
 	widget: widgetsRouter,
-	price: pricingRouter,
-	role: roleRouter,
-	level: levelRouter,
-	rateCard: rateCardRouter,
+	rule: rulesRouter,
 });
 
 // Export type definition of API

@@ -24,6 +24,11 @@ export const WidgetStatus = {
   INACTIVE: "inactive",
 } as const;
 
+export const RuleStatus = {
+  ACTIVE: "active",
+  INACTIVE: "inactive",
+} as const;
+
 export const HTTPMethod = {
   GET: "GET",
   POST: "POST",
