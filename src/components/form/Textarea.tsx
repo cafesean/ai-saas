@@ -1,13 +1,25 @@
-import React from 'react';
+"use client";
 
-interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+import React, { useState, forwardRef } from "react";
+import { cn } from "@/framework/lib/utils";
+import FormError from "./FormError";
+
+export interface TextareaProps
+  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label?: string;
+  error?: string;
   className?: string;
   disabled?: boolean;
   value?: string | number | readonly string[] | undefined;
-  label?: string;
 }
 
-const Textarea = ({ className = "", value, disabled, label, ...props }: TextareaProps) => {
+const Textarea = ({
+  className = "",
+  value,
+  disabled,
+  label,
+  ...props
+}: TextareaProps) => {
   return (
     <div className="space-y-1">
       {label && (
@@ -30,4 +42,6 @@ const Textarea = ({ className = "", value, disabled, label, ...props }: Textarea
   );
 };
 
-export default Textarea;
+Textarea.displayName = "Textarea";
+
+export { Textarea };
