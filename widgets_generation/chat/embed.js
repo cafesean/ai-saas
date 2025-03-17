@@ -1,9 +1,9 @@
 // Define a self-executing anonymous function
 (function () {
   // Define constants
-  const CONFIG_NAME = "aiSASSChatbotConfig";
-  const BUTTON_ID = "ai-sass-chatbot-bubble-button";
-  const WINDOW_ID = "ai-sass-chatbot-bubble-window";
+  const CONFIG_NAME = "aiSAASChatbotConfig";
+  const BUTTON_ID = "ai-saas-chatbot-bubble-button";
+  const WINDOW_ID = "ai-saas-chatbot-bubble-window";
 
   // Get configuration
   const config = window[CONFIG_NAME];

@@ -13,8 +13,8 @@ export async function POST(request: NextRequest, { params }: { params: { uri: st
     const { uri } = await params;
     const payload = await request.json();
     const headers = request.headers;
-    const clientId = headers.get("x-ai-sass-client-id");
-    const clientSecret = headers.get("x-ai-sass-client-secret");
+    const clientId = headers.get("x-ai-saas-client-id");
+    const clientSecret = headers.get("x-ai-saas-client-secret");
     if (!clientId || !clientSecret) {
       return NextResponse.json(
         {

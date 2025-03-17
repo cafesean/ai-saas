@@ -62,8 +62,8 @@ const ChatWidgetPage = () => {
         method: `${endpoint?.method}`,
         headers: {
           "Content-Type": "application/json",
-          "x-ai-sass-client-id": `${endpoint?.clientId}`,
-          "x-ai-sass-client-secret": `${endpoint?.clientSecret}`,
+          "x-ai-saas-client-id": `${endpoint?.clientId}`,
+          "x-ai-saas-client-secret": `${endpoint?.clientSecret}`,
         },
         body: JSON.stringify({
           ...payload,
