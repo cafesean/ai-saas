@@ -9,17 +9,17 @@ export default function Home() {
       <h1 className="text-3xl font-bold">Chat Demo</h1>
       <Script>
         {`
-         window.aiSASSChatbotConfig = {
+         window.aiSAASChatbotConfig = {
           code: '879aebfe-4086-41f0-b7a7-944215630e6b',
           dynamicScript: true
         } `}
       </Script>
       <Script src="http://localhost:3000/embed.min.js" id="879aebfe-4086-41f0-b7a7-944215630e6b" defer />
       <style jsx>{`
-        #ai-sass-chatbot-bubble-button {
+        #ai-saas-chatbot-bubble-button {
           background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1)) !important;
         }
-        #ai-sass-chatbot-bubble-window {
+        #ai-saas-chatbot-bubble-window {
           width: 24rem !important;
           height: 40rem !important;
         }

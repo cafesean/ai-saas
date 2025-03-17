@@ -19,7 +19,7 @@ export const endpoints = pgTable(
   {
     id: serial("id").notNull().primaryKey(),
     uuid: uuid("uuid").notNull().defaultRandom(),
-    workflowId: uuid("workflowId").notNull().unique(),
+    workflowId: uuid("workflow_id").notNull().unique(),
     uri: text("uri").notNull(),
     method: varchar("method", { length: 100 }).notNull().default(HTTPMethod.POST),
     payload: json("payload"),

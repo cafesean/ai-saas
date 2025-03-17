@@ -210,8 +210,8 @@ export default function WorkflowDetailPage() {
                     </p>
                     <div>
                       <p>Headers:</p>
-                      <p>- x-ai-sass-client-id: {workflow.data?.[0]?.endpoint?.clientId}</p>
-                      <p>- x-ai-sass-client-secret: {workflow.data?.[0]?.endpoint?.clientSecret}</p>
+                      <p>- x-ai-saas-client-id: {workflow.data?.[0]?.endpoint?.clientId}</p>
+                      <p>- x-ai-saas-client-secret: {workflow.data?.[0]?.endpoint?.clientSecret}</p>
                       <p>URI: {`${process.env.NEXT_PUBLIC_AI_SASS_ENDPOINT_BASE_URL}${workflow.data?.[0]?.endpoint?.uri}`}</p>
                       <p>Method: {workflow.data?.[0]?.endpoint?.method}</p>
                       <p>Payload: {JSON.stringify(workflow.data?.[0]?.endpoint?.payload)}</p>
@@ -252,7 +252,7 @@ export default function WorkflowDetailPage() {
                                   <pre
                                     className="select-text"
                                     dangerouslySetInnerHTML={{
-                                      __html: `&lt;script&gt;\n window.aiSASSChatbotConfig = {\n  code: '${widget.code}'\n }\n&lt;/script&gt;\n&lt;script\n src="${process.env.NEXT_PUBLIC_AI_SASS_CHAT_EMBED_MIN_PATH}"\n id="${widget.code}"\n defer&gt;\n&lt;/script&gt;\n&lt;style&gt;\n  #ai-sass-chatbot-bubble-button {\n    background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1)) !important;\n  }\n  #ai-sass-chatbot-bubble-window {\n    width: 24rem !important;\n    height: 40rem !important;\n  }\n&lt;/style&gt;`,
+                                      __html: `&lt;script&gt;\n window.aiSAASChatbotConfig = {\n  code: '${widget.code}'\n }\n&lt;/script&gt;\n&lt;script\n src="${process.env.NEXT_PUBLIC_AI_SASS_CHAT_EMBED_MIN_PATH}"\n id="${widget.code}"\n defer&gt;\n&lt;/script&gt;\n&lt;style&gt;\n  #ai-saas-chatbot-bubble-button {\n    background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1)) !important;\n  }\n  #ai-saas-chatbot-bubble-window {\n    width: 24rem !important;\n    height: 40rem !important;\n  }\n&lt;/style&gt;`,
                                     }}
                                   />
                                 </div>
