@@ -9,4 +9,6 @@ export const AdminRoutes = {
   models: "/models",
   workflows: "/workflows",
   selectTemplate: "/select-template",
+  rules: "/rules",
+  createRule: "/rules/create",
 };
