@@ -1,4 +1,5 @@
 import { NavMenu } from "@/components/NavMenu";
+import Sidebar from "@/components/Sidebar";
 
 export default function AdminLayout({
   children,
@@ -8,8 +9,9 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-gray-100 flex h-full flex-col">
       <NavMenu />
-      <main className="flex grow w-full h-0 max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 overflow-auto">
-        {children}
+      <Sidebar />
+      <main className="flex grow sm:ml-64 h-0 p-4 sm:p-4 lg:p-4 overflow-auto">
+        <div className="flex grow mt-14">{children}</div>
       </main>
     </div>
   );
