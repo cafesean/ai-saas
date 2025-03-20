@@ -1,56 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { Route } from "next";
-import { usePathname } from "next/navigation";
 
-import { AdminRoutes } from "@/constants/routes";
+import { useSidebarStore } from '@/framework/hooks/useSidebarStore';
 
 export function NavMenu() {
-  const pathname = usePathname();
-
+  const toggle = useSidebarStore((state) => state.toggle);
   return (
-    <nav className="bg-white shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+    <nav className="fixed top-0 z-50 w-full bg-white shadow-sm">
+      <div className="max-w-7xl px-4 py-2 sm:py-2 lg:py-2">
+        <div className="flex justify-between">
           <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="text-xl font-bold text-gray-900">
-                AI SasS
+            <div className="flex-shrink-0 flex items-center mr-2">
+              <Link
+                href="/"
+                className="text-2xl font-bold text-primary font-[times]"
+              >
+                SaaS AI
               </Link>
             </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <Link
-                href={AdminRoutes.models as Route}
-                className={`${
-                  pathname === AdminRoutes.models
-                    ? "border-primary text-primary"
-                    : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+            <button
+              onClick={toggle}
+              type="button"
+              className="inline-flex items-center p-2 text-sm text-primary rounded-lg sm:hidden hover:bg-primary-foreground dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
+            >
+              <span className="sr-only">Open sidebar</span>
+              <svg
+                className="w-6 h-6"
+                aria-hidden="true"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
               >
-                Models
-              </Link>
-              <Link
-                href={AdminRoutes.rules as Route}
-                className={`${
-                  pathname === AdminRoutes.rules
-                    ? "border-primary text-primary"
-                    : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-              >
-                Rules
-              </Link>
-              <Link
-                href={AdminRoutes.workflows as Route}
-                className={`${
-                  pathname === AdminRoutes.workflows
-                    ? "border-primary text-primary"
-                    : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-              >
-                Workflows
-              </Link>
-            </div>
+                <path
+                  clipRule="evenodd"
+                  fillRule="evenodd"
+                  d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"
+                ></path>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
