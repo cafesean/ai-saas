@@ -9,7 +9,7 @@ import { api, useUtils } from "@/utils/trpc";
 import { ModelStatus, S3_UPLOAD } from "@/constants/general";
 import { Button } from "@/components/form/Button";
 import { Input } from "@/components/form/Input";
-import Textarea from "@/components/form/Textarea";
+import { Textarea } from "@/components/form/Textarea";
 import Select from "@/components/form/Select";
 import { S3FileUpload, S3UploadResult } from "@/components/form/S3FileUpload";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
