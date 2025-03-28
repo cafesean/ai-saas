@@ -159,10 +159,10 @@ export default function WorkflowsPage() {
   return (
     <div className="flex flex-col grow space-y-4 max-w-[100vw] px-4 md:px-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-gray-900">Rules Management</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Workflows Management</h1>
         {isClient && (
           <Button onClick={handleCreateWorkflow} variant="primary">
-            Create Rule
+            Add Workflow
           </Button>
         )}
       </div>

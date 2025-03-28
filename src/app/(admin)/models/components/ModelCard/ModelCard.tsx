@@ -39,7 +39,7 @@ function MetricDisplay({
               <Info className="ml-1 h-3 w-3" />
             </div>
             <div className="font-medium text-lg group-hover:text-primary transition-colors">
-              {value}
+              {value ? `${(parseFloat(value) * 100).toFixed(1)}%` : "-"}
             </div>
           </div>
         </PopoverTrigger>
@@ -49,11 +49,21 @@ function MetricDisplay({
             <div className="h-32 w-full bg-muted rounded-md flex items-center justify-center">
               {/* This would be replaced with an actual chart component */}
               <div className="text-center text-muted-foreground">
-                <div className="mb-2">{chartData.type} Chart</div>
-                <div className="text-xs">
-                  Min: {chartData.min} • Max: {chartData.max}
-                </div>
-                <div className="text-xs mt-1">Trend: {chartData.trend}</div>
+                {chartData.data ? (
+                  <img
+                    className="w-full h-auto"
+                    src={`data:image/png;base64,${chartData.data}`}
+                    alt="KS Chart"
+                  />
+                ) : (
+                  <>
+                    <div className="mb-2">{chartData.type} Chart</div>
+                    <div className="text-xs">
+                      Min: {chartData.min} • Max: {chartData.max}
+                    </div>
+                    <div className="text-xs mt-1">Trend: {chartData.trend}</div>
+                  </>
+                )}
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -125,19 +135,25 @@ function ModelCard({
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                   <MetricDisplay
                     label={ModelMetric.ks.label}
-                    value={model.metrics ? model.metrics.ks : "-"}
+                    value={model.metrics ? model.metrics.ks : ""}
                     chartData={
                       model.metrics
-                        ? model.metrics.ksChart
+                        ? {
+                            ...ModelMetric.ks.chart,
+                            data: model.metrics.ksChart,
+                          }
                         : { ...ModelMetric.ks.chart }
                     }
                   />
                   <MetricDisplay
                     label={ModelMetric.accuracy.label}
-                    value={model.metrics ? model.metrics.accuracy : "-"}
+                    value={model.metrics ? model.metrics.accuracy : ""}
                     chartData={
                       model.metrics
-                        ? model.metrics.accuracyChart
+                        ? {
+                            ...ModelMetric.accuracy.chart,
+                            data: model.metrics.accuracyChart,
+                          }
                         : {
                             ...ModelMetric.accuracy.chart,
                           }
@@ -145,10 +161,13 @@ function ModelCard({
                   />
                   <MetricDisplay
                     label={ModelMetric.gini.label}
-                    value={model.metrics ? model.metrics.gini : "-"}
+                    value={model.metrics ? model.metrics.gini : ""}
                     chartData={
                       model.metrics
-                        ? model.metrics.giniChart
+                        ? {
+                            ...ModelMetric.gini.chart,
+                            data: model.metrics.giniChart,
+                          }
                         : {
                             ...ModelMetric.gini.chart,
                           }
@@ -156,10 +175,13 @@ function ModelCard({
                   />
                   <MetricDisplay
                     label={ModelMetric.aucRoc.label}
-                    value={model.metrics ? model.metrics.aucRoc : "-"}
+                    value={model.metrics ? model.metrics.auroc : ""}
                     chartData={
                       model.metrics
-                        ? model.metrics.aucRocChart
+                        ? {
+                            ...ModelMetric.aucRoc.chart,
+                            data: model.metrics.aurocChart,
+                          }
                         : {
                             ...ModelMetric.aucRoc.chart,
                           }
