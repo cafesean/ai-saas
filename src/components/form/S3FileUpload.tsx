@@ -16,6 +16,7 @@ interface S3FileUploadProps {
   uploadPath?: string;
   defaultUploadText?: string;
   showProgress?: boolean;
+  extractMetrics?: (metadata: any) => void;
 }
 
 export interface S3UploadResult {
@@ -36,7 +37,8 @@ export function S3FileUpload({
   className = "",
   uploadPath = "",
   defaultUploadText = "Upload file to S3",
-  showProgress = true
+  showProgress = true,
+  extractMetrics = () => {},
 }: S3FileUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -44,8 +46,28 @@ export function S3FileUpload({
 
   const handleFileSelect = (file: File | null) => {
     setSelectedFile(file);
+    extractMetadata(file as File);
     // Reset upload status
     setUploadProgress(0);
+  };
+
+  const extractMetadata = (file: File) => {
+    if (file?.type === "application/json") {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const metadataContent = event.target?.result as string;
+        try {
+          const metadata = JSON.parse(metadataContent);
+          extractMetrics(metadata);
+        } catch (error) {
+          console.error("parse error:", error);
+        }
+      };
+      reader.onerror = (error) => {
+        console.error("parse error:", error);
+      };
+      reader.readAsText(file);
+    }
   };
 
   const handleUpload = async () => {
@@ -71,7 +93,9 @@ export function S3FileUpload({
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => {
           const newProgress = prev + Math.random() * 10;
-          return newProgress > S3_UPLOAD.maxProgressingBar ? S3_UPLOAD.maxProgressingBar : newProgress;
+          return newProgress > S3_UPLOAD.maxProgressingBar
+            ? S3_UPLOAD.maxProgressingBar
+            : newProgress;
         });
       }, 300);
 
@@ -105,7 +129,8 @@ export function S3FileUpload({
       // Clear selected file
       setSelectedFile(null);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "File upload failed";
+      const errorMessage =
+        error instanceof Error ? error.message : "File upload failed";
       toast.error(errorMessage);
 
       if (onUploadError) {
@@ -140,7 +165,9 @@ export function S3FileUpload({
       <button
         onClick={handleUpload}
         disabled={!selectedFile || isUploading}
-        className={`mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors ${(!selectedFile || isUploading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+        className={`mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors ${
+          !selectedFile || isUploading ? "opacity-50 cursor-not-allowed" : ""
+        }`}
       >
         {isUploading ? "Uploading..." : "Upload to S3"}
       </button>

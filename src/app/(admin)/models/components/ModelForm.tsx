@@ -14,26 +14,33 @@ import Select from "@/components/form/Select";
 import { S3FileUpload, S3UploadResult } from "@/components/form/S3FileUpload";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
 import { AdminRoutes } from "@/constants/routes";
+import ModelMetrics from "./ModelMetrics";
 
 export default function ModelForm() {
   const [isClient, setIsClient] = React.useState(false);
   const router = useRouter();
   const params = useParams();
   const isEditMode = params?.slug && params.slug !== "create";
-  const slug = isEditMode ? params.slug as string : "";
+  const slug = isEditMode ? (params.slug as string) : "";
 
   // Form state
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<string>(ModelStatus.INACTIVE);
   const [modelUuid, setModelUuid] = useState("");
-  const [modelFileResult, setModelFileResult] = useState<S3UploadResult | null>(null);
-  const [metadataFileResult, setMetadataFileResult] = useState<S3UploadResult | null>(null);
-  const [defineInputs, setDefineInputs] = useState('');
+  const [modelFileResult, setModelFileResult] = useState<S3UploadResult | null>(
+    null,
+  );
+  const [metadataFileResult, setMetadataFileResult] =
+    useState<S3UploadResult | null>(null);
+  const [defineInputs, setDefineInputs] = useState("");
+  const [metrics, setMetrics] = useState<any>(null);
 
   // tRPC hooks
   const utils = useUtils();
-  const model = isEditMode ? api.model.getByUUID.useQuery(slug) : { data: null, isLoading: false, error: null };
+  const model = isEditMode
+    ? api.model.getByUUID.useQuery(slug)
+    : { data: null, isLoading: false, error: null };
 
   const create = api.model.create.useMutation({
     onSuccess: (data) => {
@@ -76,17 +83,20 @@ export default function ModelForm() {
         setStatus(modelData.status ?? ModelStatus.INACTIVE);
         setModelUuid(modelData.uuid);
         setModelFileResult({
-          key: modelData.fileKey ?? '',
+          key: modelData.fileKey ?? "",
           fileName: modelData.fileName,
           originalName: modelData.fileName,
         });
         setMetadataFileResult({
-          key: modelData.metadataFileKey?? '',
+          key: modelData.metadataFileKey ?? "",
           fileName: modelData.metadataFileName,
           originalName: modelData.metadataFileName,
         });
         if (modelData.defineInputs) {
-          setDefineInputs(JSON.stringify(modelData.defineInputs, null, 2))
+          setDefineInputs(JSON.stringify(modelData.defineInputs, null, 2));
+        }
+        if (modelData.metrics) {
+          setMetrics(modelData.metrics);
         }
       }
     }
@@ -100,6 +110,27 @@ export default function ModelForm() {
   const handleMetadataFileUpload = (fileData: S3UploadResult) => {
     setMetadataFileResult(fileData);
     // toast.success("Metadata file uploaded successfully");
+  };
+
+  const extractMetrics = async (metadata: any) => {
+    if (!metadata) {
+      return;
+    }
+    let metrics = metadata?.performance_metrics || null;
+    if (metrics) {
+      metrics = {
+        ...metrics,
+        ks: `${metrics.ks}`,
+        accuracy: `${metrics.accuracy}`,
+        auroc: `${metrics.auroc}`,
+        gini: `${metrics.gini}`,
+        ksChart: metrics.ks_chart,
+        accuracyChart: metrics.accuracy_chart,
+        aurocChart: metrics.auroc_chart,
+        giniChart: metrics.gini_chart,
+      };
+    }
+    setMetrics(metrics);
   };
 
   const handleSubmit = () => {
@@ -131,11 +162,12 @@ export default function ModelForm() {
         name,
         description,
         status,
-        fileName: modelFileResult?.originalName?? '',
-        fileKey: modelFileResult?.key?? '',
-        metadataFileName: metadataFileResult?.originalName?? '',
-        metadataFileKey: metadataFileResult?.key?? '',
+        fileName: modelFileResult?.originalName ?? "",
+        fileKey: modelFileResult?.key ?? "",
+        metadataFileName: metadataFileResult?.originalName ?? "",
+        metadataFileKey: metadataFileResult?.key ?? "",
         defineInputs: defineInputsJson,
+        metrics: metrics,
       });
     } else {
       create.mutate({
@@ -143,11 +175,12 @@ export default function ModelForm() {
         name,
         description,
         status,
-        fileName: modelFileResult?.originalName?? '',
-        fileKey: modelFileResult?.key?? '',
-        metadataFileName: metadataFileResult?.originalName?? '',
-        metadataFileKey: metadataFileResult?.key?? '',
+        fileName: modelFileResult?.originalName ?? "",
+        fileKey: modelFileResult?.key ?? "",
+        metadataFileName: metadataFileResult?.originalName ?? "",
+        metadataFileKey: metadataFileResult?.key ?? "",
         defineInputs: defineInputsJson,
+        metrics: metrics,
       });
     }
   };
@@ -163,7 +196,8 @@ export default function ModelForm() {
         <h2 className="text-lg font-semibold mb-2">Error loading Model.</h2>
         <p className="mb-2">{model.error.message}</p>
         <div className="text-sm bg-red-50 p-4 rounded">
-          {model.error.data && JSON.stringify(model.error.data.zodError, null, 2)}
+          {model.error.data &&
+            JSON.stringify(model.error.data.zodError, null, 2)}
         </div>
       </div>
     );
@@ -196,7 +230,7 @@ export default function ModelForm() {
                 onValueChange={(value: string) => setStatus(value)}
                 options={Object.entries(ModelStatus).map(([_, value]) => ({
                   value: value,
-                  label: value
+                  label: value,
                 }))}
               />
             </div>
@@ -211,18 +245,22 @@ export default function ModelForm() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Model UUID (for AWS path)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Model UUID (for AWS path)
+              </label>
               <div className="p-3 bg-gray-100 rounded-md text-sm font-mono break-all">
                 {modelUuid}
               </div>
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Upload Model File</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Upload Model File
+              </label>
               <S3FileUpload
                 uploaderId="model-file"
                 onUploadComplete={handleModelFileUpload}
-                supportedFormats={['pkl', 'pt', 'pth', 'h5']}
+                supportedFormats={["pkl", "pt", "pth", "h5"]}
                 uploadPath={`${S3_UPLOAD.modelsPath}/${modelUuid}`}
                 defaultUploadText="Upload Model File"
               />
@@ -234,13 +272,16 @@ export default function ModelForm() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Upload Metadata File</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Upload Metadata File
+              </label>
               <S3FileUpload
                 uploaderId="metadata-file"
                 onUploadComplete={handleMetadataFileUpload}
-                supportedFormats={['json']}
+                supportedFormats={["json"]}
                 uploadPath={`${S3_UPLOAD.modelsPath}/${modelUuid}`}
                 defaultUploadText="Upload Metadata File"
+                extractMetrics={extractMetrics}
               />
               {metadataFileResult && (
                 <div className="mt-2 text-sm text-green-600">
@@ -248,6 +289,12 @@ export default function ModelForm() {
                 </div>
               )}
             </div>
+
+            {metrics && (
+              <div className="md: col-span-2">
+                <ModelMetrics metrics={metrics} />
+              </div>
+            )}
 
             <div className="md:col-span-2">
               <Textarea
@@ -259,7 +306,9 @@ export default function ModelForm() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Rules</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Rules
+              </label>
               <div className="text-gray-400">Coming soon</div>
             </div>
           </div>
