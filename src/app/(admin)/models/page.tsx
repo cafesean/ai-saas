@@ -147,7 +147,7 @@ export default function ModelsPage() {
             Manage your models, compare metrics, and organize challenger groups
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+        <div className="flex flex-col lg:flex-row gap-2 w-full md:w-auto">
           <div className="relative w-full md:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <SampleInput
@@ -175,12 +175,12 @@ export default function ModelsPage() {
                   Import Existing Model
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Connect External Model
-                </DropdownMenuItem>
-                <DropdownMenuItem>
                   <Download className="mr-2 h-4 w-4" />
                   Build from Library
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Connect External Model
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -200,8 +200,8 @@ export default function ModelsPage() {
               </DialogHeader>
               <div className="modal-section">
                 <p className="modal-text">
-                  Are you sure you want to delete this model? This action
-                  cannot be undone.
+                  Are you sure you want to delete this model? This action cannot
+                  be undone.
                 </p>
               </div>
               <DialogFooter className="modal-footer">
@@ -234,7 +234,7 @@ export default function ModelsPage() {
             </TabsList>
 
             <TabsContent value="all" className="mt-4">
-              <div className="grid gap-4">
+              <div className="grid gap-4 pb-4">
                 {selectedModels.length > 0 && (
                   <div className="bg-muted/50 p-3 rounded-lg flex items-center justify-between">
                     <div className="text-sm">
@@ -277,7 +277,7 @@ export default function ModelsPage() {
             </TabsContent>
 
             <TabsContent value="champions" className="mt-4">
-              <div className="grid gap-4 grid-cols-1">
+              <div className="grid gap-4 pb-4">
                 {models.data.length > 0 &&
                 models.data.filter((model) => model.status === "champion")
                   .length > 0 ? (
@@ -304,7 +304,7 @@ export default function ModelsPage() {
             </TabsContent>
 
             <TabsContent value="challengers" className="mt-4">
-              <div className="grid gap-4 grid-cols-1">
+              <div className="grid gap-4 pb-4">
                 {models.data.length > 0 &&
                 models.data.filter((model) => model.status === "challenger")
                   .length > 0 ? (
@@ -332,7 +332,7 @@ export default function ModelsPage() {
 
             <TabsContent value="groups" className="mt-4">
               {challengerGroups.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 pb-4">
                   {challengerGroups.map((group) => (
                     <></>
                   ))}

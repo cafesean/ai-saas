@@ -1,5 +1,5 @@
 import { templates } from "./n8n";
-import { models } from "./model";
+import { models, model_metrics, modelsRelations } from "./model";
 import { workflows, workflowsRelations } from "./workflow";
 import { endpoints, endpointsRelations } from "./endpoint";
 import { widgets, widgetsRelations } from "./widget";
@@ -19,6 +19,7 @@ import {
 export {
   templates,
   models,
+  model_metrics,
   workflows,
   endpoints,
   widgets,
@@ -35,6 +36,7 @@ export {
   conditionGroupsRelations,
   conditionsRelations,
   ruleFlowActionsRelations,
+  modelsRelations
 };
 
 export default {
@@ -55,4 +57,7 @@ export default {
   conditionGroupsRelations,
   conditionsRelations,
   ruleFlowActionsRelations,
+  models,
+  model_metrics,
+  modelsRelations
 };
