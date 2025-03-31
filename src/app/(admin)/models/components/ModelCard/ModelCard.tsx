@@ -48,12 +48,12 @@ function MetricDisplay({
             <h4 className="font-medium">{label} Metric</h4>
             <div className="h-32 w-full bg-muted rounded-md flex items-center justify-center">
               {/* This would be replaced with an actual chart component */}
-              <div className="text-center text-muted-foreground">
+              <div className="text-center text-muted-foreground h-full flex justify-center items-center flex-col">
                 {chartData.data ? (
                   <img
-                    className="w-full h-auto"
+                    className="w-auto h-full"
                     src={`data:image/png;base64,${chartData.data}`}
-                    alt="KS Chart"
+                    alt={`${label} Chart`}
                   />
                 ) : (
                   <>
@@ -174,16 +174,16 @@ function ModelCard({
                     }
                   />
                   <MetricDisplay
-                    label={ModelMetric.aucRoc.label}
+                    label={ModelMetric.aucroc.label}
                     value={model.metrics ? model.metrics.auroc : ""}
                     chartData={
                       model.metrics
                         ? {
-                            ...ModelMetric.aucRoc.chart,
+                            ...ModelMetric.aucroc.chart,
                             data: model.metrics.aurocChart,
                           }
                         : {
-                            ...ModelMetric.aucRoc.chart,
+                            ...ModelMetric.aucroc.chart,
                           }
                     }
                   />
@@ -199,7 +199,7 @@ function ModelCard({
               className="w-full"
               asChild
             >
-              <Link href={`/models/${model.uuid}`}>View Details</Link>
+              <Link href={`/models/detail/${model.uuid}`}>View Details</Link>
             </SampleButton>
             <SampleButton variant="outline" size="sm" className="w-full">
               <Link href={`/models/${model.uuid}`}>Edit</Link>
