@@ -89,8 +89,8 @@ export default function ModelForm() {
         });
         setMetadataFileResult({
           key: modelData.metadataFileKey ?? "",
-          fileName: modelData.metadataFileName,
-          originalName: modelData.metadataFileName,
+          fileName: modelData.metadataFileName ?? null,
+          originalName: modelData.metadataFileName ?? null,
         });
         if (modelData.defineInputs) {
           setDefineInputs(JSON.stringify(modelData.defineInputs, null, 2));
@@ -161,6 +161,7 @@ export default function ModelForm() {
         uuid: slug,
         name,
         description,
+        version: "",
         status,
         fileName: modelFileResult?.originalName ?? "",
         fileKey: modelFileResult?.key ?? "",
@@ -174,6 +175,7 @@ export default function ModelForm() {
         uuid: modelUuid,
         name,
         description,
+        version: "",
         status,
         fileName: modelFileResult?.originalName ?? "",
         fileKey: modelFileResult?.key ?? "",

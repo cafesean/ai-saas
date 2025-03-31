@@ -26,7 +26,7 @@ export const ModelMetric = {
         "Gini coefficient measures the inequality among values of a frequency distribution. In modeling, higher values indicate better discrimination.",
     },
   },
-  aucRoc: {
+  aucroc: {
     label: "AUC-ROC",
     chart: {
       type: "ROC Curve",
@@ -36,3 +36,8 @@ export const ModelMetric = {
     },
   },
 };
+
+export enum ModelInputType {
+  upload = "upload",
+  path = "path",
+}

@@ -21,9 +21,9 @@ interface S3FileUploadProps {
 
 export interface S3UploadResult {
   url?: string;
-  key: string;
-  fileName: string;
-  originalName: string;
+  key?: string | null;
+  fileName?: string | null;
+  originalName?: string | null;
   contentType?: string;
   size?: number;
 }
@@ -52,7 +52,7 @@ export function S3FileUpload({
   };
 
   const extractMetadata = (file: File) => {
-    if (file?.type === "application/json") {
+    if (file?.type === "application/json" && extractMetrics) {
       const reader = new FileReader();
       reader.onload = (event) => {
         const metadataContent = event.target?.result as string;
