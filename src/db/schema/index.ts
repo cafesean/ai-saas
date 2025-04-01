@@ -15,6 +15,20 @@ import {
   conditionsRelations,
   ruleFlowActionsRelations,
 } from "./rule";
+import {
+  decision_tables,
+  decision_table_rows,
+  decision_table_inputs,
+  decision_table_outputs,
+  decision_table_input_conditions,
+  decision_table_output_results,
+  decisionTablesRelations,
+  decisionTableRowsRelations,
+  decisionTableInputsRelations,
+  decisionTableOutputsRelations,
+  decisionTableInputConditionsRelations,
+  decisionTableOutputResultsRelations,
+} from "./decision_table";
 
 export {
   templates,
@@ -36,7 +50,19 @@ export {
   conditionGroupsRelations,
   conditionsRelations,
   ruleFlowActionsRelations,
-  modelsRelations
+  modelsRelations,
+  decision_tables,
+  decision_table_rows,
+  decision_table_inputs,
+  decision_table_outputs,
+  decision_table_input_conditions,
+  decision_table_output_results,
+  decisionTablesRelations,
+  decisionTableRowsRelations,
+  decisionTableInputsRelations,
+  decisionTableOutputsRelations,
+  decisionTableInputConditionsRelations,
+  decisionTableOutputResultsRelations,
 };
 
 export default {
@@ -59,5 +85,17 @@ export default {
   ruleFlowActionsRelations,
   models,
   model_metrics,
-  modelsRelations
+  modelsRelations,
+  decision_tables,
+  decision_table_rows,
+  decision_table_inputs,
+  decision_table_outputs,
+  decision_table_input_conditions,
+  decision_table_output_results,
+  decisionTableInputConditionsRelations,
+  decisionTableOutputResultsRelations,
+  decisionTablesRelations,
+  decisionTableRowsRelations,
+  decisionTableInputsRelations,
+  decisionTableOutputsRelations,
 };
