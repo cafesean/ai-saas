@@ -90,7 +90,7 @@ const Sidebar = () => {
           </li>
           <li>
             <a
-              href={AdminRoutes.rules as Route}
+              href={AdminRoutes.decisionTables as Route}
               className="flex text-primary items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-primary-foreground dark:hover:bg-gray-700 group"
             >
               <svg
@@ -105,7 +105,7 @@ const Sidebar = () => {
                   fill="#3E52E3"
                 />
               </svg>
-              <span className="flex-1 ms-3 whitespace-nowrap">Rules</span>
+              <span className="flex-1 ms-3 whitespace-nowrap">Decision Tables</span>
             </a>
           </li>
         </ul>

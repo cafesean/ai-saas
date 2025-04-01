@@ -10,5 +10,6 @@ export const AdminRoutes = {
   workflows: "/workflows",
   selectTemplate: "/select-template",
   rules: "/rules",
+  decisionTables: "/decision-tables",
   createRule: "/rules/create",
 };

@@ -5,6 +5,7 @@ import { workflowRouter } from "./routers/workflow.router";
 import { templateRouter } from "./routers/template.router";
 import { widgetsRouter} from "./routers/widget.router";
 import { rulesRouter } from "./routers/rule.router";
+import { decisionTableRouter } from "./routers/decisionTable.router";
 
 /**
  * This is the primary router for your server.
@@ -19,6 +20,7 @@ export const appRouter = createTRPCRouter({
 	template: templateRouter,
 	widget: widgetsRouter,
 	rule: rulesRouter,
+	decisionTable: decisionTableRouter,
 });
 
 // Export type definition of API
