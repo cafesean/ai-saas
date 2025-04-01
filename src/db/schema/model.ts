@@ -24,9 +24,10 @@ export const models = pgTable(
     description: text("description"),
     fileName: varchar("file_name", { length: 200 }).notNull(),
     fileKey: varchar("file_key", { length: 200 }).notNull(),
-    metadataFileName: varchar("metadata_file_name", { length: 200 }).notNull(),
-    metadataFileKey: varchar("metadata_file_key", { length: 200 }).notNull(),
+    metadataFileName: varchar("metadata_file_name", { length: 200 }),
+    metadataFileKey: varchar("metadata_file_key", { length: 200 }),
     defineInputs: json("define_inputs"),
+    version: varchar("version", { length: 100 }),
     status: varchar("status", { length: 100 })
       .notNull()
       .default(ModelStatus.INACTIVE),

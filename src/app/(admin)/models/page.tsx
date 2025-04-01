@@ -5,6 +5,8 @@ import { useForm } from "react-hook-form";
 import { Route } from "next";
 import { useRouter } from "next/navigation";
 import * as z from "zod";
+import { v4 as uuidv4 } from "uuid";
+import { toast } from "sonner";
 
 import { Download, ExternalLink, Plus, Search, Upload } from "lucide-react";
 import { SampleInput } from "@/components/ui/sample-input";
@@ -31,6 +33,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import ImportModelDialog from "@/components/import-model-dialog";
+import FullScreenLoading from "@/components/ui/FullScreenLoading";
+import { ModelInputType } from "@/constants/model";
+import { ModelStatus, S3_UPLOAD } from "@/constants/general";
+import { S3_API } from "@/constants/api";
 
 const modelSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -52,6 +59,7 @@ export default function ModelsPage() {
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [challengerGroups, setChallengerGroups] = useState<any[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isImportModelDialogOpen, setIsImportModelDialogOpen] = useState(false);
   const {
     isModalOpen,
     deleteConfirmOpen,
@@ -63,15 +71,20 @@ export default function ModelsPage() {
     closeDeleteConfirm,
     selectItem,
   } = useModalState<ModelView>();
+  const [metadata, setMetadata] = useState<any>(null);
+  const [importing, setImporting] = useState<boolean>(false);
 
   // tRPC hooks
   const utils = useUtils();
   const models = api.model.getAll.useQuery();
   const createModel = api.model.create.useMutation({
-    onSuccess: () => utils.model.getAll.invalidate(),
-  });
-  const updateModel = api.model.update.useMutation({
-    onSuccess: () => utils.model.getAll.invalidate(),
+    onSuccess: (data) => {
+      utils.model.getAll.invalidate();
+      toast.success("Model created successfully");
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
   });
   const deleteModel = api.model.delete.useMutation({
     onSuccess: () => utils.model.getAll.invalidate(),
@@ -99,6 +112,130 @@ export default function ModelsPage() {
 
   const handleDelete = (model: ModelView) => {
     openDeleteConfirm(model);
+  };
+
+  const extractMetadata = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const metadataContent = event.target?.result as string;
+      try {
+        const metadata = JSON.parse(metadataContent);
+        setMetadata(metadata);
+      } catch (error) {
+        console.error("parse error:", error);
+      }
+    };
+    reader.onerror = (error) => {
+      console.error("parse error:", error);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImportModel = async ({
+    name,
+    version,
+    files,
+    importType,
+  }: {
+    name: string;
+    version: string;
+    files: File[];
+    importType: string;
+  }) => {
+    if (!name || !version || !files || files.length === 0) {
+      toast.error("Please fill all required fields and upload files.");
+      return;
+    } else if (files.length > 2) {
+      toast.error("You can only upload 2 files at a time.");
+      return;
+    } else if (files.length === 1 && files[0]?.name?.endsWith(".json")) {
+      toast.error("Please upload a model file.");
+      return;
+    }
+    setImporting(true);
+    let modelFileName = "";
+    let modelFilePath = "";
+    let metadataFileName = "";
+    let metadataFilePath = "";
+    if (importType === ModelInputType.upload) {
+      // Upload files to S3
+      const uploadPath = `${S3_UPLOAD.modelsPath}/${uuidv4()}`;
+      const uploadPromises = files.map((file) => {
+        return new Promise(async (resolve, reject) => {
+          const formData = new FormData();
+          formData.append("path", uploadPath);
+          formData.append("file", file);
+          try {
+            // Upload file
+            const response = await fetch(S3_API.upload, {
+              method: "POST",
+              body: formData,
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+
+              resolve(result);
+            } else {
+              reject(new Error(`File upload failed: ${response.statusText}`));
+            }
+          } catch (error) {
+            reject(error);
+          }
+        });
+      });
+      // Send upload request
+      try {
+        // Wait for all uploads to complete
+        const results = await Promise.all(uploadPromises);
+        const allSuccess = results.every((result: any) => {
+          if (result.data.fileName.endsWith(".json")) {
+            metadataFileName = result.data.fileName;
+            metadataFilePath = result.data.key;
+          } else {
+            modelFileName = result.data.fileName;
+            modelFilePath = result.data.key;
+          }
+          return result.success;
+        });
+        if (allSuccess) {
+          let metrics = metadata?.performance_metrics || null;
+          if (metrics) {
+            metrics = {
+              ...metrics,
+              ks: `${metrics.ks}`,
+              accuracy: `${metrics.accuracy}`,
+              auroc: `${metrics.auroc}`,
+              gini: `${metrics.gini}`,
+              ksChart: metrics.ks_chart,
+              accuracyChart: metrics.accuracy_chart,
+              aurocChart: metrics.auroc_chart,
+              giniChart: metrics.gini_chart,
+            };
+          }
+          // Create model
+          await createModel.mutateAsync({
+            uuid: uuidv4(),
+            name,
+            description: null,
+            version,
+            fileName: modelFileName,
+            fileKey: modelFilePath,
+            metadataFileName: metadataFileName || null,
+            metadataFileKey: metadataFilePath || null,
+            status: ModelStatus.ACTIVE,
+            defineInputs: null,
+            metrics: metrics,
+          });
+        } else {
+          console.error("Some files failed to upload.");
+        }
+      } catch (error) {
+        console.error("Error uploading files:", error);
+      }
+    }
+    setMetadata(null);
+    setImporting(false);
   };
 
   const confirmDelete = async () => {
@@ -167,9 +304,7 @@ export default function ModelsPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
-                  onClick={() => {
-                    router.push(`${AdminRoutes.models}/create` as Route);
-                  }}
+                  onClick={() => setIsImportModelDialogOpen(true)}
                 >
                   <Upload className="mr-2 h-4 w-4" />
                   Import Existing Model
@@ -350,6 +485,18 @@ export default function ModelsPage() {
           </Tabs>
         </>
       )}
+      <ImportModelDialog
+        open={isImportModelDialogOpen}
+        onOpenChange={setIsImportModelDialogOpen}
+        onFilesChange={(files) => {
+          const jsonFile = files.find((file) => file.name.endsWith(".json"));
+          if (jsonFile) {
+            extractMetadata(jsonFile);
+          }
+        }}
+        onImport={handleImportModel}
+      />
+      {importing && <FullScreenLoading />}
     </div>
   );
 }

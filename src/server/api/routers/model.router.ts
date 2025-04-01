@@ -23,9 +23,10 @@ const modelSchema = z.object({
   description: z.string().nullable(),
   fileName: z.string().min(1),
   fileKey: z.string().min(1),
-  metadataFileName: z.string().min(1),
-  metadataFileKey: z.string().min(1),
+  metadataFileName: z.string().nullable(),
+  metadataFileKey: z.string().nullable(),
   defineInputs: z.record(z.any()).nullable(),
+  version: z.string().nullable(),
   status: z.string().nullable(),
   metrics: z
     .object({
@@ -79,10 +80,11 @@ export const modelRouter = createTRPCRouter({
             uuid: input.uuid,
             name: input.name,
             description: input.description,
+            version: input.version,
             fileName: input.fileName,
             fileKey: input.fileKey,
-            metadataFileName: input.metadataFileName,
-            metadataFileKey: input.metadataFileKey,
+            metadataFileName: input.metadataFileName ?? null,
+            metadataFileKey: input.metadataFileKey ?? null,
             defineInputs: input.defineInputs,
             status: input.status || ModelStatus.INACTIVE,
           })
@@ -126,10 +128,11 @@ export const modelRouter = createTRPCRouter({
             description: input.description,
             fileName: input.fileName,
             fileKey: input.fileKey,
-            metadataFileName: input.metadataFileName,
-            metadataFileKey: input.metadataFileKey,
+            metadataFileName: input.metadataFileName ?? null,
+            metadataFileKey: input.metadataFileKey ?? null,
             defineInputs: input.defineInputs,
             status: input.status || ModelStatus.INACTIVE,
+            version: input.version,
           })
           .where(eq(models.uuid, input.uuid))
           .returning();
