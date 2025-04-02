@@ -4,7 +4,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/sample-select"
 import { SelectProps } from "@radix-ui/react-select";
 import { cn } from "@/framework/lib/utils";
 import { isEmpty } from "lodash";

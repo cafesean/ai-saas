@@ -11,5 +11,6 @@ export const AdminRoutes = {
   selectTemplate: "/select-template",
   rules: "/rules",
   decisionTables: "/decision-tables",
+  decisionTableDetail: "/decision-tables/:uuid",
   createRule: "/rules/create",
 };

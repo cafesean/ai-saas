@@ -35,12 +35,16 @@ const decisionTableSchema = z.object({
           uuid: z.string().min(36),
           condition: z.string(),
           value: z.string(),
+          dt_row_id: z.union([z.string(), z.number()]).optional(),
+          dt_input_id: z.union([z.string(), z.number()]).optional(),
         }),
       ),
       decisionTableOutputResults: z.array(
         z.object({
           uuid: z.string().min(36),
           result: z.string(),
+          dt_row_id: z.union([z.string(), z.number()]).optional(),
+          dt_output_id: z.union([z.string(), z.number()]).optional(),
         }),
       ),
     }),
@@ -119,7 +123,7 @@ export const decisionTableRouter = createTRPCRouter({
               .values(
                 input.decisionTableInputs.map((dt_input) => ({
                   uuid: dt_input.uuid,
-                  dt_id: decisionTable.id,
+                  dt_id: decisionTable.uuid,
                   name: dt_input.name,
                   description: dt_input.description,
                   dataType: dt_input.dataType,
@@ -131,7 +135,7 @@ export const decisionTableRouter = createTRPCRouter({
               .values(
                 input.decisionTableOutputs.map((dt_output) => ({
                   uuid: dt_output.uuid,
-                  dt_id: decisionTable.id,
+                  dt_id: decisionTable.uuid,
                   name: dt_output.name,
                   description: dt_output.description,
                   dataType: dt_output.dataType,
@@ -143,7 +147,7 @@ export const decisionTableRouter = createTRPCRouter({
               .values(
                 input.decisionTableRows.map((row) => ({
                   uuid: row.uuid,
-                  dt_id: decisionTable.id,
+                  dt_id: decisionTable.uuid,
                   order: row.order,
                 })),
               )
@@ -162,8 +166,8 @@ export const decisionTableRouter = createTRPCRouter({
                   input.decisionTableRows.flatMap((row) =>
                     row.decisionTableInputConditions.map((condition) => ({
                       uuid: condition.uuid,
-                      dt_row_id: decisionTableRowsData.id,
-                      dt_input_id: decisionTableInputsData.id,
+                      dt_row_id: decisionTableRowsData.uuid,
+                      dt_input_id: decisionTableInputsData.uuid,
                       condition: condition.condition,
                       value: condition.value,
                     })),
@@ -176,8 +180,8 @@ export const decisionTableRouter = createTRPCRouter({
                   input.decisionTableRows.flatMap((row) =>
                     row.decisionTableOutputResults.map((result) => ({
                       uuid: result.uuid,
-                      dt_row_id: decisionTableRowsData.id,
-                      dt_output_id: decisionTableOutputsData.id,
+                      dt_row_id: decisionTableRowsData.uuid,
+                      dt_output_id: decisionTableOutputsData.uuid,
                       result: result.result,
                     })),
                   ),
@@ -196,10 +200,155 @@ export const decisionTableRouter = createTRPCRouter({
       }
     }),
 
+  updateStatus: publicProcedure
+    .input(z.object({ uuid: z.string(), status: z.nativeEnum(DecisionStatus) }))
+    .mutation(async ({ input }) => {
+      try {
+        const [decisionTable] = await db
+          .update(decision_tables)
+          .set({ status: input.status })
+          .where(eq(decision_tables.uuid, input.uuid));
+        return decisionTable;
+      } catch (error) {
+        console.error(error);
+        throw new TRPCError({
+          code: `${INTERNAL_SERVER_ERROR}` as TRPCError["code"],
+          message: DECISION_TABLE_UPDATE_ERROR,
+        });
+      }
+    }),
+
   update: publicProcedure
     .input(decisionTableSchema)
     .mutation(async ({ input }) => {
       try {
+        const decisionTable = await db.transaction(async (tx) => {
+          // Find the decision table by UUID
+          const [decisionTable] = await tx
+            .update(decision_tables)
+            .set({
+              name: input.name,
+              description: input.description,
+              status: input.status,
+            })
+            .where(eq(decision_tables.uuid, input.uuid))
+            .returning();
+          if (decisionTable && decisionTable.id) {
+            // delete all rows, inputs, outputs, conditions, results
+            await tx
+              .delete(decision_table_rows)
+              .where(eq(decision_table_rows.dt_id, decisionTable.uuid));
+            await tx
+              .delete(decision_table_inputs)
+              .where(eq(decision_table_inputs.dt_id, decisionTable.uuid));
+            await tx
+              .delete(decision_table_outputs)
+              .where(eq(decision_table_outputs.dt_id, decisionTable.uuid));
+
+            // Insert new rows, inputs, outputs, conditions, results
+            const decisionTableInputsData = await tx
+              .insert(decision_table_inputs)
+              .values(
+                input.decisionTableInputs.map((dt_input) => ({
+                  uuid: dt_input.uuid,
+                  dt_id: decisionTable.uuid,
+                  name: dt_input.name,
+                  description: dt_input.description,
+                  dataType: dt_input.dataType,
+                })),
+              )
+              .returning();
+            const decisionTableOutputsData = await tx
+              .insert(decision_table_outputs)
+              .values(
+                input.decisionTableOutputs.map((dt_output) => ({
+                  uuid: dt_output.uuid,
+                  dt_id: decisionTable.uuid,
+                  name: dt_output.name,
+                  description: dt_output.description,
+                  dataType: dt_output.dataType,
+                })),
+              )
+              .returning();
+            const decisionTableRowsData = await tx
+              .insert(decision_table_rows)
+              .values(
+                input.decisionTableRows.map((row) => ({
+                  uuid: row.uuid,
+                  dt_id: decisionTable.uuid,
+                  order: row.order,
+                })),
+              )
+              .returning();
+            if (
+              decisionTableRowsData &&
+              decisionTableInputsData &&
+              decisionTableOutputsData
+            ) {
+              const decisionTableInputConditionsData = await tx
+                .insert(decision_table_input_conditions)
+                .values(
+                  input.decisionTableRows.flatMap((row) =>
+                    row.decisionTableInputConditions.map((condition) => {
+                      const decisionTableRow = decisionTableRowsData.find(
+                        (dt_row) => dt_row.uuid === row.uuid,
+                      );
+                      const decisionTableInput = decisionTableInputsData.find(
+                        (dt_input) => dt_input.uuid === condition.dt_input_id,
+                      );
+                      if (decisionTableRow && decisionTableInput) {
+                        return {
+                          uuid: condition.uuid,
+                          dt_row_id: decisionTableRow.uuid,
+                          dt_input_id: decisionTableInput.uuid,
+                          condition: condition.condition,
+                          value: condition.value,
+                        };
+                      }
+                      return {
+                        uuid: condition.uuid,
+                        dt_row_id: "",
+                        dt_input_id: "",
+                        condition: condition.condition,
+                        value: condition.value,
+                      };
+                    }),
+                  ),
+                )
+                .returning();
+              const decisionTableOutputResultsData = await tx
+                .insert(decision_table_output_results)
+                .values(
+                  input.decisionTableRows.flatMap((row) =>
+                    row.decisionTableOutputResults.map((result) => {
+                      const decisionTableRow = decisionTableRowsData.find(
+                        (dt_row) => dt_row.uuid === row.uuid,
+                      );
+                      const decisionTableOutput = decisionTableOutputsData.find(
+                        (dt_output) => dt_output.uuid === result.dt_output_id,
+                      );
+                      if (decisionTableRow && decisionTableOutput) {
+                        return {
+                          uuid: result.uuid,
+                          dt_row_id: decisionTableRow.uuid,
+                          dt_output_id: decisionTableOutput.uuid,
+                          result: result.result,
+                        };
+                      }
+                      return {
+                        uuid: result.uuid,
+                        dt_row_id: "",
+                        dt_output_id: "",
+                        result: result.result,
+                      };
+                    }),
+                  ),
+                )
+                .returning();
+            }
+          }
+          return decisionTable;
+        });
       } catch (error) {
         console.error(error);
         throw new TRPCError({
