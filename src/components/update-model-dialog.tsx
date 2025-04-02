@@ -18,7 +18,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/sample-select";
 
 interface UpdateModelDialogProps {
   open: boolean;

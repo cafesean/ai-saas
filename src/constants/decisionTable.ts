@@ -30,16 +30,37 @@ export const DecisionTableInputConditions = [
   }
 ];
 
+export const DecisionDataTypes = [
+  {
+    value: "String",
+  },
+  {
+    value: "Number",
+  },
+  {
+    value: "Boolean",
+  },
+  {
+    value: "Date",
+  },
+  {
+    value: "Array",
+  },
+  {
+    value: "Object",  
+  }
+]
+
 export const DefaultDecisionTableInputs = {
   name: "input1",
   description: "Default input named input1",
-  dataType: "number",
+  dataType: DecisionDataTypes[0]?.value || "",
 };
 
 export const DefaultDecisionTableOutputs = {
   name: "output1",
   description: "Default output named output1",
-  dataType: "number",
+  dataType: DecisionDataTypes[0]?.value || "",
 };
 
 export const DefaultDecisionTableRows = {
