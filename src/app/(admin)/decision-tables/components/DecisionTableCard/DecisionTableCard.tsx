@@ -7,8 +7,6 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
 
 import { Card } from "@/components/ui/card";
 import { SampleButton } from "@/components/ui/sample-button";
@@ -21,6 +19,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DecisionStatus } from "@/constants/decisionTable";
+import { AdminRoutes } from "@/constants/routes";
+import { getTimeAgo } from "@/utils/func";
 
 interface DecisionTableCardProps {
   table: {
@@ -36,12 +36,8 @@ interface DecisionTableCardProps {
   onDelete: (decisionTable: any) => void;
 }
 
-dayjs.extend(relativeTime);
-
 const DecisionTableCard = ({ table, onDelete }: DecisionTableCardProps) => {
-  const givenTime = dayjs(String(table.updatedAt));
-  const now = dayjs();
-  const timeAgo = now.to(givenTime);
+  const timeAgo = getTimeAgo(table.updatedAt);
   return (
     <Card className="overflow-hidden">
       <div className="p-4">
@@ -79,7 +75,19 @@ const DecisionTableCard = ({ table, onDelete }: DecisionTableCardProps) => {
                 </SampleButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>Edit Table</DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Link
+                    href={
+                      `${AdminRoutes.decisionTableDetail.replace(
+                        ":uuid",
+                        table.uuid,
+                      )}` as Route
+                    }
+                    className="flex items-center gap-2"
+                  >
+                    Edit Table
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem>Duplicate</DropdownMenuItem>
                 <DropdownMenuItem>Export</DropdownMenuItem>
                 <DropdownMenuSeparator />
