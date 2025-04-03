@@ -246,105 +246,122 @@ export const decisionTableRouter = createTRPCRouter({
               .where(eq(decision_table_outputs.dt_id, decisionTable.uuid));
 
             // Insert new rows, inputs, outputs, conditions, results
-            const decisionTableInputsData = await tx
-              .insert(decision_table_inputs)
-              .values(
-                input.decisionTableInputs.map((dt_input) => ({
-                  uuid: dt_input.uuid,
-                  dt_id: decisionTable.uuid,
-                  name: dt_input.name,
-                  description: dt_input.description,
-                  dataType: dt_input.dataType,
-                })),
-              )
-              .returning();
-            const decisionTableOutputsData = await tx
-              .insert(decision_table_outputs)
-              .values(
-                input.decisionTableOutputs.map((dt_output) => ({
-                  uuid: dt_output.uuid,
-                  dt_id: decisionTable.uuid,
-                  name: dt_output.name,
-                  description: dt_output.description,
-                  dataType: dt_output.dataType,
-                })),
-              )
-              .returning();
-            const decisionTableRowsData = await tx
-              .insert(decision_table_rows)
-              .values(
-                input.decisionTableRows.map((row) => ({
-                  uuid: row.uuid,
-                  dt_id: decisionTable.uuid,
-                  order: row.order,
-                })),
-              )
-              .returning();
-            if (
-              decisionTableRowsData &&
-              decisionTableInputsData &&
-              decisionTableOutputsData
-            ) {
-              const decisionTableInputConditionsData = await tx
-                .insert(decision_table_input_conditions)
+            let decisionTableInputsData: any[] = [];
+            if (input.decisionTableInputs.length > 0) {
+              decisionTableInputsData = await tx
+                .insert(decision_table_inputs)
                 .values(
-                  input.decisionTableRows.flatMap((row) =>
-                    row.decisionTableInputConditions.map((condition) => {
-                      const decisionTableRow = decisionTableRowsData.find(
-                        (dt_row) => dt_row.uuid === row.uuid,
-                      );
-                      const decisionTableInput = decisionTableInputsData.find(
-                        (dt_input) => dt_input.uuid === condition.dt_input_id,
-                      );
-                      if (decisionTableRow && decisionTableInput) {
+                  input.decisionTableInputs.map((dt_input) => ({
+                    uuid: dt_input.uuid,
+                    dt_id: decisionTable.uuid,
+                    name: dt_input.name,
+                    description: dt_input.description,
+                    dataType: dt_input.dataType,
+                  })),
+                )
+                .returning();
+            }
+            let decisionTableOutputsData: any[] = [];
+            if (input.decisionTableOutputs.length > 0) {
+              decisionTableOutputsData = await tx
+                .insert(decision_table_outputs)
+                .values(
+                  input.decisionTableOutputs.map((dt_output) => ({
+                    uuid: dt_output.uuid,
+                    dt_id: decisionTable.uuid,
+                    name: dt_output.name,
+                    description: dt_output.description,
+                    dataType: dt_output.dataType,
+                  })),
+                )
+                .returning();
+            }
+            let decisionTableRowsData: any[] = [];
+            if (input.decisionTableRows.length > 0) {
+              decisionTableRowsData = await tx
+                .insert(decision_table_rows)
+                .values(
+                  input.decisionTableRows.map((row) => ({
+                    uuid: row.uuid,
+                    dt_id: decisionTable.uuid,
+                    order: row.order,
+                  })),
+                )
+                .returning();
+            }
+            if (decisionTableRowsData && decisionTableRowsData.length > 0) {
+              if (
+                decisionTableInputsData &&
+                decisionTableInputsData.length > 0
+              ) {
+                const decisionTableInputConditionsData = await tx
+                  .insert(decision_table_input_conditions)
+                  .values(
+                    input.decisionTableRows.flatMap((row) =>
+                      row.decisionTableInputConditions.map((condition) => {
+                        const decisionTableRow = decisionTableRowsData.find(
+                          (dt_row) => dt_row.uuid === row.uuid,
+                        );
+                        const decisionTableInput = decisionTableInputsData.find(
+                          (dt_input) => dt_input.uuid === condition.dt_input_id,
+                        );
+                        if (decisionTableRow && decisionTableInput) {
+                          return {
+                            uuid: condition.uuid,
+                            dt_row_id: decisionTableRow.uuid,
+                            dt_input_id: decisionTableInput.uuid,
+                            condition: condition.condition,
+                            value: condition.value,
+                          };
+                        }
                         return {
                           uuid: condition.uuid,
-                          dt_row_id: decisionTableRow.uuid,
-                          dt_input_id: decisionTableInput.uuid,
+                          dt_row_id: "",
+                          dt_input_id: "",
                           condition: condition.condition,
                           value: condition.value,
                         };
-                      }
-                      return {
-                        uuid: condition.uuid,
-                        dt_row_id: "",
-                        dt_input_id: "",
-                        condition: condition.condition,
-                        value: condition.value,
-                      };
-                    }),
-                  ),
-                )
-                .returning();
-              const decisionTableOutputResultsData = await tx
-                .insert(decision_table_output_results)
-                .values(
-                  input.decisionTableRows.flatMap((row) =>
-                    row.decisionTableOutputResults.map((result) => {
-                      const decisionTableRow = decisionTableRowsData.find(
-                        (dt_row) => dt_row.uuid === row.uuid,
-                      );
-                      const decisionTableOutput = decisionTableOutputsData.find(
-                        (dt_output) => dt_output.uuid === result.dt_output_id,
-                      );
-                      if (decisionTableRow && decisionTableOutput) {
+                      }),
+                    ),
+                  )
+                  .returning();
+              }
+              if (
+                decisionTableOutputsData &&
+                decisionTableOutputsData.length > 0
+              ) {
+                const decisionTableOutputResultsData = await tx
+                  .insert(decision_table_output_results)
+                  .values(
+                    input.decisionTableRows.flatMap((row) =>
+                      row.decisionTableOutputResults.map((result) => {
+                        const decisionTableRow = decisionTableRowsData.find(
+                          (dt_row) => dt_row.uuid === row.uuid,
+                        );
+                        const decisionTableOutput =
+                          decisionTableOutputsData.find(
+                            (dt_output) =>
+                              dt_output.uuid === result.dt_output_id,
+                          );
+                        if (decisionTableRow && decisionTableOutput) {
+                          return {
+                            uuid: result.uuid,
+                            dt_row_id: decisionTableRow.uuid,
+                            dt_output_id: decisionTableOutput.uuid,
+                            result: result.result,
+                          };
+                        }
                         return {
                           uuid: result.uuid,
-                          dt_row_id: decisionTableRow.uuid,
-                          dt_output_id: decisionTableOutput.uuid,
+                          dt_row_id: "",
+                          dt_output_id: "",
                           result: result.result,
                         };
-                      }
-                      return {
-                        uuid: result.uuid,
-                        dt_row_id: "",
-                        dt_output_id: "",
-                        result: result.result,
-                      };
-                    }),
-                  ),
-                )
-                .returning();
+                      }),
+                    ),
+                  )
+                  .returning();
+              }
             }
           }
           return decisionTable;
