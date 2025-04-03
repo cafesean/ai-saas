@@ -10,7 +10,7 @@ export default function AdminLayout({
     <div className="min-h-screen bg-white flex h-full flex-col">
       <NavMenu />
       <Sidebar />
-      <main className="flex grow sm:ml-64 h-0 px-6 pb-0 sm:p-4 sm:pb-0 lg:p-4 lg:pb-0 overflow-y-auto">
+      <main className="flex grow sm:ml-64 h-0 px-4 pb-0 sm:p-4 sm:pb-0 lg:p-4 lg:pb-0 overflow-y-auto">
         <div className="flex grow">{children}</div>
       </main>
     </div>

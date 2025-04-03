@@ -1,5 +1,6 @@
 import { Trophy, Info } from "lucide-react";
 import Link from "next/link";
+import { Route } from "next";
 
 import {
   Card,
@@ -106,7 +107,7 @@ function ModelCard({
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <Link
-                    href={`/models/${model.uuid}`}
+                    href={`/models/detail/${model.uuid}` as Route}
                     className="hover:text-primary transition-colors"
                   >
                     <h3 className="font-semibold text-lg">{model.name}</h3>
