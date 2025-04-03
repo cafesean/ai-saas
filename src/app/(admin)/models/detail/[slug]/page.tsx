@@ -124,7 +124,6 @@ const ModelDetail = () => {
   }, []);
 
   useEffect(() => {
-    console.log(modelItem.data);
     if (modelItem && !modelItem.isLoading && modelItem.data) {
       const modelData = modelItem.data;
       if (modelData) {
