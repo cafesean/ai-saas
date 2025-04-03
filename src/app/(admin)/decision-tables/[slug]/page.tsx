@@ -291,6 +291,10 @@ const DecisionTableDetailPage = () => {
     setUpdating(false);
   };
 
+  const handleRowOrderUpdate = (newOrder: DecisionTableRow[]) => {
+    setRows(newOrder);
+  };
+
   if (decisionTable?.isLoading) {
     return <SkeletonLoading />;
   }
@@ -413,6 +417,7 @@ const DecisionTableDetailPage = () => {
                 updateCondition={updateCondition}
                 updateOutputResult={updateOutputResult}
                 removeRow={removeRow}
+                updateRowOrder={handleRowOrderUpdate}
               />
             </div>
           </TabsContent>

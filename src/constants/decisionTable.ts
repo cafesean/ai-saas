@@ -27,7 +27,7 @@ export const DecisionTableInputConditions = [
   },
   {
     condition: "end with",
-  }
+  },
 ];
 
 export const DecisionDataTypes = [
@@ -40,16 +40,16 @@ export const DecisionDataTypes = [
   {
     value: "Boolean",
   },
-  {
-    value: "Date",
-  },
-  {
-    value: "Array",
-  },
-  {
-    value: "Object",  
-  }
-]
+  // {
+  //   value: "Date",
+  // },
+  // {
+  //   value: "Array",
+  // },
+  // {
+  //   value: "Object",
+  // },
+];
 
 export const DefaultDecisionTableInputs = {
   name: "input1",
