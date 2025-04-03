@@ -57,6 +57,26 @@ const OutputPanel = ({
 }) => {
   const [isAddOutputDialogOpen, setIsAddOutputDialogOpen] = useState(false);
   const [newOutput, setNewOutput] = useState<OutputColumn>(DefaultOutput);
+  const [nameError, setNameError] = useState<string | null>(null);
+
+  const validateName = (name: string) => {
+    if (!name) return "Name is required";
+    if (!/^[a-z0-9_]+$/.test(name))
+      return "Only lowercase letters, numbers and underscores are allowed";
+    return null;
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value;
+    const formattedValue = rawValue
+      .toLowerCase()
+      .replace(/\s+/g, "_")
+      .replace(/[^a-z0-9_]/g, "");
+
+    setNewOutput({ ...newOutput, name: formattedValue });
+    setNameError(validateName(formattedValue));
+  };
+
   const doAddNewOutput = () => {
     // Check whether have same name
     const isSameName = outputs.some((output) => output.name === newOutput.name);
@@ -105,13 +125,14 @@ const OutputPanel = ({
                   id="output-name"
                   placeholder="Enter output name"
                   value={newOutput.name || ""}
-                  onChange={(e) =>
-                    setNewOutput({
-                      ...newOutput,
-                      name: e.target.value,
-                    })
-                  }
+                  onChange={handleNameChange}
                 />
+                {nameError && (
+                  <p className="text-sm text-destructive">{nameError}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Only lowercase letters, numbers and underscores are allowed
+                </p>
               </div>
 
               <div className="grid gap-2">

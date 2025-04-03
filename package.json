@@ -50,6 +50,8 @@
     "postgres": "^3.4.5",
     "rc-pagination": "^5.1.0",
     "react": "19.0.0",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "19.0.0",
     "react-hook-form": "^7.54.2",
     "react-toastify": "^11.0.3",

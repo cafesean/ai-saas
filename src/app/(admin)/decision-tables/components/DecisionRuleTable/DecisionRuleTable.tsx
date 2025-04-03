@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Trash2 } from "lucide-react";
+import { DndProvider, useDrag, useDrop } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -24,6 +26,189 @@ import {
   OutputColumn,
   DecisionTableRow,
 } from "@/types/DecisionTable";
+import { DecisionDataTypes } from "@/constants/decisionTable";
+import { isPartialBoolean } from "@/utils/func";
+
+const validateValueByDataType = (value: string, dataType: string) => {
+  if (value) {
+    switch (dataType) {
+      case DecisionDataTypes[1]?.value:
+        return !isNaN(parseFloat(value)) && isFinite(Number(value));
+      case DecisionDataTypes[2]?.value:
+        return isPartialBoolean(value);
+    }
+  }
+  return true;
+};
+
+const ItemTypes = {
+  ROW: "row",
+};
+
+// Can draggable row component
+const DraggableRow = ({
+  row,
+  index,
+  inputs,
+  outputs,
+  updateCondition,
+  updateOutputResult,
+  removeRow,
+  moveRow,
+}: {
+  row: DecisionTableRow;
+  index: number;
+  inputs: InputColumn[];
+  outputs: OutputColumn[];
+  updateCondition: (
+    rowUUID: string | undefined,
+    inputId: number | string | undefined,
+    field: string,
+    value: string,
+  ) => void;
+  updateOutputResult: (
+    rowUUID: string | undefined,
+    outputId: number | string | undefined,
+    field: string,
+    value: string,
+  ) => void;
+  removeRow: (rowUUID: string | undefined) => void;
+  moveRow: (dragIndex: number, hoverIndex: number) => void;
+}) => {
+  const ref = useRef<HTMLTableRowElement>(null);
+
+  const [{ isDragging }, drag] = useDrag({
+    type: ItemTypes.ROW,
+    item: { index },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  const [, drop] = useDrop({
+    accept: ItemTypes.ROW,
+    hover(item: { index: number }, monitor) {
+      if (!ref.current) return;
+      const dragIndex = item.index;
+      const hoverIndex = index;
+
+      // if it is the same item, do nothing
+      if (dragIndex === hoverIndex) return;
+
+      // confirm mouse position
+      const hoverBoundingRect = ref.current.getBoundingClientRect();
+      const hoverMiddleY =
+        (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+      const clientOffset = monitor.getClientOffset();
+      if (!clientOffset) return;
+      const hoverClientY = clientOffset.y - hoverBoundingRect.top;
+
+      // execute move when mouse over half height
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) return;
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) return;
+
+      // execute move
+      moveRow(dragIndex, hoverIndex);
+      item.index = hoverIndex;
+    },
+  });
+
+  // move the drag and drop reference to the same element
+  drag(drop(ref));
+
+  return (
+    <TableRow
+      ref={ref}
+      key={row.uuid}
+      style={{ opacity: isDragging ? 0.5 : 1 }}
+      className="cursor-move"
+    >
+      <TableCell className="border-r font-medium text-center">
+        {index + 1}
+      </TableCell>
+
+      {inputs.map((input) => {
+        const condition = row.decisionTableInputConditions.find(
+          (c) => c.dt_input_id === input.uuid,
+        );
+        return (
+          <TableCell
+            key={`input-${row.uuid}-${input.uuid}`}
+            className="border-r p-0"
+          >
+            <div className="flex items-center">
+              <Select
+                value={condition?.condition || "equals"}
+                onValueChange={(value) =>
+                  updateCondition(row.uuid, input.uuid, "condition", value)
+                }
+              >
+                <SelectTrigger className="w-32 border-0 bg-transparent">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="equals">equals</SelectItem>
+                  <SelectItem value="not-equals">not equals</SelectItem>
+                  <SelectItem value="greater-than">greater than</SelectItem>
+                  <SelectItem value="less-than">less than</SelectItem>
+                  <SelectItem value="contains">contains</SelectItem>
+                  <SelectItem value="starts-with">starts with</SelectItem>
+                  <SelectItem value="ends-with">ends with</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <SampleInput
+                value={condition?.value || ""}
+                onChange={(e) => {
+                  if (validateValueByDataType(e.target.value, input.dataType)) {
+                    updateCondition(row.uuid, input.uuid, "value", e.target.value);
+                  }
+                }}
+                className="flex-1 border-0 border-l"
+                placeholder="Enter value"
+              />
+            </div>
+          </TableCell>
+        );
+      })}
+
+      {outputs.map((output) => {
+        const outputResult = row.decisionTableOutputResults.find(
+          (o) => o.dt_output_id === output.uuid,
+        );
+        return (
+          <TableCell
+            key={`output-${row.uuid}-${output.uuid}`}
+            className="border-r p-2"
+          >
+            <SampleInput
+              value={outputResult?.result || ""}
+              onChange={(e) => {
+                if (validateValueByDataType(e.target.value, output.dataType)) {
+                  updateOutputResult(row.uuid, output.uuid, "result", e.target.value);
+                }
+              }}
+              className="w-full"
+              placeholder="Enter value"
+            />
+          </TableCell>
+        );
+      })}
+
+      <TableCell>
+        <SampleButton
+          variant="ghost"
+          size="icon"
+          onClick={() => removeRow(row.uuid)}
+          className="h-7 w-7 text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+          <span className="sr-only">Delete Row</span>
+        </SampleButton>
+      </TableCell>
+    </TableRow>
+  );
+};
 
 const DecisionRuleTable = ({
   inputs,
@@ -32,6 +217,7 @@ const DecisionRuleTable = ({
   updateCondition,
   updateOutputResult,
   removeRow,
+  updateRowOrder,
 }: {
   inputs: InputColumn[];
   outputs: OutputColumn[];
@@ -49,161 +235,91 @@ const DecisionRuleTable = ({
     value: string,
   ) => void;
   removeRow: (rowUUID: string | undefined) => void;
+  updateRowOrder: (newOrder: DecisionTableRow[]) => void;
 }) => {
+  const [localRows, setLocalRows] = useState(rows);
+
+  useEffect(() => {
+    setLocalRows(rows);
+  }, [rows]);
+
+  const moveRow = (dragIndex: number, hoverIndex: number) => {
+    const newRows = [...localRows];
+    const draggedRow = newRows[dragIndex] as DecisionTableRow;
+    
+    // move the row to the new position
+    newRows.splice(dragIndex, 1);
+    
+    // insert the row to the new position
+    newRows.splice(hoverIndex, 0, draggedRow);
+    
+    setLocalRows(newRows);
+    updateRowOrder(newRows);
+  };
+
   return (
-    <ScrollArea className="w-full overflow-auto">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/50">
-            <TableHead className="w-[100px] border-r">Rule #</TableHead>
+    <DndProvider backend={HTML5Backend}>
+      <ScrollArea className="w-full overflow-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead className="w-[100px] border-r">Rule #</TableHead>
 
-            {/* Input Column Headers */}
-            {inputs.map((input) => (
-              <TableHead key={input.uuid} className="border-r min-w-[200px]">
-                <div className="flex flex-col">
-                  <div className="font-medium">{input.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {input.dataType}
-                  </div>
-                </div>
-              </TableHead>
-            ))}
-
-            {/* Output Column Headers */}
-            {outputs.map((output) => (
-              <TableHead key={output.uuid} className="border-r min-w-[200px]">
-                <div className="flex flex-col">
-                  <div className="font-medium">{output.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {output.dataType}
-                  </div>
-                </div>
-              </TableHead>
-            ))}
-
-            <TableHead className="w-[80px]"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((row, index) => (
-            <TableRow key={row.uuid}>
-              <TableCell className="border-r font-medium text-center">
-                {index + 1}
-              </TableCell>
-
-              {/* Input Condition Cells */}
-              {inputs.map((input) => {
-                const condition = row.decisionTableInputConditions.find(
-                  (c) => c.dt_input_id === input.uuid,
-                );
-                return (
-                  <TableCell
-                    key={`input-${row.uuid}-${input.uuid}`}
-                    className="border-r p-0"
-                  >
-                    <div className="flex items-center">
-                      <Select
-                        value={condition?.condition || "equals"}
-                        onValueChange={(value) =>
-                          updateCondition(
-                            row.uuid,
-                            input.uuid,
-                            "condition",
-                            value,
-                          )
-                        }
-                      >
-                        <SelectTrigger className="w-32 border-0 bg-transparent">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="equals">equals</SelectItem>
-                          <SelectItem value="not-equals">not equals</SelectItem>
-                          <SelectItem value="greater-than">
-                            greater than
-                          </SelectItem>
-                          <SelectItem value="less-than">less than</SelectItem>
-                          <SelectItem value="contains">contains</SelectItem>
-                          <SelectItem value="starts-with">
-                            starts with
-                          </SelectItem>
-                          <SelectItem value="ends-with">ends with</SelectItem>
-                        </SelectContent>
-                      </Select>
-
-                      <SampleInput
-                        value={condition?.value || ""}
-                        onChange={(e) =>
-                          updateCondition(
-                            row.uuid,
-                            input.uuid,
-                            "value",
-                            e.target.value,
-                          )
-                        }
-                        className="flex-1 border-0 border-l"
-                        placeholder="Enter value"
-                      />
+              {inputs.map((input) => (
+                <TableHead key={input.uuid} className="border-r min-w-[200px]">
+                  <div className="flex flex-col">
+                    <div className="font-medium">{input.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {input.dataType}
                     </div>
-                  </TableCell>
-                );
-              })}
+                  </div>
+                </TableHead>
+              ))}
 
-              {/* Output Value Cells */}
-              {outputs.map((output) => {
-                const outputResult = row.decisionTableOutputResults.find(
-                  (o) => o.dt_output_id === output.uuid,
-                );
-                return (
-                  <TableCell
-                    key={`output-${row.uuid}-${output.uuid}`}
-                    className="border-r p-2"
-                  >
-                    <SampleInput
-                      value={outputResult?.result || ""}
-                      onChange={(e) =>
-                        updateOutputResult(
-                          row.uuid,
-                          output.uuid,
-                          "result",
-                          e.target.value,
-                        )
-                      }
-                      className="w-full"
-                      placeholder="Enter value"
-                    />
-                  </TableCell>
-                );
-              })}
+              {outputs.map((output) => (
+                <TableHead key={output.uuid} className="border-r min-w-[200px]">
+                  <div className="flex flex-col">
+                    <div className="font-medium">{output.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {output.dataType}
+                    </div>
+                  </div>
+                </TableHead>
+              ))}
 
-              <TableCell>
-                <SampleButton
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeRow(row.uuid)}
-                  className="h-7 w-7 text-destructive"
+              <TableHead className="w-[80px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {localRows.map((row, index) => (
+              <DraggableRow
+                key={row.uuid}
+                row={row}
+                index={index}
+                inputs={inputs}
+                outputs={outputs}
+                updateCondition={updateCondition}
+                updateOutputResult={updateOutputResult}
+                removeRow={removeRow}
+                moveRow={moveRow}
+              />
+            ))}
+
+            {localRows.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={inputs.length + outputs.length + 2}
+                  className="text-center py-6 text-muted-foreground"
                 >
-                  <Trash2 className="h-4 w-4" />
-                  <span className="sr-only">Delete Row</span>
-                </SampleButton>
-              </TableCell>
-            </TableRow>
-          ))}
-
-          {rows.length === 0 && (
-            <TableRow>
-              <TableCell
-                colSpan={inputs.length + outputs.length + 2}
-                className="text-center py-6 text-muted-foreground"
-              >
-                No rules defined yet. Click "Add Rule" to create your first
-                decision rule.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </ScrollArea>
+                  No rules defined yet. Click "Add Rule" to create your first
+                  decision rule.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </ScrollArea>
+    </DndProvider>
   );
 };
 

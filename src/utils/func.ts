@@ -35,3 +35,11 @@ export const getTimeAgo = (date: Date) => {
   const timeAgo = now.to(givenTime);
   return timeAgo
 };
+
+export const isPartialBoolean = (value: string): boolean => {
+  const lowerValue = value.toLowerCase();
+  return (
+    "true".startsWith(lowerValue) ||
+    "false".startsWith(lowerValue)
+  );
+};
