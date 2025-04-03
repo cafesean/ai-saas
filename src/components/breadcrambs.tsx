@@ -15,7 +15,7 @@ const Breadcrumbs = ({
   rightChildren?: React.ReactNode;
 }) => {
   return (
-    <div className="flex h-16 items-center gap-4 border-b bg-background px-4 md:p-6">
+    <div className="flex flex-col items-start p-4 gap-4 border-b bg-background md:p-6 md:flex-row md:items-center md:justify-between">
       {items.map((item, index) => (
         <Link
           key={`breadcramb-${index}`}
@@ -26,7 +26,7 @@ const Breadcrumbs = ({
           <span>{item.label}</span>
         </Link>
       ))}
-      <div className="ml-auto flex items-center gap-2">{rightChildren}</div>
+      <div className="flex items-center gap-2">{rightChildren}</div>
     </div>
   );
 };

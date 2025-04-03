@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SampleButton } from "@/components/ui/sample-button";
 import { Input } from "@/components/ui/input";
 import {
@@ -42,10 +42,19 @@ export function UpdateModelDialog({
 }: UpdateModelDialogProps) {
   const [newData, setNewData] = useState("Recent Queries (Last 7 days)");
   const [updateStrategy, setUpdateStrategy] = useState("Incremental Learning");
-  const [newVersionName, setNewVersionName] = useState(
-    `v${Number.parseFloat(currentVersion?.replace("v", "")) + 0.1}`,
-  );
+  const [newVersionName, setNewVersionName] = useState("");
   const [deployment, setDeployment] = useState("Shadow Mode (No Traffic)");
+
+  useEffect(() => {
+    if (open) {
+      let parts = currentVersion.split(".");
+      parts[parts.length - 1] = (
+        parseInt(parts[parts.length - 1] || "1") + 1
+      ).toString();
+      let newVersion = parts.join(".");
+      setNewVersionName(newVersion);
+    }
+  }, [open, currentVersion]);
 
   const handleUpdate = () => {
     onUpdate({

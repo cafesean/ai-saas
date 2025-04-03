@@ -190,7 +190,7 @@ const DecisionTableDetailPage = () => {
         return {
           uuid: uuidv4(),
           ...DefaultDecisionTableInputCondition,
-          dt_input_id: input.id ?? input.uuid,
+          dt_input_id: input.uuid,
           dt_row_id: newRowID,
         };
       }),
@@ -198,7 +198,7 @@ const DecisionTableDetailPage = () => {
         return {
           uuid: uuidv4(),
           ...DefaultDecisionTableOutputResult,
-          dt_output_id: output.id ?? output.uuid,
+          dt_output_id: output.uuid,
           dt_row_id: newRowID,
         };
       }),
