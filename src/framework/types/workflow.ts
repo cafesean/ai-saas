@@ -9,7 +9,6 @@ export interface WorkflowView {
   name: string;
   description: string | null;
   status: string | null;
-  flowId: string | null;
 }
 
 export function dbToWorkflow(dbWorkflow: DbWorkflow): WorkflowView {
@@ -18,6 +17,5 @@ export function dbToWorkflow(dbWorkflow: DbWorkflow): WorkflowView {
     name: dbWorkflow.name,
     description: dbWorkflow.description,
     status: dbWorkflow.status,
-    flowId: dbWorkflow.flowId,
   };
 }

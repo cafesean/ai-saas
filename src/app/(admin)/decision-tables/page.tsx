@@ -35,6 +35,7 @@ import {
 import DecisionTableCard from "./components/DecisionTableCard";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
 import { useModalState } from "@/framework/hooks/useModalState";
+import Breadcrumbs from "@/components/breadcrambs";
 
 type DecisionTableView = {
   uuid: string;
@@ -165,9 +166,16 @@ const DecisionTablesPage = () => {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <div className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
-        <h1 className="text-xl font-semibold">Decision Tables</h1>
-        <div className="ml-auto flex items-center gap-2">
+      <Breadcrumbs
+        items={[
+          {
+            label: "Back to Dashboard",
+            link: "/",
+          },
+        ]}
+        title="Decisioning"
+        rightChildren={
+          <>
           <SampleButton variant="outline" size="sm">
             <Filter className="mr-2 h-4 w-4" />
             Filter
@@ -245,10 +253,9 @@ const DecisionTablesPage = () => {
                 </SampleButton>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
+          </Dialog></>
+        }
+      />
       <div className="flex-1 p-4 md:p-6 space-y-6">
         <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
           <div className="space-y-1">

@@ -4,9 +4,14 @@ export const TemplateStatus = {
 } as const;
 
 export const WorkflowStatus = {
-  ACTIVE: "Active",
-  PENDING: "Pending",
-  INACTIVE: "Inactive",
+  PUBLISHED: "Published",
+  PAUSED: "Paused",
+  DRAFT: "Draft",
+} as const;
+
+export const WorkflowTypes = {
+  EVENT_DRIVEN: "Event-Driven",
+  SCHEDULED: "Scheduled",
 } as const;
 
 export const ModelStatus = {

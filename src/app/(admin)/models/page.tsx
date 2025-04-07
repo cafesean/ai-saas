@@ -2,11 +2,11 @@
 
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Route } from "next";
 import { useRouter } from "next/navigation";
 import * as z from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
+import { Filter, RefreshCw } from "lucide-react";
 
 import { Download, ExternalLink, Plus, Search, Upload } from "lucide-react";
 import { SampleInput } from "@/components/ui/sample-input";
@@ -19,12 +19,9 @@ import {
 import { Button } from "@/components/form/Button";
 import { SampleButton } from "@/components/ui/sample-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useTableColumns } from "@/framework/hooks/useTableColumn";
 import { api, useUtils } from "@/utils/trpc";
 import { useModalState } from "@/framework/hooks/useModalState";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AdminRoutes } from "@/constants/routes";
-import { FileUpload } from "@/components/form/FileUpload";
 import ModelCard from "./components/ModelCard/ModelCard";
 import {
   Dialog,
@@ -39,6 +36,7 @@ import { ModelInputType } from "@/constants/model";
 import { ModelStatus, S3_UPLOAD } from "@/constants/general";
 import { S3_API } from "@/constants/api";
 import SkeletonLoading from "@/components/ui/skeleton-loading/SkeletonLoading";
+import Breadcrumbs from "@/components/breadcrambs";
 
 const modelSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -251,9 +249,7 @@ export default function ModelsPage() {
   };
 
   if (models.isLoading) {
-    return (
-      <SkeletonLoading />
-    );
+    return <SkeletonLoading />;
   }
 
   if (models.error) {
@@ -269,6 +265,27 @@ export default function ModelsPage() {
 
   return (
     <div className="flex flex-col grow space-y-4 max-w-[100vw] px-0 md:px-4">
+      <Breadcrumbs
+        items={[
+          {
+            label: "Back to Dashboard",
+            link: "/",
+          },
+        ]}
+        title="Models"
+        rightChildren={
+          <>
+            <SampleButton variant="outline" size="sm">
+              <Filter className="mr-2 h-4 w-4" />
+              Filter
+            </SampleButton>
+            <SampleButton variant="outline" size="sm">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </SampleButton>
+          </>
+        }
+      />
       <div className="flex flex-col gap-4 justify-between items-start md:flex-row md:items-center">
         <div className="space-y-1">
           <h2 className="text-2xl font-bold tracking-tight">Models Library</h2>

@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 
 const Breadcrumbs = ({
   items,
+  title,
   rightChildren,
 }: {
   items: [
@@ -12,10 +13,11 @@ const Breadcrumbs = ({
       link: string;
     },
   ];
+  title?: string;
   rightChildren?: React.ReactNode;
 }) => {
   return (
-    <div className="flex flex-col items-start p-4 gap-4 border-b bg-background md:p-6 md:flex-row md:items-center md:justify-between">
+    <div className="flex flex-col items-start p-4 gap-4 border-b bg-background md:p-4 md:flex-row md:items-center md:justify-between">
       {items.map((item, index) => (
         <Link
           key={`breadcramb-${index}`}
@@ -26,7 +28,8 @@ const Breadcrumbs = ({
           <span>{item.label}</span>
         </Link>
       ))}
-      <div className="flex items-center gap-2">{rightChildren}</div>
+      {title && <h1 className="text-2xl font-semibold">{title}</h1>}
+      <div className="flex items-center gap-2 md:ml-auto">{rightChildren}</div>
     </div>
   );
 };

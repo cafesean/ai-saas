@@ -44,7 +44,12 @@ const DecisionTableCard = ({ table, onDelete }: DecisionTableCardProps) => {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Link
-              href={`/decisioning/${table.uuid}` as Route}
+              href={
+                `${AdminRoutes.decisionTableDetail.replace(
+                  ":uuid",
+                  table.uuid,
+                )}` as Route
+              }
               className="hover:text-primary transition-colors"
             >
               <h3 className="font-medium">{table.name}</h3>
