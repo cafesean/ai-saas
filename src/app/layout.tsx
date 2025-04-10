@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { NavMenu } from "@/components/NavMenu";
 import { TRPCProvider } from "@/framework/providers/TRPCProvider";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Project Pricing",
-  description: "Manage project pricing and rate cards",
+  title: "SaaS AI",
+  description: "SaaS AI",
 };
 
 export default function RootLayout({
@@ -18,14 +18,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <link rel="shortcut icon" href="/favicon.png" />
       <body className={inter.className}>
         <TRPCProvider>
-          <div className="min-h-screen bg-gray-100">
-            <NavMenu />
-            <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-              {children}
-            </main>
-          </div>
+          {children}
+          <Toaster
+            className="custom-toaster"
+            richColors
+            position="top-center"
+            duration={5000}
+            closeButton
+            gap={8}
+          />
         </TRPCProvider>
       </body>
     </html>

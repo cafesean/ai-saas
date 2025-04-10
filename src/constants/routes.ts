@@ -3,7 +3,14 @@ export const Routes = {
 };
 
 export const AdminRoutes = {
-  roles: "/(admin)/roles",
-  levels: "/(admin)/levels",
-  ratecards: "/(admin)/ratecards",
+  roles: "/roles",
+  levels: "/levels",
+  ratecards: "/ratecards",
+  models: "/models",
+  workflows: "/workflows",
+  selectTemplate: "/select-template",
+  rules: "/rules",
+  decisionTables: "/decision-tables",
+  decisionTableDetail: "/decision-tables/:uuid",
+  createRule: "/rules/create",
 };
