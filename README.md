@@ -34,3 +34,13 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Google API
+
+Google Cloud Console -> APIs and services
+Enable `Google Drive API`
+
+Google Cloud Console -> APIs and services -> Credentials
+Create OAuth Client ID:
+- Authorised JavaScript origins: `URL_ADDRESS`
+- Authorised redirect URIs: `URL_ADDRESS/callback/google` (Same as `NEXT_PUBLIC_GOOGLE_REDIRECT_URI` in .env)
