@@ -1,56 +1,132 @@
 "use client";
-
-import { Button } from "@/components/form/Button";
-import { api, useUtils } from "@/utils/trpc";
-import React, { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { Input } from "@/components/form/Input";
-import UploadCmp from "@/components/ui/Upload";
-import FullScreenLoading from "@/components/ui/FullScreenLoading";
-import { FlowNameTypes, WidgetTypes } from "@/constants/nodes";
-import { WorkflowStatus } from "@/constants/general";
-import { GoogleDriveUploader } from "@/components/ui/google-drive/GoogleDriveUploader";
+import type React from "react";
+import { useEffect } from "react";
+import { useParams } from "next/navigation";
 import { toast } from "sonner";
-import Preview from "./components/Preview";
+import { v4 as uuidv4 } from "uuid";
+
+import { useCallback, useState } from "react";
+import ReactFlow, {
+  Background,
+  Controls,
+  MiniMap,
+  addEdge,
+  useNodesState,
+  useEdgesState,
+  Panel,
+  type Connection,
+  type NodeTypes,
+  type NodeChange,
+  type EdgeChange,
+  ReactFlowProvider,
+} from "reactflow";
+import "reactflow/dist/style.css";
+import { Save, Play, Plus, Settings, X } from "lucide-react";
+
+import { SampleButton } from "@/components/ui/sample-button";
+import { SampleInput } from "@/components/ui/sample-input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/sample-select";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { DialogTrigger } from "@/components/ui/dialog";
+import { TriggerNode } from "@/components/nodes/TriggerNode";
+import { AIModelNode } from "@/components/nodes/AIModelNode";
+import { RulesNode } from "@/components/nodes/RulesNode";
+import { LogicNode } from "@/components/nodes/LogicNode";
+import { DatabaseNode } from "@/components/nodes/DatabaseNode";
+import { WebhookNode } from "@/components/nodes/WebhookNode";
+import { api, useUtils } from "@/utils/trpc";
+import SkeletonLoading from "@/components/ui/skeleton-loading";
+import Breadcrumbs from "@/components/breadcrambs";
+import { AdminRoutes } from "@/constants/routes";
+import { WorkflowStatus } from "@/constants/general";
+import NodePropertiesPanel from "./components/NodePropertiesPanel";
+import AddNode from "./components/AddNode";
+import FullScreenLoading from "@/components/ui/FullScreenLoading";
+import { WorkflowNodeDataActions } from "@/constants/general";
+
+// Import the decision service for connection validation
+import { decisionService } from "@/lib/decision-service";
+
+// Define node types
+const nodeTypes: NodeTypes = {
+  trigger: TriggerNode,
+  aiModel: AIModelNode,
+  rules: RulesNode,
+  logic: LogicNode,
+  database: DatabaseNode,
+  webhook: WebhookNode,
+};
+
+const getDefaultDataForNodeType = (type: string) => {
+  switch (type) {
+    case "trigger":
+      return { label: "New Trigger", type: "HTTP Request" };
+    case "aiModel":
+      return {
+        label: "New AI Model",
+        modelName: "Select Model",
+        temperature: 0.7,
+        maxTokens: 1024,
+      };
+    case "rules":
+      return { label: "New Rules", ruleCount: 0 };
+    case "logic":
+      return { label: "New Logic", type: "Branch" };
+    case "database":
+      return { label: "New Database", operation: "Query" };
+    case "webhook":
+      return { label: "New Webhook", endpoint: "https://", method: "POST" };
+    default:
+      return { label: "New Node" };
+  }
+};
 
 export default function WorkflowDetailPage() {
-  const [isClient, setIsClient] = React.useState(false);
-  const router = useRouter();
   const params = useParams();
   const slug = params.slug as string;
-  const [name, setName] = useState("");
-  const [datasets, setDatasets] = useState<any[]>([]);
-  const [userInputs, setUserInputs] = useState<Record<string, any>>([]);
-  const [fileFetching, setFileFetching] = React.useState(false);
-
-  const checkDuplicateFile = (file: { base64file: string; name: string }) => {
-    const isDuplicate = datasets.some((existingFile) => existingFile.base64file === file.base64file);
-    if (isDuplicate) {
-      toast.warning(`File "${file.name}" already exists, skipped adding`);
-    }
-    return isDuplicate;
-  };
+  const [isClient, setIsClient] = useState(false);
+  const [workflowItem, setWorkflowItem] = useState<any>(null);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [isAddNodeDialogOpen, setIsAddNodeDialogOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // tRPC hooks
   const utils = useUtils();
-  let workflow = api.workflow.getByUUID.useQuery({ uuid: slug });
-  const publish = api.workflow.publish.useMutation({
-    onSuccess: (data) => {
-      utils.workflow.getAll.invalidate();
+  const workflow = api.workflow.getByUUID.useQuery({ uuid: slug });
+  const updateWorkflowSettings = api.workflow.updateSettings.useMutation({
+    onSuccess: () => {
       utils.workflow.getByUUID.invalidate({ uuid: slug });
-      setDatasets([]);
-      toast.success("Workflow published successfully");
+      utils.workflow.getAll.invalidate();
+      toast.success("Workflow settings updated successfully");
     },
     onError: (error) => {
       toast.error(error.message);
     },
   });
-
-  const update = api.workflow.update.useMutation({
-    onSuccess: (data) => {
-      utils.workflow.getAll.invalidate();
+  const updateWorkflow = api.workflow.update.useMutation({
+    onSuccess: () => {
       utils.workflow.getByUUID.invalidate({ uuid: slug });
-      setDatasets([]);
+      utils.workflow.getAll.invalidate();
       toast.success("Workflow updated successfully");
     },
     onError: (error) => {
@@ -58,233 +134,423 @@ export default function WorkflowDetailPage() {
     },
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     setIsClient(true);
   }, []);
 
   useEffect(() => {
-    if (workflow && !workflow.isLoading && workflow.data) {
-      setName(workflow.data[0]?.name ?? "");
-      setUserInputs(workflow.data[0]?.userInputs?.userInputs ?? []);
-    }
-  }, [workflow.isLoading]);
-
-  const addFiles = (datasets: File[]) => {
-    convertToBase64(datasets);
-  };
-
-  const convertToBase64 = (files: File[]) => {
-    for (const file of files) {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onloadend = () => {
-        const base64Result = reader.result as string;
-        const fileData = {
-          name: file.name,
-          type: file.type,
-          base64file: base64Result,
-        };
-
-        if (!checkDuplicateFile(fileData)) {
-          setDatasets((prev) => [...prev, fileData]);
-        }
-      };
-      reader.onerror = (error) => {
-        toast.error("Error converting file to Base64");
-        console.error("Error converting file to Base64:", error);
-      };
-    }
-  };
-
-  const publishWorkflow = () => {
-    if (!name) {
-      toast.error("Name is required!");
-    } else {
-      if (workflow.data?.[0]?.status === WorkflowStatus.ACTIVE) {
-        update.mutate({
-          uuid: slug,
-          name: name ?? "",
-          userInputs: workflow.data?.[0]?.userInputs ?? {},
-          workflowJson: workflow.data?.[0]?.workflowJson ?? {},
-          datasets,
+    if (workflow.data) {
+      setWorkflowItem(workflow.data);
+      if (workflow.data?.nodes && workflow.data?.nodes.length > 0) {
+        // Set id with uuid and remove uuid
+        workflow.data.nodes.forEach((node: any) => {
+          node.id = node.uuid;
+          delete node.uuid;
         });
-      } else {
-        publish.mutate({
-          uuid: slug,
-          name: name ?? "",
-          userInputs: workflow.data?.[0]?.userInputs ?? {},
-          workflowJson: workflow.data?.[0]?.workflowJson ?? {},
-          datasets,
+        setNodes(workflow.data.nodes as any);
+      }
+      if (workflow.data?.edges && workflow.data?.edges.length > 0) {
+        // Set id with uuid and remove uuid
+        workflow.data.edges.forEach((edge: any) => {
+          edge.id = edge.uuid;
+          delete edge.uuid;
         });
+        setEdges(workflow.data.edges as any);
       }
     }
+  }, [workflow.data]);
+
+  const setWorkflowItemChanges = (key: string, value: any) => {
+    if (workflowItem) {
+      setWorkflowItem((prev: any) => ({
+        ...prev,
+        [key]: value,
+      }));
+    }
+  };
+
+  const saveSettings = async () => {
+    if (workflowItem) {
+      const { name, description, type } = workflowItem;
+      await updateWorkflowSettings.mutateAsync({
+        uuid: slug,
+        name,
+        description,
+        type,
+      });
+      setIsSettingsOpen(false);
+    }
+  };
+
+  const saveWorkflowChanges = async () => {
+    if (workflowItem) {
+      // Filter out the nodes don't have type
+      let finalNodes = nodes.filter((node: any) => node.type);
+      await updateWorkflow.mutateAsync({
+        uuid: slug,
+        nodes: finalNodes,
+        edges,
+      });
+    }
+  };
+
+  // Update the existing isValidConnection function in the onConnect callback
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      // Add the connection if it's valid
+      setEdges((eds) => addEdge(connection, eds));
+    },
+    [nodes, setEdges],
+  );
+
+  const onNodeClick = useCallback((event: React.MouseEvent, node: any) => {
+    const target = event.target as HTMLButtonElement;
+    const type = target.dataset.type;
+    switch (type) {
+      case WorkflowNodeDataActions.settings: {
+        // Show the node properties panel
+        setSelectedNode(node.id);
+        break;
+      }
+      case WorkflowNodeDataActions.delete: {
+        // Delete the node
+        setNodes((nds) => nds.filter((n) => n.id !== node.id));
+        // Delete related edges
+        setEdges((eds) => eds.filter((e) => e.source !== node.id && e.target !== node.id));
+        setSelectedNode(null);
+        break;
+      }
+      default:
+        break;
+    }
+  }, []);
+
+  const addNode = (type: string) => {
+    const newNode = {
+      id: uuidv4(),
+      type,
+      position: { x: 250, y: 250 },
+      data: getDefaultDataForNodeType(type),
+    };
+
+    setNodes((nds) => [...nds, newNode]);
+    setIsAddNodeDialogOpen(false);
+  };
+
+  const handleOnNodesChange = (changes: NodeChange[]) => {
+    if (changes.length > 0) {
+      // Find type equal remove
+      const removedNode = changes.find(
+        (change: any) => change.type === "remove",
+      );
+      if (removedNode) {
+        setSelectedNode(null);
+      }
+    }
+    onNodesChange(changes);
+  };
+
+  const handleOnEdgesChange = (changes: EdgeChange[]) => {
+    if (changes.length > 0) {
+      // Find type equal remove
+    }
+    onEdgesChange(changes);
   };
 
   if (workflow.isLoading) {
+    return <SkeletonLoading />;
+  }
+
+  if (workflow.error) {
     return (
-      <div className="animate-pulse">
-        <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-        <div className="space-y-2">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-12 bg-gray-200 rounded w-full"></div>
-          ))}
+      <div className="flex flex-col grow">
+        <div className="text-red-500">
+          <h2 className="text-lg font-semibold mb-2">Error loading models</h2>
+          <p className="mb-2">{workflow.error.message}</p>
         </div>
       </div>
     );
   }
 
-  if (workflow.error) {
-    console.error("Roles query error:", workflow.error);
-    return (
-      <div className="text-red-500">
-        <h2 className="text-lg font-semibold mb-2">Error loading Workflow.</h2>
-        <p className="mb-2">{workflow.error.message}</p>
-        <div className="text-sm bg-red-50 p-4 rounded">
-          {workflow.error.data && JSON.stringify(workflow.error.data.zodError, null, 2)}
-        </div>
-      </div>
-    );
-  }
   return (
-    <div className="flex flex-col grow space-x-4 md:px-0">
-      {isClient && (
-        <div className="flex grow h-0">
-          <div className="flex flex-col flex-2 bg-white grow mr-4">
-            <div className="flex flex-col direct justify-start items-start bg-white p-4 overflow-auto">
-              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 gap-4">
-                <div>
-                  <Input label="Workflow Name" value={name} onChange={(e) => setName(e.target.value)} />
-                </div>
-                {userInputs.map((userInput: any, n: number) =>
-                  userInput.showInUI && userInput.flowNodeName === FlowNameTypes.webhookInputFormData ? (
-                    <div key={n} className="space-y-4">
-                      <UploadCmp addFiles={addFiles} />
-                      <div className="relative my-4">
-                        <hr className="border-gray-200" />
-                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-4 text-sm text-gray-500">
-                          Or
-                        </div>
-                      </div>
-                      <div className="flex justify-center w-full">
-                        <GoogleDriveUploader
-                          setFileFetching={setFileFetching}
-                          onFilesSelected={(files) => {
-                            const newFiles = files.filter((file) => !checkDuplicateFile(file));
-                            setDatasets((prev) => [...prev, ...newFiles]);
-                          }}
-                        />
-                      </div>
-                      {datasets.length > 0 && (
-                        <div className="mt-4">
-                          <div className="text-sm font-medium text-gray-700 mb-2">Selected files</div>
-                          <div className="space-y-2">
-                            {datasets.map((file, index) => (
-                              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex items-center space-x-3">
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                                    <p className="text-xs text-gray-500">{file.type}</p>
-                                  </div>
-                                </div>
-                                <button
-                                  onClick={() => {
-                                    setDatasets((prev) => prev.filter((_, i) => i !== index));
-                                  }}
-                                  className="text-red-600 hover:text-red-800"
-                                >
-                                  <img src="/ui/delete.svg" alt="delete" className="w-4 h-4" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : null
-                )}
-                <div>Status: {workflow.data?.[0]?.status}</div>
-                {workflow.data?.[0]?.endpoint && (
-                  <div>
-                    <p>
-                      <b>Endpoint:</b>
-                    </p>
-                    <div>
-                      <p>Headers:</p>
-                      <p>- x-ai-saas-client-id: {workflow.data?.[0]?.endpoint?.clientId}</p>
-                      <p>- x-ai-saas-client-secret: {workflow.data?.[0]?.endpoint?.clientSecret}</p>
-                      <p>URI: {`${process.env.NEXT_PUBLIC_AI_SASS_ENDPOINT_BASE_URL}${workflow.data?.[0]?.endpoint?.uri}`}</p>
-                      <p>Method: {workflow.data?.[0]?.endpoint?.method}</p>
-                      <p>Payload: {JSON.stringify(workflow.data?.[0]?.endpoint?.payload)}</p>
-                    </div>
-                  </div>
-                )}
-                {workflow.data?.[0]?.widgets &&
-                  workflow.data?.[0]?.widgets.map((widget: any) => {
-                    switch (widget.type) {
-                      case WidgetTypes.chat: {
-                        return (
-                          <div key={`widget-${widget.uuid}`}>
-                            <p>
-                              <b>{widget.name}:</b>
-                            </p>
-                            <h2>Embed into site</h2>
-                            <div className="w-full bg-background-section border-[0.5px] border-components-panel-border rounded-lg flex-col justify-start items-start inline-flex mt-2 bg-[#f9fafb]">
-                              <p className="p-2 bg-[#f2f4f7]">
-                                To add the chat widget any where on your website, add this iframe to your html code.
-                              </p>
-                              <div className="flex items-start justify-start w-full gap-2 p-3">
-                                <div className="grow shrink basis-0 text-text-secondary text-[13px] leading-tight font-mono">
-                                  <pre
-                                    className="select-text"
-                                    dangerouslySetInnerHTML={{
-                                      __html: `&lt;iframe\n src="${process.env.NEXT_PUBLIC_AI_SASS_CHAT_WIDGET_URL}${widget.code}"\n style="width: 100%; height: 100%; min-height: 700px"\n frameborder="0"\n allow="microphone"&gt;\n&lt;/iframe&gt;`,
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                            <div className="w-full bg-background-section border-[0.5px] border-components-panel-border rounded-lg flex-col justify-start items-start inline-flex mt-2 bg-[#f9fafb]">
-                              <p className="p-2 bg-[#f2f4f7]">
-                                To add a chat app to the bottom right of your website add this code to your html.
-                              </p>
-                              <div className="flex items-start justify-start w-full gap-2 p-3">
-                                <div className="grow shrink basis-0 text-text-secondary text-[13px] leading-tight font-mono">
-                                  <pre
-                                    className="select-text"
-                                    dangerouslySetInnerHTML={{
-                                      __html: `&lt;script&gt;\n window.aiSAASChatbotConfig = {\n  code: '${widget.code}'\n }\n&lt;/script&gt;\n&lt;script\n src="${process.env.NEXT_PUBLIC_AI_SASS_CHAT_EMBED_MIN_PATH}"\n id="${widget.code}"\n defer&gt;\n&lt;/script&gt;\n&lt;style&gt;\n  #ai-saas-chatbot-bubble-button {\n    background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1)) !important;\n  }\n  #ai-saas-chatbot-bubble-window {\n    width: 24rem !important;\n    height: 40rem !important;\n  }\n&lt;/style&gt;`,
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
+    <ReactFlowProvider>
+      <div className="flex min-h-screen w-full flex-col bg-background">
+        <Breadcrumbs
+          items={[
+            {
+              label: "Back to Workflows",
+              link: AdminRoutes.workflows,
+            },
+          ]}
+          title={workflow.data?.name}
+          badge={
+            <Badge
+              variant={
+                workflow.data?.status === WorkflowStatus.PUBLISHED
+                  ? "default"
+                  : workflow.data?.status === WorkflowStatus.DRAFT
+                  ? "secondary"
+                  : "outline"
+              }
+            >
+              {workflow.data?.status}
+            </Badge>
+          }
+          rightChildren={
+            <>
+              <SampleButton
+                variant="outline"
+                size="sm"
+                onClick={() => setIsSettingsOpen(true)}
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </SampleButton>
+              <SampleButton variant="outline" size="sm">
+                <Play className="mr-2 h-4 w-4" />
+                Test Run
+              </SampleButton>
+              <SampleButton size="sm" onClick={saveWorkflowChanges}>
+                <Save className="mr-2 h-4 w-4" />
+                Save
+              </SampleButton>
+            </>
+          }
+        />
+        {isClient && (
+          <>
+            <div className="flex flex-1">
+              <div className="flex-1 h-[calc(100vh-4rem)]">
+                <ReactFlow
+                  nodes={nodes}
+                  edges={edges}
+                  onNodesChange={handleOnNodesChange}
+                  onEdgesChange={handleOnEdgesChange}
+                  onConnect={onConnect}
+                  onNodeClick={onNodeClick}
+                  nodeTypes={nodeTypes}
+                  defaultEdgeOptions={{ type: "smoothstep" }}
+                  fitView
+                  proOptions={{ hideAttribution: true }}
+                >
+                  <Background />
+                  <Controls />
+                  <MiniMap />
+                  <Panel
+                    position="top-right"
+                    className="bg-background border rounded-md shadow-sm p-2"
+                  >
+                    <AddNode
+                      isAddNodeDialogOpen={isAddNodeDialogOpen}
+                      setIsAddNodeDialogOpen={(open: boolean) =>
+                        setIsAddNodeDialogOpen(open)
                       }
-                      default:
-                        break;
-                    }
-                  })}
-                <div>
-                  {workflow.data?.[0]?.status === WorkflowStatus.ACTIVE ? (
-                    <Button type="button" variant="primary" onClick={publishWorkflow}>
-                      Update
-                    </Button>
-                  ) : (
-                    <Button type="button" variant="primary" onClick={publishWorkflow}>
-                      Publish
-                    </Button>
-                  )}
-                </div>
+                      addNode={addNode}
+                    />
+                  </Panel>
+                </ReactFlow>
               </div>
+
+              {selectedNode && (
+                <div className="w-80 border-l bg-background overflow-auto h-[calc(100vh-4rem)]">
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold">Node Properties</h3>
+                      <SampleButton
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setSelectedNode(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </SampleButton>
+                    </div>
+                    <NodePropertiesPanel
+                      nodeId={selectedNode}
+                      nodes={nodes}
+                      setNodes={setNodes}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-          <div className="flex flex-col grow flex-1">
-            <Preview endpoint={workflow.data?.[0]?.endpoint} />
-          </div>
-        </div>
+            <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Workflow Settings</DialogTitle>
+                  <DialogDescription>
+                    Configure general settings for your workflow.
+                  </DialogDescription>
+                </DialogHeader>
+                <Tabs defaultValue="general">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="general">General</TabsTrigger>
+                    <TabsTrigger value="execution">Execution</TabsTrigger>
+                    <TabsTrigger value="permissions">Permissions</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="general" className="space-y-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="workflow-name">Workflow Name</Label>
+                      <SampleInput
+                        id="workflow-name"
+                        value={workflowItem?.name}
+                        onChange={(e) =>
+                          setWorkflowItemChanges("name", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="workflow-description">Description</Label>
+                      <SampleInput
+                        id="workflow-description"
+                        value={workflowItem?.description || ""}
+                        onChange={(e) =>
+                          setWorkflowItemChanges("description", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="workflow-type">Workflow Type</Label>
+                      <Select
+                        value={workflowItem?.type}
+                        onValueChange={(value) =>
+                          setWorkflowItemChanges("type", value)
+                        }
+                      >
+                        <SelectTrigger id="workflow-type">
+                          <SelectValue placeholder="Select workflow type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="standard">Standard</SelectItem>
+                          <SelectItem value="scheduled">Scheduled</SelectItem>
+                          <SelectItem value="event-driven">
+                            Event-Driven
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="workflow-tags">Tags</Label>
+                      <SampleInput
+                        id="workflow-tags"
+                        placeholder="Enter tags separated by commas"
+                      />
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="execution" className="space-y-4 py-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Timeout</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Maximum execution time
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <SampleInput className="w-20" defaultValue="60" />
+                        <span>seconds</span>
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Retry on Failure</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Automatically retry failed executions
+                        </p>
+                      </div>
+                      <Switch />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Concurrency Limit</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Maximum concurrent executions
+                        </p>
+                      </div>
+                      <SampleInput className="w-20" defaultValue="5" />
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="permissions" className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>Access Control</Label>
+                      <Select defaultValue="team">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select access level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="private">
+                            Private (Only me)
+                          </SelectItem>
+                          <SelectItem value="team">Team</SelectItem>
+                          <SelectItem value="organization">
+                            Organization
+                          </SelectItem>
+                          <SelectItem value="public">Public</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Team Members</Label>
+                      <div className="border rounded-md p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                              SC
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">Sarah Chen</p>
+                              <p className="text-xs text-muted-foreground">
+                                sarah@example.com
+                              </p>
+                            </div>
+                          </div>
+                          <Badge>Owner</Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                              AM
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">Alex Morgan</p>
+                              <p className="text-xs text-muted-foreground">
+                                alex@example.com
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant="outline">Editor</Badge>
+                        </div>
+                      </div>
+                      <SampleButton
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Team Member
+                      </SampleButton>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+                <DialogFooter>
+                  <SampleButton
+                    variant="outline"
+                    onClick={() => setIsSettingsOpen(false)}
+                  >
+                    Cancel
+                  </SampleButton>
+                  <SampleButton onClick={saveSettings}>
+                    Save Changes
+                  </SampleButton>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        )}
+      </div>
+      {(updateWorkflowSettings.isLoading || updateWorkflow.isLoading) && (
+        <FullScreenLoading />
       )}
-      {(publish.isLoading || update.isLoading || fileFetching) && <FullScreenLoading />}
-    </div>
+    </ReactFlowProvider>
   );
 }

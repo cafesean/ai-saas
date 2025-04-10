@@ -41,3 +41,12 @@ export const Widgets = {
     scriptsPath: 'widgets_generation/chat/script.html'
   },
 };
+
+export const NodeTypes = {
+  trigger: "trigger",
+  aiModel: "aiModel",
+  rules: "rules",
+  logic: "logic",
+  database: "database",
+  webhook: "webhook",
+}

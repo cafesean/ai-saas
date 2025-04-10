@@ -14,6 +14,11 @@ export const WorkflowTypes = {
   SCHEDULED: "Scheduled",
 } as const;
 
+export const WorkflowNodeDataActions = {
+  settings: "settings",
+  delete: "delete",
+};
+
 export const ModelStatus = {
   ACTIVE: "active",
   INACTIVE: "inactive",
@@ -42,12 +47,12 @@ export const HTTPMethod = {
 } as const;
 
 export const Providers = {
-  n8n: 'n8n',
-  langFlow: 'langFlow',
+  n8n: "n8n",
+  langFlow: "langFlow",
 } as const;
 
 export const LocalStorageKeys = {
-  googleAccessToken: 'google_access_token',
+  googleAccessToken: "google_access_token",
 } as const;
 
 export const YOU_NAME = "You";

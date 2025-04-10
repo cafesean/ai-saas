@@ -1,6 +1,13 @@
 import { templates } from "./n8n";
 import { models, model_metrics, modelsRelations } from "./model";
-import { workflows, workflowsRelations } from "./workflow";
+import {
+  workflows,
+  nodes,
+  edges,
+  workflowsRelations,
+  nodesRelations,
+  edgesRelations,
+} from "./workflow";
 import { endpoints, endpointsRelations } from "./endpoint";
 import { widgets, widgetsRelations } from "./widget";
 import {
@@ -35,6 +42,10 @@ export {
   models,
   model_metrics,
   workflows,
+  nodes,
+  edges,
+  nodesRelations,
+  edgesRelations,
   endpoints,
   widgets,
   workflowsRelations,
@@ -70,6 +81,10 @@ export default {
   workflows,
   endpoints,
   widgets,
+  nodes,
+  edges,
+  nodesRelations,
+  edgesRelations,
   workflowsRelations,
   endpointsRelations,
   widgetsRelations,
