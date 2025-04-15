@@ -33,13 +33,15 @@ export const getTimeAgo = (date: Date) => {
   const givenTime = dayjs(String(date));
   const now = dayjs();
   const timeAgo = now.to(givenTime);
-  return timeAgo
+  return timeAgo;
 };
 
 export const isPartialBoolean = (value: string): boolean => {
   const lowerValue = value.toLowerCase();
-  return (
-    "true".startsWith(lowerValue) ||
-    "false".startsWith(lowerValue)
-  );
+  return "true".startsWith(lowerValue) || "false".startsWith(lowerValue);
+};
+
+export const capitalizeFirstLetterLowercase = (str: string) => {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };
