@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
+import { cn } from "@/lib/utils";
 import { TRPCProvider } from "@/framework/providers/TRPCProvider";
 import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "SaaS AI",
-  description: "SaaS AI",
+  title: "AI Model Dashboard",
+  description:
+    "A modern dashboard for AI model management and inference tracking",
 };
 
 export default function RootLayout({
@@ -17,20 +20,32 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <link rel="shortcut icon" href="/favicon.png" />
-      <body className={inter.className}>
-        <TRPCProvider>
-          {children}
-          <Toaster
-            className="custom-toaster"
-            richColors
-            position="top-center"
-            duration={5000}
-            closeButton
-            gap={8}
-          />
-        </TRPCProvider>
+      <body
+        className={cn(
+          inter.className,
+          "min-h-screen bg-background antialiased",
+        )}
+      >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <TRPCProvider>
+            {children}
+            <Toaster
+              className="custom-toaster"
+              richColors
+              position="top-center"
+              duration={5000}
+              closeButton
+              gap={8}
+            />
+          </TRPCProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
