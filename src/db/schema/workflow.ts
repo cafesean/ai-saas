@@ -23,8 +23,7 @@ export const workflows = pgTable(
     name: varchar("name", { length: 200 }).notNull(),
     description: text("description"),
     userInputs: json("user_inputs").$type<Record<string, unknown>>(),
-    workflowJson: json("workflow_json")
-      .$type<Record<string, unknown>>(),
+    workflowJson: json("workflow_json").$type<Record<string, unknown>>(),
     flowId: varchar("flow_id", { length: 200 }),
     status: varchar("status", { length: 100 })
       .notNull()
@@ -52,11 +51,12 @@ export const workflows = pgTable(
 export const nodes = pgTable("nodes", {
   id: serial("id").notNull().primaryKey(),
   uuid: uuid("uuid").unique().notNull().defaultRandom(),
-  type: varchar("type", { length: 200 }).notNull(),
-  name: varchar("name", { length: 200 }).notNull(),
-  description: text("description"),
+  type: varchar("type", { length: 200 }),
   position: json("position").$type<Record<string, unknown>>(),
   data: json("data").$type<Record<string, unknown>>(),
+  workflowId: uuid("workflow_id")
+    .notNull()
+    .references(() => workflows.uuid, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", {
     withTimezone: true,
     mode: "date",
@@ -74,6 +74,9 @@ export const nodes = pgTable("nodes", {
 export const edges = pgTable("edges", {
   id: serial("id").notNull().primaryKey(),
   uuid: uuid("uuid").unique().notNull().defaultRandom(),
+  workflowId: uuid("workflow_id")
+    .notNull()
+    .references(() => workflows.uuid, { onDelete: "cascade" }),
   source: varchar("source", { length: 200 }).notNull(),
   target: varchar("target", { length: 200 }).notNull(),
   createdAt: timestamp("created_at", {
@@ -90,25 +93,6 @@ export const edges = pgTable("edges", {
     .notNull(),
 });
 
-export const workflow_nodes = pgTable("workflow_nodes", {
-  id: serial("id").notNull().primaryKey(),
-  uuid: uuid("uuid").unique().notNull().defaultRandom(),
-  workflowId: uuid("workflow_id")
-    .notNull()
-    .references(() => workflows.uuid, { onDelete: "cascade" }),
-  nodeId: uuid("node_id").notNull(),
-  createdAt: timestamp("created_at", {
-    withTimezone: true,
-    mode: "date",
-  })
-    .defaultNow()
-    .notNull(),
-  updatedAt: timestamp("updated_at", {
-    withTimezone: true,
-    mode: "date",
-  }),
-});
-
 // Relations
 export const workflowsRelations = relations(workflows, ({ one, many }) => ({
   endpoint: one(endpoints, {
@@ -116,4 +100,20 @@ export const workflowsRelations = relations(workflows, ({ one, many }) => ({
     references: [endpoints.workflowId],
   }),
   widgets: many(widgets),
+  nodes: many(nodes),
+  edges: many(edges),
+}));
+
+export const nodesRelations = relations(nodes, ({ one }) => ({
+  workflow: one(workflows, {
+    fields: [nodes.workflowId],
+    references: [workflows.uuid],
+  }),
+}));
+
+export const edgesRelations = relations(edges, ({ one }) => ({
+  workflow: one(workflows, {
+    fields: [edges.workflowId],
+    references: [workflows.uuid],
+  }),
 }));

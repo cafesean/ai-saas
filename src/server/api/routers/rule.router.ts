@@ -236,7 +236,6 @@ export const rulesRouter = createTRPCRouter({
     .input(releUpdateSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        console.log(input);
         // Delete flows of the rule
         const updateRule = await db.transaction(async (tx) => {
           await tx

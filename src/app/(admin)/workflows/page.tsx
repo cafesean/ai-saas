@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import {
-  ArrowLeft,
   Plus,
   Search,
   Filter,
@@ -22,6 +21,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import Link from "next/link";
+import { Route } from "next";
 import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
@@ -61,6 +61,7 @@ import { WorkflowStatus } from "@/constants/general";
 import { useModalState } from "@/framework/hooks/useModalState";
 import { WorkflowView } from "@/framework/types/workflow";
 import { getTimeAgo } from "@/utils/func";
+import { AdminRoutes } from "@/constants/routes";
 
 export default function WorkflowsPage() {
   const [isClient, setIsClient] = useState(false);
@@ -423,8 +424,15 @@ function WorkflowCard({ workflow, onDelete }: WorkflowCardProps) {
                 </SampleButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link href={`/workflows/${workflow.uuid}`}>
+                <DropdownMenuItem className="cursor-pointer" asChild>
+                  <Link
+                    href={`${
+                      AdminRoutes.workflowDetail.replace(
+                        ":uuid",
+                        workflow.uuid,
+                      ) as Route
+                    }`}
+                  >
                     Edit Workflow
                   </Link>
                 </DropdownMenuItem>
@@ -548,96 +556,3 @@ function getNodeIcon(nodeType: string): React.ReactNode {
       return <Cog className="h-3 w-3" />;
   }
 }
-
-// Add this constant at the bottom of the file with the other sample data
-
-const defaultNodes = ["trigger", "aiModel", "rules", "logic", "database"];
-
-// Add decision tables to the workflows sample data
-const workflows = [
-  {
-    id: "customer-support-workflow",
-    name: "Customer Support Workflow",
-    description: "Automates customer support ticket classification and routing",
-    type: "Event-Driven",
-    status: "published",
-    runs: 1243,
-    created: "2 weeks ago",
-    lastRun: "5 minutes ago",
-    nodes: ["trigger", "aiModel", "rules", "logic", "webhook"],
-    decisionTables: [
-      { id: "node-connection-rules", name: "Node Connection Rules" },
-      { id: "model-compatibility", name: "Model Compatibility" },
-    ],
-  },
-  {
-    id: "fraud-detection-pipeline",
-    name: "Fraud Detection Pipeline",
-    description: "Analyzes transactions for potential fraud patterns",
-    type: "Scheduled",
-    status: "published",
-    runs: 5678,
-    created: "1 month ago",
-    lastRun: "1 hour ago",
-    nodes: ["trigger", "aiModel", "rules", "database"],
-    decisionTables: [
-      { id: "node-connection-rules", name: "Node Connection Rules" },
-    ],
-  },
-  {
-    id: "content-moderation",
-    name: "Content Moderation",
-    description: "Automatically reviews and flags inappropriate content",
-    type: "Event-Driven",
-    status: "published",
-    runs: 9876,
-    created: "3 weeks ago",
-    lastRun: "2 minutes ago",
-    nodes: ["trigger", "aiModel", "rules", "webhook"],
-    decisionTables: [
-      { id: "model-compatibility", name: "Model Compatibility" },
-    ],
-  },
-  {
-    id: "lead-scoring",
-    name: "Lead Scoring Workflow",
-    description:
-      "Scores and prioritizes sales leads based on likelihood to convert",
-    type: "Scheduled",
-    status: "draft",
-    runs: 0,
-    created: "2 days ago",
-    lastRun: null,
-    nodes: ["trigger", "aiModel", "database"],
-    decisionTables: [{ id: "scoring-thresholds", name: "Scoring Thresholds" }],
-  },
-  {
-    id: "document-processing",
-    name: "Document Processing",
-    description: "Extracts and processes information from uploaded documents",
-    type: "Event-Driven",
-    status: "paused",
-    runs: 432,
-    created: "2 months ago",
-    lastRun: "5 days ago",
-    nodes: ["trigger", "aiModel", "database", "webhook"],
-    decisionTables: [
-      { id: "data-transformation-rules", name: "Data Transformation Rules" },
-    ],
-  },
-  {
-    id: "customer-churn-prediction",
-    name: "Customer Churn Prediction",
-    description: "Identifies customers at risk of churning",
-    type: "Scheduled",
-    status: "published",
-    runs: 156,
-    created: "3 weeks ago",
-    lastRun: "1 day ago",
-    nodes: ["trigger", "aiModel", "rules", "logic", "database"],
-    decisionTables: [
-      { id: "scoring-thresholds", name: "Scoring Thresholds" },
-      { id: "feature-flags", name: "Feature Flags" },
-    ],
-  },
-];

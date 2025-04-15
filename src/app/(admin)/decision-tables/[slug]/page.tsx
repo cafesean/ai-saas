@@ -70,6 +70,9 @@ const DecisionTableDetailPage = () => {
       utils.decisionTable.getByUUID.invalidate();
       toast.success("Decision table updated successfully");
     },
+    onError: (error) => {
+      toast.error(error.message);
+    },
   });
 
   // Load the table data
