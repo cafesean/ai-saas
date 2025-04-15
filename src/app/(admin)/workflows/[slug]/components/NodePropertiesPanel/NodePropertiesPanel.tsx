@@ -1,0 +1,89 @@
+import { NodeTypes } from "@/constants/nodes";
+import { TriggerNodePropertiesPanel } from "@/components/nodes/TriggerNode";
+import { AIModelNodePropertiesPanel } from "@/components/nodes/AIModelNode";
+import { RulesNodePropertiesPanel } from "@/components/nodes/RulesNode";
+import { LogicNodePropertiesPanel } from "@/components/nodes/LogicNode";
+import { DatabaseNodePropertiesPanel } from "@/components/nodes/DatabaseNode";
+import { WebhookNodePropertiesPanel } from "@/components/nodes/WebhookNode";
+
+interface NodePropertiesPanelProps {
+  nodeId: string;
+  nodes: any[];
+  setNodes: any;
+}
+
+function NodePropertiesPanel({
+  nodeId,
+  nodes,
+  setNodes,
+}: NodePropertiesPanelProps) {
+  const node = nodes.find((n) => n.id === nodeId);
+
+  if (!node) return null;
+
+  const updateNodeData = (key: string, value: any) => {
+    setNodes(
+      nodes.map((n) => {
+        if (n.id === nodeId) {
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              [key]: value,
+            },
+          };
+        }
+        return n;
+      }),
+    );
+  };
+
+  // Render different properties based on node type
+  switch (node.type) {
+    case NodeTypes.trigger:
+      return (
+        <TriggerNodePropertiesPanel
+          node={node}
+          updateNodeData={updateNodeData}
+        />
+      );
+    case NodeTypes.aiModel:
+      return (
+        <AIModelNodePropertiesPanel
+          node={node}
+          updateNodeData={updateNodeData}
+        />
+      );
+    case NodeTypes.rules:
+      return (
+        <RulesNodePropertiesPanel node={node} updateNodeData={updateNodeData} />
+      );
+    case NodeTypes.logic:
+      return (
+        <LogicNodePropertiesPanel node={node} updateNodeData={updateNodeData} />
+      );
+    case NodeTypes.database:
+      return (
+        <DatabaseNodePropertiesPanel
+          node={node}
+          updateNodeData={updateNodeData}
+        />
+      );
+    case NodeTypes.webhook:
+      return (
+        <WebhookNodePropertiesPanel
+          node={node}
+          updateNodeData={updateNodeData}
+        />
+      );
+
+    default:
+      return (
+        <div className="text-center p-4 text-muted-foreground">
+          No properties available for this node type.
+        </div>
+      );
+  }
+}
+
+export default NodePropertiesPanel;
