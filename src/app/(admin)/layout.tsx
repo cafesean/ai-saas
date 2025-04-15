@@ -1,5 +1,7 @@
-import { NavMenu } from "@/components/NavMenu";
-import Sidebar from "@/components/Sidebar";
+import { Suspense } from "react";
+
+import { MobileNav } from "@/components/mobile-nav"
+import { ClientSidebar } from "@/components/client-sidebar"
 
 export default function AdminLayout({
   children,
@@ -7,12 +9,16 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-white flex h-full flex-col">
-      <NavMenu />
-      <Sidebar />
-      <main className="flex grow sm:ml-64 h-0 px-4 pb-0 sm:p-4 sm:pb-0 lg:p-4 lg:pb-0 overflow-y-auto">
-        <div className="flex grow">{children}</div>
-      </main>
-    </div>
+    <Suspense fallback={<div>Loading Application...</div>}>
+      <div className="flex min-h-screen flex-col">
+        <MobileNav />
+        <div className="flex flex-1">
+          <aside className="hidden w-64 border-r md:block">
+            <ClientSidebar />
+          </aside>
+          <main className="flex-1">{children}</main>
+        </div>
+      </div>
+    </Suspense>
   );
 }
