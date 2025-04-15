@@ -31,6 +31,8 @@ export const models = pgTable(
     status: varchar("status", { length: 100 })
       .notNull()
       .default(ModelStatus.INACTIVE),
+    type: varchar("type", { length: 100 }),
+    framework: varchar("framework", { length: 100 }),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "date",

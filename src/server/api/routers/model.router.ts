@@ -28,6 +28,8 @@ const modelSchema = z.object({
   defineInputs: z.record(z.any()).nullable(),
   version: z.string().nullable(),
   status: z.string().nullable(),
+  type: z.string().nullable().optional(),
+  framework: z.string().nullable().optional(),
   metrics: z
     .object({
       ks: z.string().nullable(),
@@ -87,6 +89,8 @@ export const modelRouter = createTRPCRouter({
             metadataFileKey: input.metadataFileKey ?? null,
             defineInputs: input.defineInputs,
             status: input.status || ModelStatus.INACTIVE,
+            type: input.type,
+            framework: input.framework,
           })
           .returning();
         if (model && model.id && input.metrics) {
@@ -133,6 +137,8 @@ export const modelRouter = createTRPCRouter({
             defineInputs: input.defineInputs,
             status: input.status || ModelStatus.INACTIVE,
             version: input.version,
+            type: input.type,
+            framework: input.framework,
           })
           .where(eq(models.uuid, input.uuid))
           .returning();

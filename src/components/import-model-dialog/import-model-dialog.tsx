@@ -79,7 +79,15 @@ const ImportModelDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(open: boolean) => {
+        onOpenChange(open);
+        if (!open) {
+          resetForm();
+        }
+      }}
+    >
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Import Existing Model</DialogTitle>
@@ -213,7 +221,13 @@ const ImportModelDialog = ({
         </Tabs>
 
         <DialogFooter>
-          <SampleButton variant="outline" onClick={() => onOpenChange(false)}>
+          <SampleButton
+            variant="outline"
+            onClick={() => {
+              onOpenChange(false);
+              resetForm();
+            }}
+          >
             Cancel
           </SampleButton>
           <SampleButton
