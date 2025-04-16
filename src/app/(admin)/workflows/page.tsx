@@ -161,7 +161,7 @@ export default function WorkflowsPage() {
       </div>
     );
   }
-
+  
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <Breadcrumbs
@@ -360,7 +360,7 @@ interface WorkflowCardProps {
     lastRun?: string | null;
     nodes?: string[];
     decisionTables?: { id: string; name: string }[];
-    updatedAt: Date;
+    updatedAt: Date | string;
   };
   onDelete: (workflow: any) => void;
 }

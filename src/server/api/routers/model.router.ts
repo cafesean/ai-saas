@@ -7,10 +7,7 @@ import { models, model_metrics } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 import { ModelStatus } from "@/constants/general";
 import { createTRPCRouter, publicProcedure } from "../trpc";
-import {
-  NOT_FOUND,
-  INTERNAL_SERVER_ERROR
-} from "@/constants/errorCode";
+import { NOT_FOUND, INTERNAL_SERVER_ERROR } from "@/constants/errorCode";
 import {
   MODEL_NOT_FOUND_ERROR,
   MODEL_CREATE_ERROR,
@@ -45,7 +42,7 @@ const modelSchema = z.object({
 });
 
 export const modelRouter = createTRPCRouter({
-  getAll: publicProcedure.query(async () => {
+  getAll: publicProcedure.input(z.void()).query(async () => {
     const modelsData = await db.query.models.findMany({
       orderBy: desc(models.updatedAt),
       with: {
@@ -179,9 +176,9 @@ export const modelRouter = createTRPCRouter({
                 .returning();
             }
           } else {
-            const metrics = await tx.delete(model_metrics).where(
-              eq(model_metrics.modelId, model.id),
-            );
+            const metrics = await tx
+              .delete(model_metrics)
+              .where(eq(model_metrics.modelId, model.id));
           }
           return model;
         }

@@ -55,7 +55,6 @@ export const createPagesRouterContext = () => {
  * This is where the tRPC API is initialized, connecting the context and transformer.
  */
 const t = initTRPC.context<Context>().create({
-  transformer: superjson,
   errorFormatter({ shape, error }) {
     return {
       ...shape,
