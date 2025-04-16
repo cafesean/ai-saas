@@ -30,8 +30,8 @@ export interface Model {
   metadataFileName: string | null;
   metadataFileKey: string | null;
   defineInputs?: any;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   metrics?: {
     ks: string | null;
     auroc: string | null;
