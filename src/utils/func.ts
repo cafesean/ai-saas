@@ -29,7 +29,7 @@ export const getFileExtension = (base64String: string) => {
   return mimeTypes[mimeType as keyof typeof mimeTypes] || "unknown";
 };
 
-export const getTimeAgo = (date: Date) => {
+export const getTimeAgo = (date: Date | string) => {
   const givenTime = dayjs(String(date));
   const now = dayjs();
   const timeAgo = now.to(givenTime);

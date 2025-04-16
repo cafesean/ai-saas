@@ -38,7 +38,6 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
 
   const [trpcClient] = React.useState(() =>
     api.createClient({
-      transformer: superjson,
       links: [
         loggerLink({
           enabled: (opts) =>
@@ -55,7 +54,7 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
     })
   );
   return (
-    <api.Provider client={trpcClient} queryClient={queryClient}>
+    <api.Provider client={trpcClient} queryClient={queryClient as any}>
       <QueryClientProvider client={queryClient}>
         {children}
       </QueryClientProvider>

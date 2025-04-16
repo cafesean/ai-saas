@@ -28,21 +28,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useModelsSuspense } from "@/framework/hooks/useModels";
 import { type ViewMode } from "@/framework/hooks/useViewToggle"; // Import ViewMode type
 import { getTimeAgo, capitalizeFirstLetterLowercase } from "@/utils/func";
 import { SampleButton } from "@/components/ui/sample-button";
 import { AdminRoutes } from "@/constants/routes";
 
 interface ModelsListProps {
+  models: any[];
   viewMode: ViewMode; // Add prop
   onDelete: (model: any) => void;
 }
 
-function ModelsListComponent({ viewMode, onDelete }: ModelsListProps) {
-  // Accept prop
-  const { models } = useModelsSuspense();
-
+function ModelsListComponent({ models, viewMode, onDelete }: ModelsListProps) {
   if (models.length === 0) {
     return (
       <Card>
@@ -75,6 +72,7 @@ function ModelsListComponent({ viewMode, onDelete }: ModelsListProps) {
                 <TableHead>Framework</TableHead>
                 <TableHead>Last Updated</TableHead>
                 <TableHead>Accuracy</TableHead>
+                <TableHead>Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -121,6 +119,41 @@ function ModelsListComponent({ viewMode, onDelete }: ModelsListProps) {
                       : 0}
                     %
                   </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <SampleButton
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                        >
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                          <span className="sr-only">More Options</span>
+                        </SampleButton>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem className="cursor-pointer" asChild>
+                          <Link
+                            href={`${
+                              AdminRoutes.modelDetail.replace(
+                                ":uuid",
+                                model.uuid,
+                              ) as Route
+                            }`}
+                          >
+                            Edit Model
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive cursor-pointer"
+                          onClick={() => onDelete(model)}
+                        >
+                          Delete Model
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -139,7 +172,7 @@ function ModelsListComponent({ viewMode, onDelete }: ModelsListProps) {
 
   return (
     <div className={`grid grid-cols-1 sm:grid-cols-2 ${gridColsClass} gap-4`}>
-      {models.map((model) => (
+      {models.map((model: any) => (
         <Card
           key={model.id}
           className="flex flex-col overflow-hidden transition-all hover:shadow-md"
