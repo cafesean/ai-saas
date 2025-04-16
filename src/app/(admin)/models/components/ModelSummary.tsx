@@ -2,15 +2,9 @@
 
 import { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useModelsSuspense } from "@/framework/hooks/useModels";
 
-function ModelsSummaryComponent() {
-  const { models } = useModelsSuspense();
-
-  const totalInferences = models.reduce(
-    (total, model) => 0,
-    0,
-  );
+function ModelsSummaryComponent({ models }: { models: any[] }) {
+  const totalInferences = models.reduce((total, model) => 0, 0);
   const championModels = models.filter(
     (model) => model.status === "champion",
   ).length;

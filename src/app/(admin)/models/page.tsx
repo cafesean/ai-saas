@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense, memo } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import { Brain, RefreshCw } from "lucide-react";
@@ -12,10 +12,19 @@ import { useModalState } from "@/framework/hooks/useModalState";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import ImportModelDialog from "@/components/import-model-dialog";
 import { BuildModelDialog } from "@/components/build-model-dialog";
 import { ConnectExternalModelDialog } from "@/components/connect-external-model-dialog";
@@ -29,6 +38,10 @@ import { Separator } from "@/components/ui/separator";
 import { ModelsSummary } from "./components/ModelSummary";
 import { ModelsList } from "./components/ModelList";
 import { useModelsSuspense } from "@/framework/hooks/useModels";
+import TRPCSuspenseProvider from "@/framework/providers/TRPCSuspenseProvider";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { PageError } from "@/components/page-error";
+import { ModelsSkeleton } from "@/components/skeletions/models-skeleton";
 
 type ModelView = {
   uuid: string;
@@ -37,8 +50,7 @@ type ModelView = {
   status: string | null;
 };
 
-export default function ModelsPage() {
-  const [isClient, setIsClient] = useState(false);
+const ModelsPage = () => {
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [challengerGroups, setChallengerGroups] = useState<any[]>([]);
   const [isImportModelDialogOpen, setIsImportModelDialogOpen] = useState(false);
@@ -55,11 +67,7 @@ export default function ModelsPage() {
   const { viewMode, setViewMode } = useViewToggle("medium-grid");
 
   // tRPC hooks
-  const { createModel, deleteModel } = useModelsSuspense();
-
-  React.useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const { models, createModel, deleteModel } = useModelsSuspense();
 
   const handleDelete = (model: ModelView) => {
     openDeleteConfirm(model);
@@ -152,7 +160,7 @@ export default function ModelsPage() {
         if (allSuccess) {
           let framework = "PyTorch";
           let metrics = metadata?.performance_metrics || null;
-          let modelType = metadata.model_type || "Classification";
+          let modelType = metadata?.model_type || "Classification";
           if (metrics) {
             metrics = {
               ...metrics,
@@ -206,112 +214,144 @@ export default function ModelsPage() {
 
   return (
     <div className="flex flex-col grow max-w-[100vw] p-4 md:p-4">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Models</h1>
-          <p className="text-muted-foreground">
-            Manage your machine learning models and run predictions
-          </p>
-        </div>
-        <div className="flex flex-col lg:flex-row gap-2 w-full md:w-auto">
-          <SampleButton
-            onClick={() => window.location.reload()}
-            variant="outline"
-            size="sm"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </SampleButton>
-          <SampleButton
-            onClick={() => setBuildDialogOpen(true)}
-            variant="outline"
-            size="sm"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Build Model
-          </SampleButton>
-          <SampleButton
-            onClick={() => setConnectDialogOpen(true)}
-            variant="outline"
-            size="sm"
-          >
-            <Brain className="mr-2 h-4 w-4" />
-            Connect External
-          </SampleButton>
-          <SampleButton
-            onClick={() => setIsImportModelDialogOpen(true)}
-            variant="outline"
-            size="sm"
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Import
-          </SampleButton>
-          {/* Add ViewToggle here */}
-          <ViewToggle viewMode={viewMode} onChange={setViewMode} />
-        </div>
-      </div>
-      <Separator className="my-6" />
-      {isClient && (
-        <>
-          <div className="mb-6">
-            <ModelsSummary />
-          </div>
-          <Dialog open={deleteConfirmOpen} onOpenChange={closeDeleteConfirm}>
-            <DialogContent className="modal-content">
-              <DialogHeader className="modal-header">
-                <DialogTitle className="modal-title">Delete Role</DialogTitle>
-              </DialogHeader>
-              <div className="modal-section">
-                <p className="modal-text">
-                  Are you sure you want to delete this model? This action cannot
-                  be undone.
+      <TRPCSuspenseProvider>
+        <ErrorBoundary
+          fallback={
+            <Card className="m-6">
+              <CardHeader>
+                <CardTitle className="text-destructive">Error</CardTitle>
+                <CardDescription>Failed to load models page</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>There was an error loading the models page information.</p>
+              </CardContent>
+              <CardFooter>
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Try Again
+                </Button>
+              </CardFooter>
+            </Card>
+          }
+        >
+          <Suspense fallback={<ModelsSkeleton count={5} className="m-6" />}>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
+              <div className="space-y-1">
+                <h1 className="text-3xl font-bold tracking-tight">Models</h1>
+                <p className="text-muted-foreground">
+                  Manage your machine learning models and run predictions
                 </p>
               </div>
-              <DialogFooter className="modal-footer">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="modal-button"
-                  onClick={() => closeDeleteConfirm()}
+              <div className="flex flex-col lg:flex-row gap-2 w-full md:w-auto">
+                <SampleButton
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                  size="sm"
                 >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  variant="danger"
-                  className="modal-button"
-                  onClick={confirmDelete}
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Refresh
+                </SampleButton>
+                <SampleButton
+                  onClick={() => setBuildDialogOpen(true)}
+                  variant="outline"
+                  size="sm"
                 >
-                  Delete
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          <ModelsList viewMode={viewMode} onDelete={handleDelete} />
-        </>
-      )}
-      <ImportModelDialog
-        open={isImportModelDialogOpen}
-        onOpenChange={setIsImportModelDialogOpen}
-        onFilesChange={(files) => {
-          const jsonFile = files.find((file) => file.name.endsWith(".json"));
-          if (jsonFile) {
-            extractMetadata(jsonFile);
-          }
-        }}
-        onImport={handleImportModel}
-      />
-      <BuildModelDialog
-        open={buildDialogOpen}
-        onOpenChange={setBuildDialogOpen}
-        onBuild={() => {}}
-      />
-      <ConnectExternalModelDialog
-        open={connectDialogOpen}
-        onOpenChange={setConnectDialogOpen}
-        onConnect={() => {}}
-      />
-      {importing && <FullScreenLoading />}
+                  <Plus className="mr-2 h-4 w-4" />
+                  Build Model
+                </SampleButton>
+                <SampleButton
+                  onClick={() => setConnectDialogOpen(true)}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Brain className="mr-2 h-4 w-4" />
+                  Connect External
+                </SampleButton>
+                <SampleButton
+                  onClick={() => setIsImportModelDialogOpen(true)}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Import
+                </SampleButton>
+                {/* Add ViewToggle here */}
+                <ViewToggle viewMode={viewMode} onChange={setViewMode} />
+              </div>
+            </div>
+            <Separator className="my-6" />
+            <div className="mb-6">
+              <ModelsSummary models={models} />
+            </div>
+            <Dialog open={deleteConfirmOpen} onOpenChange={closeDeleteConfirm}>
+              <DialogContent className="modal-content">
+                <DialogHeader className="modal-header">
+                  <DialogTitle className="modal-title">Delete Model</DialogTitle>
+                  <DialogDescription>Delete the selected model.</DialogDescription>
+                </DialogHeader>
+                <div className="modal-section">
+                  <p className="modal-text">
+                    Are you sure you want to delete this model? This action
+                    cannot be undone.
+                  </p>
+                </div>
+                <DialogFooter className="modal-footer">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="modal-button"
+                    onClick={() => closeDeleteConfirm()}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    className="modal-button"
+                    onClick={confirmDelete}
+                  >
+                    Delete
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <ModelsList
+              models={models}
+              viewMode={viewMode}
+              onDelete={handleDelete}
+            />
+            <ImportModelDialog
+              open={isImportModelDialogOpen}
+              onOpenChange={setIsImportModelDialogOpen}
+              onFilesChange={(files) => {
+                const jsonFile = files.find((file) =>
+                  file.name.endsWith(".json"),
+                );
+                if (jsonFile) {
+                  extractMetadata(jsonFile);
+                }
+              }}
+              onImport={handleImportModel}
+            />
+            <BuildModelDialog
+              open={buildDialogOpen}
+              onOpenChange={setBuildDialogOpen}
+              onBuild={() => {}}
+            />
+            <ConnectExternalModelDialog
+              open={connectDialogOpen}
+              onOpenChange={setConnectDialogOpen}
+              onConnect={() => {}}
+            />
+            {importing && <FullScreenLoading />}
+          </Suspense>
+        </ErrorBoundary>
+      </TRPCSuspenseProvider>
     </div>
   );
-}
+};
+
+export default memo(ModelsPage);

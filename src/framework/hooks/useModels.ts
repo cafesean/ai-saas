@@ -34,7 +34,6 @@ export function useModels() {
   // Model mutations
   const createModelMutation = api.model.create.useMutation({
     onSuccess: (data) => {
-      utils.model.getAll.invalidate();
       toast.success("Model created successfully");
     },
     onError: (error) => {
@@ -169,18 +168,14 @@ export function useModelsSuspense() {
   const { selectedModelId, selectModel } = useModelStore();
 
   // Use tRPC to fetch models with suspense enabled
-  const utils = useUtils();
   const modelsQuery = api.model.getAll.useQuery(undefined, {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    suspense: true, // Enable suspense mode
   });
 
   // Model mutations
-  // Model mutations
   const createModelMutation = api.model.create.useMutation({
     onSuccess: (data) => {
-      utils.model.getAll.invalidate();
       toast.success("Model created successfully");
     },
     onError: (error) => {
@@ -190,7 +185,7 @@ export function useModelsSuspense() {
   const updateModelMutation = api.model.update.useMutation();
   const deleteModelMutation = api.model.delete.useMutation({
     onSuccess: (data) => {
-      utils.model.getAll.invalidate();
+      toast.success("Model deleted successfully");
     },
     onError: (error) => {
       toast.error(error.message);
