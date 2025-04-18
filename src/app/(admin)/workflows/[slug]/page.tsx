@@ -1,6 +1,6 @@
 "use client";
 import type React from "react";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
@@ -45,22 +45,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DialogTrigger } from "@/components/ui/dialog";
 import { TriggerNode } from "@/components/nodes/TriggerNode";
 import { AIModelNode } from "@/components/nodes/AIModelNode";
 import { RulesNode } from "@/components/nodes/RulesNode";
 import { LogicNode } from "@/components/nodes/LogicNode";
 import { DatabaseNode } from "@/components/nodes/DatabaseNode";
 import { WebhookNode } from "@/components/nodes/WebhookNode";
+import { DecisionTableNode } from "@/components/nodes/DecisionTableNode";
 import { api, useUtils } from "@/utils/trpc";
-import SkeletonLoading from "@/components/ui/skeleton-loading";
 import Breadcrumbs from "@/components/breadcrambs";
 import { AdminRoutes } from "@/constants/routes";
 import { WorkflowStatus } from "@/constants/general";
 import NodePropertiesPanel from "./components/NodePropertiesPanel";
 import AddNode from "./components/AddNode";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
-import { WorkflowNodeDataActions } from "@/constants/general";
+import { WorkflowNodeDataActions, TriggerTypes } from "@/constants/general";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { DefaultSkeleton } from "@/components/skeletions/default-skeleton";
+import WorkflowDetailLoading from "./components/LoadingSkelenton";
 
 // Import the decision service for connection validation
 import { decisionService } from "@/lib/decision-service";
@@ -73,12 +75,13 @@ const nodeTypes: NodeTypes = {
   logic: LogicNode,
   database: DatabaseNode,
   webhook: WebhookNode,
+  decisionTable: DecisionTableNode,
 };
 
 const getDefaultDataForNodeType = (type: string) => {
   switch (type) {
     case "trigger":
-      return { label: "New Trigger", type: "HTTP Request" };
+      return { label: "New Trigger", type: TriggerTypes[1], path: uuidv4() };
     case "aiModel":
       return {
         label: "New AI Model",
@@ -94,6 +97,8 @@ const getDefaultDataForNodeType = (type: string) => {
       return { label: "New Database", operation: "Query" };
     case "webhook":
       return { label: "New Webhook", endpoint: "https://", method: "POST" };
+    case "decisionTable":
+      return { label: "New Decision Table", tableName: "Select Table" };
     default:
       return { label: "New Node" };
   }
@@ -198,7 +203,15 @@ export default function WorkflowDetailPage() {
   const onConnect = useCallback(
     (connection: Connection) => {
       // Add the connection if it's valid
-      setEdges((eds) => addEdge(connection, eds));
+      setEdges((eds) =>
+        addEdge(
+          {
+            ...connection,
+            animated: true,
+          },
+          eds,
+        ),
+      );
     },
     [nodes, setEdges],
   );
@@ -216,7 +229,9 @@ export default function WorkflowDetailPage() {
         // Delete the node
         setNodes((nds) => nds.filter((n) => n.id !== node.id));
         // Delete related edges
-        setEdges((eds) => eds.filter((e) => e.source !== node.id && e.target !== node.id));
+        setEdges((eds) =>
+          eds.filter((e) => e.source !== node.id && e.target !== node.id),
+        );
         setSelectedNode(null);
         break;
       }
@@ -257,10 +272,6 @@ export default function WorkflowDetailPage() {
     onEdgesChange(changes);
   };
 
-  if (workflow.isLoading) {
-    return <SkeletonLoading />;
-  }
-
   if (workflow.error) {
     return (
       <div className="flex flex-col grow">
@@ -275,280 +286,302 @@ export default function WorkflowDetailPage() {
   return (
     <ReactFlowProvider>
       <div className="flex min-h-screen w-full flex-col bg-background">
-        <Breadcrumbs
-          items={[
-            {
-              label: "Back to Workflows",
-              link: AdminRoutes.workflows,
-            },
-          ]}
-          title={workflow.data?.name}
-          badge={
-            <Badge
-              variant={
-                workflow.data?.status === WorkflowStatus.PUBLISHED
-                  ? "default"
-                  : workflow.data?.status === WorkflowStatus.DRAFT
-                  ? "secondary"
-                  : "outline"
-              }
-            >
-              {workflow.data?.status}
-            </Badge>
-          }
-          rightChildren={
-            <>
-              <SampleButton
-                variant="outline"
-                size="sm"
-                onClick={() => setIsSettingsOpen(true)}
-              >
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
-              </SampleButton>
-              <SampleButton variant="outline" size="sm">
-                <Play className="mr-2 h-4 w-4" />
-                Test Run
-              </SampleButton>
-              <SampleButton size="sm" onClick={saveWorkflowChanges}>
-                <Save className="mr-2 h-4 w-4" />
-                Save
-              </SampleButton>
-            </>
-          }
-        />
-        {isClient && (
-          <>
-            <div className="flex flex-1">
-              <div className="flex-1 h-[calc(100vh-4rem)]">
-                <ReactFlow
-                  nodes={nodes}
-                  edges={edges}
-                  onNodesChange={handleOnNodesChange}
-                  onEdgesChange={handleOnEdgesChange}
-                  onConnect={onConnect}
-                  onNodeClick={onNodeClick}
-                  nodeTypes={nodeTypes}
-                  defaultEdgeOptions={{ type: "smoothstep" }}
-                  fitView
-                  proOptions={{ hideAttribution: true }}
-                >
-                  <Background />
-                  <Controls />
-                  <MiniMap />
-                  <Panel
-                    position="top-right"
-                    className="bg-background border rounded-md shadow-sm p-2"
-                  >
-                    <AddNode
-                      isAddNodeDialogOpen={isAddNodeDialogOpen}
-                      setIsAddNodeDialogOpen={(open: boolean) =>
-                        setIsAddNodeDialogOpen(open)
+        <ErrorBoundary>
+          <Suspense fallback={<DefaultSkeleton count={5} className="m-6" />}>
+            {isClient && !workflow.isLoading ? (
+              <>
+                <Breadcrumbs
+                  items={[
+                    {
+                      label: "Back to Workflows",
+                      link: AdminRoutes.workflows,
+                    },
+                  ]}
+                  title={workflow.data?.name}
+                  badge={
+                    <Badge
+                      variant={
+                        workflow.data?.status === WorkflowStatus.PUBLISHED
+                          ? "default"
+                          : workflow.data?.status === WorkflowStatus.DRAFT
+                          ? "secondary"
+                          : "outline"
                       }
-                      addNode={addNode}
-                    />
-                  </Panel>
-                </ReactFlow>
-              </div>
-
-              {selectedNode && (
-                <div className="w-80 border-l bg-background overflow-auto h-[calc(100vh-4rem)]">
-                  <div className="p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold">Node Properties</h3>
-                      <SampleButton
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => setSelectedNode(null)}
-                      >
-                        <X className="h-4 w-4" />
-                      </SampleButton>
-                    </div>
-                    <NodePropertiesPanel
-                      nodeId={selectedNode}
-                      nodes={nodes}
-                      setNodes={setNodes}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-            <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Workflow Settings</DialogTitle>
-                  <DialogDescription>
-                    Configure general settings for your workflow.
-                  </DialogDescription>
-                </DialogHeader>
-                <Tabs defaultValue="general">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="general">General</TabsTrigger>
-                    <TabsTrigger value="execution">Execution</TabsTrigger>
-                    <TabsTrigger value="permissions">Permissions</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="general" className="space-y-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="workflow-name">Workflow Name</Label>
-                      <SampleInput
-                        id="workflow-name"
-                        value={workflowItem?.name}
-                        onChange={(e) =>
-                          setWorkflowItemChanges("name", e.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="workflow-description">Description</Label>
-                      <SampleInput
-                        id="workflow-description"
-                        value={workflowItem?.description || ""}
-                        onChange={(e) =>
-                          setWorkflowItemChanges("description", e.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="workflow-type">Workflow Type</Label>
-                      <Select
-                        value={workflowItem?.type}
-                        onValueChange={(value) =>
-                          setWorkflowItemChanges("type", value)
-                        }
-                      >
-                        <SelectTrigger id="workflow-type">
-                          <SelectValue placeholder="Select workflow type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="standard">Standard</SelectItem>
-                          <SelectItem value="scheduled">Scheduled</SelectItem>
-                          <SelectItem value="event-driven">
-                            Event-Driven
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="workflow-tags">Tags</Label>
-                      <SampleInput
-                        id="workflow-tags"
-                        placeholder="Enter tags separated by commas"
-                      />
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="execution" className="space-y-4 py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Timeout</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Maximum execution time
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <SampleInput className="w-20" defaultValue="60" />
-                        <span>seconds</span>
-                      </div>
-                    </div>
-                    <Separator />
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Retry on Failure</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Automatically retry failed executions
-                        </p>
-                      </div>
-                      <Switch />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Concurrency Limit</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Maximum concurrent executions
-                        </p>
-                      </div>
-                      <SampleInput className="w-20" defaultValue="5" />
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="permissions" className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label>Access Control</Label>
-                      <Select defaultValue="team">
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select access level" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="private">
-                            Private (Only me)
-                          </SelectItem>
-                          <SelectItem value="team">Team</SelectItem>
-                          <SelectItem value="organization">
-                            Organization
-                          </SelectItem>
-                          <SelectItem value="public">Public</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Team Members</Label>
-                      <div className="border rounded-md p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                              SC
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">Sarah Chen</p>
-                              <p className="text-xs text-muted-foreground">
-                                sarah@example.com
-                              </p>
-                            </div>
-                          </div>
-                          <Badge>Owner</Badge>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                              AM
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">Alex Morgan</p>
-                              <p className="text-xs text-muted-foreground">
-                                alex@example.com
-                              </p>
-                            </div>
-                          </div>
-                          <Badge variant="outline">Editor</Badge>
-                        </div>
-                      </div>
+                    >
+                      {workflow.data?.status}
+                    </Badge>
+                  }
+                  rightChildren={
+                    <>
                       <SampleButton
                         variant="outline"
                         size="sm"
-                        className="mt-2"
+                        onClick={() => setIsSettingsOpen(true)}
                       >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Team Member
+                        <Settings className="mr-2 h-4 w-4" />
+                        Settings
                       </SampleButton>
+                      <SampleButton variant="outline" size="sm">
+                        <Play className="mr-2 h-4 w-4" />
+                        Test Run
+                      </SampleButton>
+                      <SampleButton size="sm" onClick={saveWorkflowChanges}>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save
+                      </SampleButton>
+                    </>
+                  }
+                />
+                <div className="flex flex-1">
+                  <div className="flex-1 h-[calc(100vh-4rem)]">
+                    <ReactFlow
+                      nodes={nodes}
+                      edges={edges}
+                      onNodesChange={handleOnNodesChange}
+                      onEdgesChange={handleOnEdgesChange}
+                      onConnect={onConnect}
+                      onNodeClick={onNodeClick}
+                      nodeTypes={nodeTypes}
+                      defaultEdgeOptions={{ type: "smoothstep" }}
+                      fitView
+                      proOptions={{ hideAttribution: true }}
+                    >
+                      <Background />
+                      <Controls />
+                      <MiniMap />
+                      <Panel
+                        position="top-right"
+                        className="bg-background border rounded-md shadow-sm p-2"
+                      >
+                        <AddNode
+                          isAddNodeDialogOpen={isAddNodeDialogOpen}
+                          setIsAddNodeDialogOpen={(open: boolean) =>
+                            setIsAddNodeDialogOpen(open)
+                          }
+                          addNode={addNode}
+                        />
+                      </Panel>
+                    </ReactFlow>
+                  </div>
+
+                  {selectedNode && (
+                    <div className="w-80 border-l bg-background overflow-auto h-[calc(100vh-4rem)]">
+                      <div className="p-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="font-semibold">Node Properties</h3>
+                          <SampleButton
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSelectedNode(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </SampleButton>
+                        </div>
+                        <NodePropertiesPanel
+                          nodeId={selectedNode}
+                          nodes={nodes}
+                          setNodes={setNodes}
+                        />
+                      </div>
                     </div>
-                  </TabsContent>
-                </Tabs>
-                <DialogFooter>
-                  <SampleButton
-                    variant="outline"
-                    onClick={() => setIsSettingsOpen(false)}
-                  >
-                    Cancel
-                  </SampleButton>
-                  <SampleButton onClick={saveSettings}>
-                    Save Changes
-                  </SampleButton>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </>
-        )}
+                  )}
+                </div>
+                <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Workflow Settings</DialogTitle>
+                      <DialogDescription>
+                        Configure general settings for your workflow.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <Tabs defaultValue="general">
+                      <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="general">General</TabsTrigger>
+                        <TabsTrigger value="execution">Execution</TabsTrigger>
+                        <TabsTrigger value="permissions">
+                          Permissions
+                        </TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="general" className="space-y-4 py-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="workflow-name">Workflow Name</Label>
+                          <SampleInput
+                            id="workflow-name"
+                            value={workflowItem?.name}
+                            onChange={(e) =>
+                              setWorkflowItemChanges("name", e.target.value)
+                            }
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="workflow-description">
+                            Description
+                          </Label>
+                          <SampleInput
+                            id="workflow-description"
+                            value={workflowItem?.description || ""}
+                            onChange={(e) =>
+                              setWorkflowItemChanges(
+                                "description",
+                                e.target.value,
+                              )
+                            }
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="workflow-type">Workflow Type</Label>
+                          <Select
+                            value={workflowItem?.type}
+                            onValueChange={(value) =>
+                              setWorkflowItemChanges("type", value)
+                            }
+                          >
+                            <SelectTrigger id="workflow-type">
+                              <SelectValue placeholder="Select workflow type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="standard">Standard</SelectItem>
+                              <SelectItem value="scheduled">
+                                Scheduled
+                              </SelectItem>
+                              <SelectItem value="event-driven">
+                                Event-Driven
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="workflow-tags">Tags</Label>
+                          <SampleInput
+                            id="workflow-tags"
+                            placeholder="Enter tags separated by commas"
+                          />
+                        </div>
+                      </TabsContent>
+                      <TabsContent value="execution" className="space-y-4 py-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label>Timeout</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Maximum execution time
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <SampleInput className="w-20" defaultValue="60" />
+                            <span>seconds</span>
+                          </div>
+                        </div>
+                        <Separator />
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label>Retry on Failure</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Automatically retry failed executions
+                            </p>
+                          </div>
+                          <Switch />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label>Concurrency Limit</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Maximum concurrent executions
+                            </p>
+                          </div>
+                          <SampleInput className="w-20" defaultValue="5" />
+                        </div>
+                      </TabsContent>
+                      <TabsContent
+                        value="permissions"
+                        className="space-y-4 py-4"
+                      >
+                        <div className="space-y-2">
+                          <Label>Access Control</Label>
+                          <Select defaultValue="team">
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select access level" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="private">
+                                Private (Only me)
+                              </SelectItem>
+                              <SelectItem value="team">Team</SelectItem>
+                              <SelectItem value="organization">
+                                Organization
+                              </SelectItem>
+                              <SelectItem value="public">Public</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Team Members</Label>
+                          <div className="border rounded-md p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                  SC
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium">
+                                    Sarah Chen
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    sarah@example.com
+                                  </p>
+                                </div>
+                              </div>
+                              <Badge>Owner</Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                  AM
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium">
+                                    Alex Morgan
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    alex@example.com
+                                  </p>
+                                </div>
+                              </div>
+                              <Badge variant="outline">Editor</Badge>
+                            </div>
+                          </div>
+                          <SampleButton
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Team Member
+                          </SampleButton>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                    <DialogFooter>
+                      <SampleButton
+                        variant="outline"
+                        onClick={() => setIsSettingsOpen(false)}
+                      >
+                        Cancel
+                      </SampleButton>
+                      <SampleButton onClick={saveSettings}>
+                        Save Changes
+                      </SampleButton>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </>
+            ) : (
+              <WorkflowDetailLoading />
+            )}
+          </Suspense>
+        </ErrorBoundary>
       </div>
-      {(updateWorkflowSettings.isLoading || updateWorkflow.isLoading) && (
+      {(updateWorkflowSettings.isPending || updateWorkflow.isPending) && (
         <FullScreenLoading />
       )}
     </ReactFlowProvider>

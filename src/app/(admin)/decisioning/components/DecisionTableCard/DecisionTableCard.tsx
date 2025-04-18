@@ -30,8 +30,8 @@ interface DecisionTableCardProps {
     description?: string | null;
     status: string;
     decisionTableRows: any[];
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt: Date | string;
+    updatedAt: Date | string;
   };
   onDelete: (decisionTable: any) => void;
 }

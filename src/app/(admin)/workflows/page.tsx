@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import {
   Plus,
   Search,
@@ -25,7 +25,6 @@ import { Route } from "next";
 import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/form/Button";
 import { SampleButton } from "@/components/ui/sample-button";
 import { SampleInput } from "@/components/ui/sample-input";
 import { Badge } from "@/components/ui/badge";
@@ -55,13 +54,15 @@ import {
 } from "@/components/ui/sample-select";
 import Breadcrumbs from "@/components/breadcrambs";
 import { api, useUtils } from "@/utils/trpc";
-import SkeletonLoading from "@/components/ui/skeleton-loading/SkeletonLoading";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
 import { WorkflowStatus } from "@/constants/general";
 import { useModalState } from "@/framework/hooks/useModalState";
 import { WorkflowView } from "@/framework/types/workflow";
 import { getTimeAgo } from "@/utils/func";
 import { AdminRoutes } from "@/constants/routes";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { DefaultSkeleton } from "@/components/skeletions/default-skeleton";
+import { WorkflowsSkeleton } from "@/components/skeletions/workflows-skeleton";
 
 export default function WorkflowsPage() {
   const [isClient, setIsClient] = useState(false);
@@ -147,10 +148,6 @@ export default function WorkflowsPage() {
     }
   };
 
-  if (workflows.isLoading) {
-    return <SkeletonLoading />;
-  }
-
   if (workflows.error) {
     return (
       <div className="flex flex-col grow">
@@ -161,188 +158,204 @@ export default function WorkflowsPage() {
       </div>
     );
   }
-  
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <Breadcrumbs
-        items={[
-          {
-            label: "Back to Dashboard",
-            link: "/",
-          },
-        ]}
-        title="Workflows"
-        rightChildren={
-          <>
-            <SampleButton variant="outline" size="sm">
-              <Filter className="mr-2 h-4 w-4" />
-              Filter
-            </SampleButton>
-            <Dialog
-              open={isCreateDialogOpen}
-              onOpenChange={(open: boolean) => {
-                setIsCreateDialogOpen(open);
-                if (!open) {
-                  resetForm();
-                }
-              }}
-            >
-              <DialogTrigger asChild>
-                <SampleButton>
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Workflow
+      <ErrorBoundary>
+        <Suspense fallback={<DefaultSkeleton count={5} className="m-6" />}>
+          <Breadcrumbs
+            items={[
+              {
+                label: "Back to Dashboard",
+                link: "/",
+              },
+            ]}
+            title="Workflows"
+            rightChildren={
+              <>
+                <SampleButton variant="outline" size="sm">
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filter
                 </SampleButton>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New Workflow</DialogTitle>
-                  <DialogDescription>
-                    Create a new workflow to automate processes using AI models
-                    and other components.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">Workflow Name</Label>
-                    <SampleInput
-                      id="name"
-                      placeholder="Enter workflow name"
-                      value={newWorkflowName}
-                      onChange={(e) => setNewWorkflowName(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="type">Workflow Type</Label>
-                    <Select
-                      value={newWorkflowType}
-                      onValueChange={setNewWorkflowType}
-                    >
-                      <SelectTrigger id="type">
-                        <SelectValue placeholder="Select workflow type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="standard">
-                          Standard Workflow
-                        </SelectItem>
-                        <SelectItem value="scheduled">
-                          Scheduled Workflow
-                        </SelectItem>
-                        <SelectItem value="event-driven">
-                          Event-Driven Workflow
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="description">Description (Optional)</Label>
-                    <SampleInput
-                      id="description"
-                      placeholder="Enter workflow description"
-                      value={newDescriptioin}
-                      onChange={(e) => setNewDescriptioin(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <SampleButton
-                    variant="outline"
-                    onClick={() => {
-                      setIsCreateDialogOpen(false);
+                <Dialog
+                  open={isCreateDialogOpen}
+                  onOpenChange={(open: boolean) => {
+                    setIsCreateDialogOpen(open);
+                    if (!open) {
                       resetForm();
-                    }}
-                  >
-                    Cancel
-                  </SampleButton>
-                  <SampleButton
-                    onClick={createWorkflow}
-                    disabled={!newWorkflowName}
-                  >
-                    Create Workflow
-                  </SampleButton>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </>
-        }
-      />
-      {isClient && (
-        <>
-          <Dialog open={deleteConfirmOpen} onOpenChange={closeDeleteConfirm}>
-            <DialogContent className="modal-content">
-              <DialogHeader className="modal-header">
-                <DialogTitle className="modal-title">Delete Role</DialogTitle>
-              </DialogHeader>
-              <div className="modal-section">
-                <p className="modal-text">
-                  Are you sure you want to delete this workflow? This action
-                  cannot be undone.
-                </p>
-              </div>
-              <DialogFooter className="modal-footer">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="modal-button"
-                  onClick={() => closeDeleteConfirm()}
+                    }
+                  }}
                 >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  variant="danger"
-                  className="modal-button"
-                  onClick={confirmDelete}
-                  disabled={deleteWorkflow.isLoading}
-                >
-                  Delete
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          <div className="flex-1 p-4 md:p-4 space-y-6">
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-              <div className="space-y-1">
-                <h2 className="text-2xl font-bold tracking-tight">
-                  Workflow Management
-                </h2>
-                <p className="text-muted-foreground">
-                  Create, manage, and monitor your automated workflows
-                </p>
-              </div>
+                  <DialogTrigger asChild>
+                    <SampleButton>
+                      <Plus className="mr-2 h-4 w-4" />
+                      New Workflow
+                    </SampleButton>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create New Workflow</DialogTitle>
+                      <DialogDescription>
+                        Create a new workflow to automate processes using AI
+                        models and other components.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="name">Workflow Name</Label>
+                        <SampleInput
+                          id="name"
+                          placeholder="Enter workflow name"
+                          value={newWorkflowName}
+                          onChange={(e) => setNewWorkflowName(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="type">Workflow Type</Label>
+                        <Select
+                          value={newWorkflowType}
+                          onValueChange={setNewWorkflowType}
+                        >
+                          <SelectTrigger id="type">
+                            <SelectValue placeholder="Select workflow type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="standard">
+                              Standard Workflow
+                            </SelectItem>
+                            <SelectItem value="scheduled">
+                              Scheduled Workflow
+                            </SelectItem>
+                            <SelectItem value="event-driven">
+                              Event-Driven Workflow
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="description">
+                          Description (Optional)
+                        </Label>
+                        <SampleInput
+                          id="description"
+                          placeholder="Enter workflow description"
+                          value={newDescriptioin}
+                          onChange={(e) => setNewDescriptioin(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <SampleButton
+                        variant="outline"
+                        onClick={() => {
+                          setIsCreateDialogOpen(false);
+                          resetForm();
+                        }}
+                      >
+                        Cancel
+                      </SampleButton>
+                      <SampleButton
+                        onClick={createWorkflow}
+                        disabled={!newWorkflowName}
+                      >
+                        Create Workflow
+                      </SampleButton>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </>
+            }
+          />
+          {isClient && (
+            <>
+              <Dialog
+                open={deleteConfirmOpen}
+                onOpenChange={closeDeleteConfirm}
+              >
+                <DialogContent className="modal-content">
+                  <DialogHeader className="modal-header">
+                    <DialogTitle className="modal-title">
+                      Delete Role
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="modal-section">
+                    <p className="modal-text">
+                      Are you sure you want to delete this workflow? This action
+                      cannot be undone.
+                    </p>
+                  </div>
+                  <DialogFooter className="modal-footer">
+                    <SampleButton
+                      type="button"
+                      variant="secondary"
+                      className="modal-button"
+                      onClick={() => closeDeleteConfirm()}
+                    >
+                      Cancel
+                    </SampleButton>
+                    <SampleButton
+                      type="button"
+                      variant="danger"
+                      className="modal-button"
+                      onClick={confirmDelete}
+                    >
+                      Delete
+                    </SampleButton>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <div className="flex-1 p-4 md:p-4 space-y-6">
+                {!workflows.isLoading ? (
+                  <>
+                    <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+                      <div className="space-y-1">
+                        <h2 className="text-2xl font-bold tracking-tight">
+                          Workflows
+                        </h2>
+                        <p className="text-muted-foreground">
+                          Create, manage, and monitor your automated workflows
+                        </p>
+                      </div>
 
-              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-                <div className="relative w-full md:w-64">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <SampleInput
-                    type="search"
-                    placeholder="Search workflows..."
-                    className="w-full pl-8"
-                  />
-                </div>
+                      <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                        <div className="relative w-full md:w-64">
+                          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <SampleInput
+                            type="search"
+                            placeholder="Search workflows..."
+                            className="w-full pl-8"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    {workflows.data && workflows.data.length > 0 ? (
+                      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        {workflows.data.map((workflow) => (
+                          <WorkflowCard
+                            key={workflow.id}
+                            workflow={workflow}
+                            onDelete={openDeleteConfirm}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <p>No models created yet.</p>
+                        <p className="text-sm mt-1">
+                          Click "Add Workflow" to get started.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <WorkflowsSkeleton />
+                )}
               </div>
-            </div>
-            {workflows.data.length > 0 ? (
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                {workflows.data.map((workflow) => (
-                  <WorkflowCard
-                    key={workflow.id}
-                    workflow={workflow}
-                    onDelete={openDeleteConfirm}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <p>No models created yet.</p>
-                <p className="text-sm mt-1">
-                  Click "Add Workflow" to get started.
-                </p>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-      {create.isLoading && <FullScreenLoading />}
+            </>
+          )}
+          {create.isPending && <FullScreenLoading />}
+        </Suspense>
+      </ErrorBoundary>
     </div>
   );
 }
