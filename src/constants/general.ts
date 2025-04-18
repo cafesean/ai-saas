@@ -19,6 +19,13 @@ export const WorkflowNodeDataActions = {
   delete: "delete",
 };
 
+export const TriggerTypes = [
+  "HTTP Request",
+  "Webhook",
+  "Schedule",
+  "Event",
+] as const;
+
 export const ModelStatus = {
   ACTIVE: "active",
   INACTIVE: "inactive",

@@ -5,6 +5,7 @@ import { RulesNodePropertiesPanel } from "@/components/nodes/RulesNode";
 import { LogicNodePropertiesPanel } from "@/components/nodes/LogicNode";
 import { DatabaseNodePropertiesPanel } from "@/components/nodes/DatabaseNode";
 import { WebhookNodePropertiesPanel } from "@/components/nodes/WebhookNode";
+import { DecisionTableNodePropertiesPanel } from "@/components/nodes/DecisionTableNode";
 
 interface NodePropertiesPanelProps {
   nodeId: string;
@@ -72,6 +73,13 @@ function NodePropertiesPanel({
     case NodeTypes.webhook:
       return (
         <WebhookNodePropertiesPanel
+          node={node}
+          updateNodeData={updateNodeData}
+        />
+      );
+    case NodeTypes.decisionTable:
+      return (
+        <DecisionTableNodePropertiesPanel
           node={node}
           updateNodeData={updateNodeData}
         />

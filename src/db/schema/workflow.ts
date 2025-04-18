@@ -8,6 +8,7 @@ import {
   index,
   serial,
   text,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -79,6 +80,7 @@ export const edges = pgTable("edges", {
     .references(() => workflows.uuid, { onDelete: "cascade" }),
   source: varchar("source", { length: 200 }).notNull(),
   target: varchar("target", { length: 200 }).notNull(),
+  animated: boolean("animated").default(false).notNull(),
   createdAt: timestamp("created_at", {
     withTimezone: true,
     mode: "date",
