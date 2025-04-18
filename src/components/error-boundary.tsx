@@ -1,8 +1,17 @@
 "use client";
 
 import { Component, ErrorInfo, ReactNode } from "react";
+import { RefreshCw } from "lucide-react";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { SampleButton } from "@/components/ui/sample-button";
-import { AlertTriangle } from "lucide-react";
 
 interface Props {
   children: ReactNode;
@@ -35,25 +44,24 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="rounded-md border border-destructive p-4 my-4">
-          <div className="flex items-center space-x-2">
-            <AlertTriangle className="h-5 w-5 text-destructive" />
-            <h3 className="text-sm font-medium text-destructive">
-              Something went wrong
-            </h3>
-          </div>
-          <div className="mt-2 text-sm text-muted-foreground">
-            {this.state.error?.message || "An unexpected error occurred"}
-          </div>
-          <SampleButton
-            variant="outline"
-            size="sm"
-            className="mt-4"
-            onClick={() => this.setState({ hasError: false })}
-          >
-            Try again
-          </SampleButton>
-        </div>
+        <Card className="m-6">
+          <CardHeader>
+            <CardTitle className="text-destructive">Error</CardTitle>
+            <CardDescription>Failed to load models page</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>There was an error loading the models page information.</p>
+          </CardContent>
+          <CardFooter>
+            <SampleButton
+              onClick={() => window.location.reload()}
+              variant="outline"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Try Again
+            </SampleButton>
+          </CardFooter>
+        </Card>
       );
     }
 

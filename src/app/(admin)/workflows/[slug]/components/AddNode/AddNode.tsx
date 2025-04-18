@@ -6,7 +6,7 @@ import {
   FileCode,
   BrainCircuit,
   GitBranch,
-  X,
+  FileSpreadsheet,
 } from "lucide-react";
 
 import {
@@ -44,16 +44,16 @@ const AddNode = ({
           Add Node
         </SampleButton>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Add Node</DialogTitle>
           <DialogDescription>
             Select a node type to add to your workflow.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-2 gap-4 py-4">
+        <div className="grid grid-cols-4 gap-4 py-4">
           <Card
-            className="cursor-pointer hover:border-primary transition-colors"
+            className="cursor-pointer hover:border-primary transition-colors animate-scale"
             onClick={() => addNode("trigger")}
           >
             <CardHeader className="pb-2">
@@ -69,7 +69,7 @@ const AddNode = ({
             </CardContent>
           </Card>
           <Card
-            className="cursor-pointer hover:border-primary transition-colors"
+            className="cursor-pointer hover:border-primary transition-colors animate-scale"
             onClick={() => addNode("aiModel")}
           >
             <CardHeader className="pb-2">
@@ -85,7 +85,7 @@ const AddNode = ({
             </CardContent>
           </Card>
           <Card
-            className="cursor-pointer hover:border-primary transition-colors"
+            className="cursor-pointer hover:border-primary transition-colors animate-scale"
             onClick={() => addNode("rules")}
           >
             <CardHeader className="pb-2">
@@ -101,7 +101,7 @@ const AddNode = ({
             </CardContent>
           </Card>
           <Card
-            className="cursor-pointer hover:border-primary transition-colors"
+            className="cursor-pointer hover:border-primary transition-colors animate-scale"
             onClick={() => addNode("logic")}
           >
             <CardHeader className="pb-2">
@@ -117,7 +117,7 @@ const AddNode = ({
             </CardContent>
           </Card>
           <Card
-            className="cursor-pointer hover:border-primary transition-colors"
+            className="cursor-pointer hover:border-primary transition-colors animate-scale"
             onClick={() => addNode("database")}
           >
             <CardHeader className="pb-2">
@@ -133,7 +133,7 @@ const AddNode = ({
             </CardContent>
           </Card>
           <Card
-            className="cursor-pointer hover:border-primary transition-colors"
+            className="cursor-pointer hover:border-primary transition-colors animate-scale"
             onClick={() => addNode("webhook")}
           >
             <CardHeader className="pb-2">
@@ -144,6 +144,22 @@ const AddNode = ({
             </CardHeader>
             <CardContent>
               <CardDescription>Send data to external services</CardDescription>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer hover:border-primary transition-colors animate-scale"
+            onClick={() => addNode("decisionTable")}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-100 text-teal-600">
+                <FileSpreadsheet className="h-4 w-4" />
+              </div>
+              <CardTitle className="text-base mt-2">Decision Table</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Use decision tables for complex rules
+              </CardDescription>
             </CardContent>
           </Card>
         </div>

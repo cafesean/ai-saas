@@ -107,7 +107,7 @@ function ModelCard({
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <Link
-                    href={`/models/detail/${model.uuid}` as Route}
+                    href={`/models/${model.uuid}` as Route}
                     className="hover:text-primary transition-colors"
                   >
                     <h3 className="font-semibold text-lg">{model.name}</h3>
@@ -200,7 +200,7 @@ function ModelCard({
               className="w-full"
               asChild
             >
-              <Link href={`/models/detail/${model.uuid}`}>View Details</Link>
+              <Link href={`/models/${model.uuid}`}>View Details</Link>
             </SampleButton>
             <SampleButton variant="outline" size="sm" className="w-full">
               <Link href={`/models/${model.uuid}`}>Edit</Link>

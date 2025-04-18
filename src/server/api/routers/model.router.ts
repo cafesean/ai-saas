@@ -53,6 +53,12 @@ export const modelRouter = createTRPCRouter({
   }),
 
   getByUUID: publicProcedure.input(z.string()).query(async ({ input }) => {
+    if (!input) {
+      throw new TRPCError({
+        code: `${NOT_FOUND}` as TRPCError["code"],
+        message: MODEL_NOT_FOUND_ERROR,
+      });
+    }
     const model = await db.query.models.findFirst({
       where: eq(models.uuid, input),
       with: {

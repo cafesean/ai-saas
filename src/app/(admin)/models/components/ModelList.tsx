@@ -181,7 +181,7 @@ function ModelsListComponent({ models, viewMode, onDelete }: ModelsListProps) {
             <div className="flex items-start justify-between gap-2">
               <CardTitle className="text-lg">
                 <Link
-                  href={`/models/detail/${model.uuid}`}
+                  href={`/models/${model.uuid}`}
                   className="hover:underline"
                 >
                   {model.name}

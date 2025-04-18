@@ -33,6 +33,7 @@ const workflowUpdateSchema = z.object({
       id: z.string().min(1),
       source: z.string().min(1),
       target: z.string().min(1),
+      animated: z.boolean().optional(),
     }),
   ),
 });
@@ -124,7 +125,6 @@ export const workflowRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       try {
         const updateWorkflow = await db.transaction(async (tx) => {
-
           // Find the workflow by UUID
           const workflow = await tx.query.workflows.findFirst({
             where: eq(schema.workflows.uuid, input.uuid),
@@ -168,6 +168,7 @@ export const workflowRouter = createTRPCRouter({
                 uuid: uuidv4(),
                 source: edge.source,
                 target: edge.target,
+                animated: edge.animated || false,
                 workflowId: workflow.uuid,
               })),
             );

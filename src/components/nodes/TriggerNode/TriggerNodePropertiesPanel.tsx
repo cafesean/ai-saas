@@ -14,6 +14,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
+import { TriggerTypes } from "@/constants/general";
 
 export const TriggerNodePropertiesPanel = ({
   node,
@@ -42,15 +43,17 @@ export const TriggerNodePropertiesPanel = ({
             <SelectValue placeholder="Select trigger type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="HTTP Request">HTTP Request</SelectItem>
-            <SelectItem value="Webhook">Webhook</SelectItem>
-            <SelectItem value="Schedule">Schedule</SelectItem>
-            <SelectItem value="Event">Event</SelectItem>
+            {TriggerTypes.map((type) => (
+              <SelectItem key={type} value={type}>
+                {type}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
 
-      {node.data.type === "HTTP Request" && (
+      {(node.data.type === TriggerTypes[0] ||
+        node.data.type === TriggerTypes[1]) && (
         <div className="space-y-2">
           <Label htmlFor="http-method">HTTP Method</Label>
           <Select defaultValue="POST">
@@ -67,7 +70,22 @@ export const TriggerNodePropertiesPanel = ({
         </div>
       )}
 
-      {node.data.type === "Schedule" && (
+      {node.data.type === TriggerTypes[1] && (
+        <div className="space-y-2">
+          <Label htmlFor="webhook-path">Path</Label>
+          <SampleInput
+            id="webhook-path"
+            placeholder=""
+            value={node.data.path}
+            onChange={(e) => updateNodeData("path", e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Webhook URL path, e.g., /api/webhook
+          </p>
+        </div>
+      )}
+
+      {node.data.type === TriggerTypes[2] && (
         <div className="space-y-2">
           <Label htmlFor="schedule-expression">Schedule Expression</Label>
           <SampleInput id="schedule-expression" placeholder="0 * * * *" />
@@ -103,4 +121,3 @@ export const TriggerNodePropertiesPanel = ({
     </div>
   );
 };
-
