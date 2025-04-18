@@ -49,4 +49,5 @@ export const NodeTypes = {
   logic: "logic",
   database: "database",
   webhook: "webhook",
+  decisionTable: "decisionTable",
 }

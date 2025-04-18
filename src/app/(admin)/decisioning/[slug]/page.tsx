@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import {
   ExternalLink,
   FileSpreadsheet,
@@ -30,7 +30,6 @@ import {
 import Breadcrumbs from "@/components/breadcrambs";
 import { AdminRoutes } from "@/constants/routes";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
-import SkeletonLoading from "@/components/ui/skeleton-loading";
 import { DecisionStatus } from "@/constants/decisionTable";
 import { getTimeAgo } from "@/utils/func";
 import DecisionRuleTable from "../components/DecisionRuleTable";
@@ -46,6 +45,9 @@ import {
 } from "@/constants/decisionTable";
 import InputPanel from "./components/InputPanel";
 import OutputPanel from "./components/OutputPanel";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { DefaultSkeleton } from "@/components/skeletions/default-skeleton";
+import LoadingSkelenton from "./components/LoadingSkelenton";
 
 const DecisionTableDetailPage = () => {
   // Find the table based on the ID
@@ -298,10 +300,6 @@ const DecisionTableDetailPage = () => {
     setRows(newOrder);
   };
 
-  if (decisionTable?.isLoading) {
-    return <SkeletonLoading />;
-  }
-
   if (decisionTable?.error) {
     console.error("Model query error:", decisionTable.error);
     return (
@@ -319,133 +317,150 @@ const DecisionTableDetailPage = () => {
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <Breadcrumbs
-        items={[{ label: "Decision Table", link: AdminRoutes.decisionTables }]}
-        rightChildren={
-          <>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SampleButton variant="outline" size="sm">
-                  <MoreHorizontal className="mr-2 h-4 w-4" />
-                  Actions
-                </SampleButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  <Download className="mr-2 h-4 w-4" />
-                  Export Table
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Import Rules
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <FileSpreadsheet className="mr-2 h-4 w-4" />
-                  View as Spreadsheet
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Open API Reference
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <SampleButton onClick={doUpdateDecisionTable}>
-              <Save className="mr-2 h-4 w-4" />
-              Save Changes
-            </SampleButton>
-          </>
-        }
-      />
+    <ErrorBoundary>
+      <Suspense fallback={<DefaultSkeleton count={5} className="m-6" />}>
+        {!decisionTable.isLoading ? (
+          <div className="flex min-h-screen w-full flex-col bg-background">
+            <Breadcrumbs
+              items={[
+                {
+                  label: "Back to Decisioning",
+                  link: AdminRoutes.decisionTables,
+                },
+              ]}
+              rightChildren={
+                <>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <SampleButton variant="outline" size="sm">
+                        <MoreHorizontal className="mr-2 h-4 w-4" />
+                        Actions
+                      </SampleButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem>
+                        <Download className="mr-2 h-4 w-4" />
+                        Export Table
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Import Rules
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <FileSpreadsheet className="mr-2 h-4 w-4" />
+                        View as Spreadsheet
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem>
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        Open API Reference
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <SampleButton onClick={doUpdateDecisionTable}>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Changes
+                  </SampleButton>
+                </>
+              }
+            />
 
-      <div className="border-b">
-        <div className="py-4 md:p-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-bold">{table?.name}</h2>
-              </div>
-              <div className="text-muted-foreground mt-1">
-                {table?.decisionTableRows?.length} rows • Last updated{" "}
-                {table?.updatedAt ? getTimeAgo(table?.updatedAt) : ""}
+            <div className="border-b">
+              <div className="py-4 md:p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-2xl font-bold">{table?.name}</h2>
+                    </div>
+                    <div className="text-muted-foreground mt-1">
+                      {table?.decisionTableRows?.length} rows • Last updated{" "}
+                      {table?.updatedAt ? getTimeAgo(table?.updatedAt) : ""}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="table-active">Active</Label>
+                      <Switch
+                        id="table-active"
+                        checked={table?.status === DecisionStatus.ACTIVE}
+                        onCheckedChange={(checked: boolean) => {
+                          setTable((prev: any) => ({
+                            ...prev,
+                            status: checked
+                              ? DecisionStatus.ACTIVE
+                              : DecisionStatus.INACTIVE,
+                          }));
+                          doUpdateStatus(
+                            checked
+                              ? DecisionStatus.ACTIVE
+                              : DecisionStatus.INACTIVE,
+                          );
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="table-active">Active</Label>
-                <Switch
-                  id="table-active"
-                  checked={table?.status === DecisionStatus.ACTIVE}
-                  onCheckedChange={(checked: boolean) => {
-                    setTable((prev: any) => ({
-                      ...prev,
-                      status: checked
-                        ? DecisionStatus.ACTIVE
-                        : DecisionStatus.INACTIVE,
-                    }));
-                    doUpdateStatus(
-                      checked ? DecisionStatus.ACTIVE : DecisionStatus.INACTIVE,
-                    );
-                  }}
-                />
-              </div>
-            </div>
+            <main className="flex-1 p-6 space-y-8">
+              <Tabs defaultValue="editor">
+                <TabsList className="grid w-full md:w-auto grid-cols-3 md:grid-cols-none md:flex">
+                  <TabsTrigger value="editor">Table Editor</TabsTrigger>
+                  <TabsTrigger value="schema">Schema</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="editor" className="space-y-6 pt-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium">
+                      Decision Table Rules
+                    </h3>
+                    <SampleButton onClick={addNewRow}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Rule
+                    </SampleButton>
+                  </div>
+
+                  <div className="border rounded-md">
+                    <DecisionRuleTable
+                      inputs={inputs}
+                      outputs={outputs}
+                      rows={rows}
+                      updateCondition={updateCondition}
+                      updateOutputResult={updateOutputResult}
+                      removeRow={removeRow}
+                      updateRowOrder={handleRowOrderUpdate}
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="schema" className="space-y-6 pt-4">
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {/* Inputs Section */}
+                    <InputPanel
+                      inputs={inputs}
+                      addNewInput={addNewInput}
+                      removeInput={removeInput}
+                    />
+
+                    {/* Outputs Section */}
+                    <OutputPanel
+                      outputs={outputs}
+                      addNewOutput={addNewOutput}
+                      removeOutput={removeOutput}
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </main>
+            {updating && <FullScreenLoading />}
           </div>
-        </div>
-      </div>
-
-      <main className="flex-1 p-6 space-y-8">
-        <Tabs defaultValue="editor">
-          <TabsList className="grid w-full md:w-auto grid-cols-3 md:grid-cols-none md:flex">
-            <TabsTrigger value="editor">Table Editor</TabsTrigger>
-            <TabsTrigger value="schema">Schema</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="editor" className="space-y-6 pt-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium">Decision Table Rules</h3>
-              <SampleButton onClick={addNewRow}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Rule
-              </SampleButton>
-            </div>
-
-            <div className="border rounded-md">
-              <DecisionRuleTable
-                inputs={inputs}
-                outputs={outputs}
-                rows={rows}
-                updateCondition={updateCondition}
-                updateOutputResult={updateOutputResult}
-                removeRow={removeRow}
-                updateRowOrder={handleRowOrderUpdate}
-              />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="schema" className="space-y-6 pt-4">
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* Inputs Section */}
-              <InputPanel
-                inputs={inputs}
-                addNewInput={addNewInput}
-                removeInput={removeInput}
-              />
-
-              {/* Outputs Section */}
-              <OutputPanel
-                outputs={outputs}
-                addNewOutput={addNewOutput}
-                removeOutput={removeOutput}
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
-      </main>
-      {updating && <FullScreenLoading />}
-    </div>
+        ) : (
+          <LoadingSkelenton />
+        )}
+      </Suspense>
+    </ErrorBoundary>
   );
 };
 
