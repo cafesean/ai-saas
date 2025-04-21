@@ -78,6 +78,16 @@ export const decisionTableRouter = createTRPCRouter({
     return decisionTablesData;
   }),
 
+  getByStatus: publicProcedure
+    .input(z.enum([DecisionStatus.ACTIVE, DecisionStatus.INACTIVE]))
+    .query(async ({ input }) => {
+      const decisionTablesData = await db.query.decision_tables.findMany({
+        where: eq(decision_tables.status, input),
+        orderBy: desc(decision_tables.updatedAt),
+      });
+      return decisionTablesData;
+    }),
+
   getByUUID: publicProcedure.input(z.string()).query(async ({ input }) => {
     const decisionTable = await db.query.decision_tables.findFirst({
       where: eq(decision_tables.uuid, input),

@@ -136,12 +136,12 @@ export default function WorkflowsPage() {
   };
 
   const confirmDelete = async () => {
+    closeDeleteConfirm();
     if (selectedWorkflow) {
       try {
         await deleteWorkflow.mutateAsync({
           uuid: selectedWorkflow.uuid,
         });
-        closeDeleteConfirm();
       } catch (error) {
         console.error("Error deleting model:", error);
       }
@@ -353,7 +353,9 @@ export default function WorkflowsPage() {
               </div>
             </>
           )}
-          {create.isPending && <FullScreenLoading />}
+          {(create.isPending || deleteWorkflow.isPending) && (
+            <FullScreenLoading />
+          )}
         </Suspense>
       </ErrorBoundary>
     </div>

@@ -16,18 +16,18 @@ export const DecisionTableInputConditions = [
   {
     condition: "less than",
   },
-  {
-    condition: "contains",
-  },
-  {
-    condition: "does not contain",
-  },
-  {
-    condition: "start with",
-  },
-  {
-    condition: "end with",
-  },
+  // {
+  //   condition: "contains",
+  // },
+  // {
+  //   condition: "does not contain",
+  // },
+  // {
+  //   condition: "start with",
+  // },
+  // {
+  //   condition: "end with",
+  // },
 ];
 
 export const DecisionDataTypes = [

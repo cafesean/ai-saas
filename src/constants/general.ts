@@ -26,6 +26,8 @@ export const TriggerTypes = [
   "Event",
 ] as const;
 
+export const TriggerHTTPMethods = ["GET", "POST", "PUT", "DELETE"] as const;
+
 export const ModelStatus = {
   ACTIVE: "active",
   INACTIVE: "inactive",

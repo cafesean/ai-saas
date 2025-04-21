@@ -36,7 +36,7 @@ export const DecisionTableNode = ({ data, selected }: NodeProps) => {
           </div>
           <div>
             <p className="font-medium">{data.label}</p>
-            <p className="text-xs text-muted-foreground">{data.tableName}</p>
+            <p className="text-xs text-muted-foreground">{data.decisionTable?.name}</p>
           </div>
         </div>
         <Handle
