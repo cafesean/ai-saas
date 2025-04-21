@@ -28,6 +28,7 @@ import {
 } from "@/types/DecisionTable";
 import { DecisionDataTypes } from "@/constants/decisionTable";
 import { isPartialBoolean } from "@/utils/func";
+import { DecisionTableInputConditions } from "@/constants/decisionTable";
 
 const validateValueByDataType = (value: string, dataType: string) => {
   if (value) {
@@ -147,13 +148,14 @@ const DraggableRow = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="equals">equals</SelectItem>
-                  <SelectItem value="not-equals">not equals</SelectItem>
-                  <SelectItem value="greater-than">greater than</SelectItem>
-                  <SelectItem value="less-than">less than</SelectItem>
-                  <SelectItem value="contains">contains</SelectItem>
-                  <SelectItem value="starts-with">starts with</SelectItem>
-                  <SelectItem value="ends-with">ends with</SelectItem>
+                  {DecisionTableInputConditions.map((c) => (
+                    <SelectItem
+                      key={`condition-${c.condition}`}
+                      value={c.condition}
+                    >
+                      {c.condition}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -161,7 +163,12 @@ const DraggableRow = ({
                 value={condition?.value || ""}
                 onChange={(e) => {
                   if (validateValueByDataType(e.target.value, input.dataType)) {
-                    updateCondition(row.uuid, input.uuid, "value", e.target.value);
+                    updateCondition(
+                      row.uuid,
+                      input.uuid,
+                      "value",
+                      e.target.value,
+                    );
                   }
                 }}
                 className="flex-1 border-0 border-l"
@@ -185,7 +192,12 @@ const DraggableRow = ({
               value={outputResult?.result || ""}
               onChange={(e) => {
                 if (validateValueByDataType(e.target.value, output.dataType)) {
-                  updateOutputResult(row.uuid, output.uuid, "result", e.target.value);
+                  updateOutputResult(
+                    row.uuid,
+                    output.uuid,
+                    "result",
+                    e.target.value,
+                  );
                 }
               }}
               className="w-full"
@@ -246,13 +258,13 @@ const DecisionRuleTable = ({
   const moveRow = (dragIndex: number, hoverIndex: number) => {
     const newRows = [...localRows];
     const draggedRow = newRows[dragIndex] as DecisionTableRow;
-    
+
     // move the row to the new position
     newRows.splice(dragIndex, 1);
-    
+
     // insert the row to the new position
     newRows.splice(hoverIndex, 0, draggedRow);
-    
+
     setLocalRows(newRows);
     updateRowOrder(newRows);
   };

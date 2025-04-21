@@ -1,13 +1,22 @@
 import { unknown, z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import { db } from "@/db/config";
-import schema from "@/db/schema";
+import schema, { rules } from "@/db/schema";
 import { eq, asc, desc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { N8N_API } from "@/constants/api";
-import { WorkflowStatus } from "@/constants/general";
+import { EndpointStatus, WorkflowStatus } from "@/constants/general";
+import { DecisionTableInputConditions } from "@/constants/decisionTable";
+import { NodeTypes } from "@/constants/nodes";
+import {
+  n8nHTTPRequestNode,
+  n8nSetNode,
+  n8nCodeNode,
+  n8nWebhookNode,
+  n8nSetNodeDefaultAssignments,
+} from "@/constants/n8n";
 
 const workflowCreateSchema = z.object({
   name: z.string().min(1),
@@ -110,6 +119,51 @@ export const workflowRouter = createTRPCRouter({
           })
           .where(eq(schema.workflows.uuid, input.uuid))
           .returning();
+        // Detect if workflow have flowId
+        if (workflowData[0]?.flowId) {
+          // Get the n8n workflow by flowId
+          const apiURI = `${
+            N8N_API.getWorkflowById(workflowData[0]?.flowId).uri
+          }`;
+          const options = {
+            baseURL: process.env.N8N_API_URL,
+            headers: {
+              "Content-Type": "application/json",
+              "X-N8N-API-KEY": `${process.env.N8N_API_KEY}`,
+            },
+            url: apiURI,
+            method: N8N_API.getWorkflowById(workflowData[0]?.flowId).method,
+          };
+          const response = await instance(options);
+          if (response.status === 200) {
+            const n8nWorkflow = response.data;
+            // Update the n8n workflow for name
+
+            const updateApiURI = `${
+              N8N_API.updateWorkflow(workflowData[0]?.flowId).uri
+            }`;
+            const payload = {
+              name: input.name,
+              nodes: n8nWorkflow.nodes,
+              connections: n8nWorkflow.connections,
+              settings: n8nWorkflow.settings,
+              staticData: {
+                lastId: uuidv4(),
+              },
+            };
+            const updateOptions = {
+              baseURL: process.env.N8N_API_URL,
+              headers: {
+                "Content-Type": "application/json",
+                "X-N8N-API-KEY": `${process.env.N8N_API_KEY}`,
+              },
+              url: updateApiURI,
+              method: N8N_API.updateWorkflow(workflowData[0]?.flowId).method,
+              data: payload,
+            };
+            await instance(updateOptions);
+          }
+        }
         return workflowData[0];
       } catch (error) {
         console.error(error);
@@ -124,7 +178,7 @@ export const workflowRouter = createTRPCRouter({
     .input(workflowUpdateSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        const updateWorkflow = await db.transaction(async (tx) => {
+        const updateWorkflow = await db.transaction(async (tx: any) => {
           // Find the workflow by UUID
           const workflow = await tx.query.workflows.findFirst({
             where: eq(schema.workflows.uuid, input.uuid),
@@ -173,6 +227,132 @@ export const workflowRouter = createTRPCRouter({
               })),
             );
           }
+          // Hadle convert workflow to n8n workflow
+          let flowId = workflow.flowId;
+          const { n8nNodes, n8nConnections } =
+            await generateN8NNodesAndN8NConnections(
+              input.nodes,
+              input.edges,
+              tx,
+            );
+          const payload = {
+            name: workflow.name,
+            nodes: n8nNodes,
+            connections: n8nConnections,
+            settings: {
+              executionOrder: "v1",
+            },
+            staticData: {
+              lastId: uuidv4(),
+            },
+          };
+          // If flow exists, update the n8n workflow
+          // Check flow whether exists in n8n
+          if (flowId) {
+            try {
+              const apiURI = `${N8N_API.getWorkflowById(flowId).uri}`;
+              const options = {
+                baseURL: process.env.N8N_API_URL,
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-N8N-API-KEY": `${process.env.N8N_API_KEY}`,
+                },
+                url: apiURI,
+                method: N8N_API.getWorkflowById(flowId).method,
+              };
+              const response = await instance(options);
+              if (response.status == 200 && response.data.id) {
+              }
+              if (response.data && response.data.id) {
+                const updateApiURI = `${N8N_API.updateWorkflow(flowId).uri}`;
+                const updateOptions = {
+                  baseURL: process.env.N8N_API_URL,
+                  headers: {
+                    "Content-Type": "application/json",
+                    "X-N8N-API-KEY": `${process.env.N8N_API_KEY}`,
+                  },
+                  url: updateApiURI,
+                  method: N8N_API.updateWorkflow(flowId).method,
+                  data: payload,
+                };
+                await instance(updateOptions);
+              }
+            } catch (error) {
+              console.log("Flow not found in n8n");
+              flowId = null;
+            }
+          }
+          // If flow does not exist, create a new n8n workflow
+          if (!flowId) {
+            const createApiURI = `${N8N_API.createWorkflow().uri}`;
+            const createOptions = {
+              baseURL: process.env.N8N_API_URL,
+              headers: {
+                "Content-Type": "application/json",
+                "X-N8N-API-KEY": `${process.env.N8N_API_KEY}`,
+              },
+              url: createApiURI,
+              method: N8N_API.createWorkflow().method,
+              data: payload,
+            };
+            try {
+              const createResponse = await instance(createOptions);
+              // Activate workflow
+              if (createResponse.status == 200 && createResponse.data.id) {
+                flowId = createResponse.data.id;
+                const activeApiURI = `${
+                  N8N_API.activeWorkflow(`${flowId}`).uri
+                }`;
+                const options = {
+                  baseURL: process.env.N8N_API_URL,
+                  headers: {
+                    "Content-Type": "application/json",
+                    "X-N8N-API-KEY": `${process.env.N8N_API_KEY}`,
+                  },
+                  url: activeApiURI,
+                  method: N8N_API.activeWorkflow(`${flowId}`).method,
+                };
+                await instance(options);
+              }
+              // update flowId in workflow table
+              await tx
+                .update(schema.workflows)
+                .set({
+                  flowId: flowId,
+                })
+                .where(eq(schema.workflows.uuid, workflow.uuid))
+                .returning();
+            } catch (error) {
+              console.error(error);
+            }
+          }
+          // Create endpoints
+          // Detect whether have n8n webhook node
+          const n8nWebhookNodes = n8nNodes.filter(
+            (node: any) => node.type === n8nWebhookNode.type,
+          );
+          if (n8nWebhookNodes) {
+            // Delete all endpoints associated with the workflow
+            await tx
+              .delete(schema.endpoints)
+              .where(eq(schema.endpoints.workflowId, workflow.uuid));
+            for (const node of n8nWebhookNodes) {
+              const endpoint = await tx
+                .insert(schema.endpoints)
+                .values({
+                  workflowId: workflow.uuid,
+                  uri: node.parameters.path,
+                  method: node.parameters.httpMethod,
+                  payload: JSON.stringify({}),
+                  status: EndpointStatus.ACTIVE,
+                  flowURI: node.parameters.path,
+                  flowMethod: node.parameters.httpMethod,
+                  clientId: uuidv4(),
+                  clientSecret: uuidv4(),
+                })
+                .returning();
+            }
+          }
         });
         return updateWorkflow;
       } catch (error) {
@@ -188,6 +368,29 @@ export const workflowRouter = createTRPCRouter({
     .input(z.object({ uuid: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const deleteResponse = await db.transaction(async (tx) => {
+        // Delete n8n flow if flowId exists
+        const workflow = await tx.query.workflows.findFirst({
+          where: eq(schema.workflows.uuid, input.uuid),
+        });
+        if (workflow && workflow.flowId) {
+          try {
+            const deleteApiURI = `${
+              N8N_API.deleteWorkflow(workflow.flowId).uri
+            }`;
+            const deleteOptions = {
+              baseURL: process.env.N8N_API_URL,
+              headers: {
+                "Content-Type": "application/json",
+                "X-N8N-API-KEY": `${process.env.N8N_API_KEY}`,
+              },
+              url: deleteApiURI,
+              method: N8N_API.deleteWorkflow(workflow.flowId).method,
+            };
+            await instance(deleteOptions);
+          } catch (error) {
+            console.log("Flow not found in n8n");
+          }
+        }
         return await tx
           .delete(schema.workflows)
           .where(eq(schema.workflows.uuid, input.uuid))
@@ -196,3 +399,176 @@ export const workflowRouter = createTRPCRouter({
       return deleteResponse;
     }),
 });
+
+const generateN8NNodesAndN8NConnections = async (
+  nodes: any[],
+  edges: any[],
+  tx: any,
+) => {
+  let n8nNodes: any[] = [];
+  let n8nConnections: any = {};
+  for (const node of nodes) {
+    switch (node.type) {
+      case NodeTypes.trigger:
+        n8nNodes.push({
+          ...n8nWebhookNode,
+          parameters: {
+            ...n8nWebhookNode.parameters,
+            httpMethod: node.data.method,
+            path: node.data.path,
+          },
+          position: [node.position.x, node.position.y],
+          name: node.data.label,
+          id: uuidv4(),
+          webhookId: uuidv4(),
+        });
+        break;
+      case NodeTypes.aiModel:
+        n8nNodes.push({
+          ...n8nHTTPRequestNode,
+          parameters: {
+            ...n8nHTTPRequestNode.parameters,
+            url: process.env.MODEL_MOCK_URL,
+          },
+          position: [node.position.x, node.position.y],
+          name: node.data.label,
+          id: uuidv4(),
+        });
+        break;
+      case NodeTypes.decisionTable:
+        const decisionTableUUID = node.data.decisionTable.uuid;
+        const decisionTable = await tx.query.decision_tables.findFirst({
+          where: eq(schema.decision_tables.uuid, decisionTableUUID),
+          with: {
+            decisionTableRows: {
+              with: {
+                decisionTableInputConditions: true,
+                decisionTableOutputResults: true,
+              },
+            },
+            decisionTableInputs: true,
+            decisionTableOutputs: true,
+          },
+        });
+        if (decisionTable) {
+          const decisionTableRows = decisionTable.decisionTableRows;
+          const decisionTableInputs = decisionTable.decisionTableInputs;
+          const decisionTableOutputs = decisionTable.decisionTableOutputs;
+          if (decisionTableRows.length > 0) {
+            let decisionTableJSCodeArray = [];
+            // Generate decision table array
+            let decisionTableCode = "const decisionTable = [\n";
+            decisionTableRows.forEach((row: any, rn: number) => {
+              const decisionTableInputConditions =
+                row.decisionTableInputConditions;
+              const decisionTableOutputResults = row.decisionTableOutputResults;
+              decisionTableCode += "  {\n";
+              decisionTableCode += "    condition: (data) => ";
+              // Loop conditions
+              const conditions: any[] = [];
+              decisionTableInputConditions.forEach(
+                (condition: any, cn: number) => {
+                  const decisionTableInput = decisionTableInputs.find(
+                    (input: any) => input.uuid === condition.dt_input_id,
+                  );
+                  conditions.push(
+                    `data.${decisionTableInput.name} ${getOperator(
+                      condition.condition,
+                    )} ${condition.value}`,
+                  );
+                },
+              );
+              decisionTableCode += conditions.join(" && ") + ",\n";
+              // Contact outputs
+              decisionTableCode += "    result: { ";
+              // Loop outputs
+              const results: any[] = [];
+              decisionTableOutputResults.forEach((result: any, rn: number) => {
+                const decisionTableOutput = decisionTableOutputs.find(
+                  (output: any) => output.uuid === result.dt_output_id,
+                );
+                results.push(`${decisionTableOutput.name}: ${result.result}`);
+              });
+              decisionTableCode += results.join(", ");
+              decisionTableCode += " },\n";
+              decisionTableCode += "  },";
+              if (rn == decisionTableRows.length - 1) {
+                decisionTableCode += "\n";
+              }
+            });
+            decisionTableCode += "];\n";
+            decisionTableJSCodeArray.push(decisionTableCode);
+            // Node input data
+            const nodeInputCode = "const data = $input.all()[0].json.body || $input.all()[0].json;\n";
+            decisionTableJSCodeArray.push(nodeInputCode);
+            // Default result
+            const defaultResult = "let matchedResult = null;";
+            decisionTableJSCodeArray.push(defaultResult);
+            // Detect matched result
+            const detectMatchedResult =
+              "for (const rule of decisionTable) {\n  if (rule.condition(data)) {\n    matchedResult = rule.result;\n    break;\n  }\n}\n";
+            decisionTableJSCodeArray.push(detectMatchedResult);
+            // Return matched result
+            const returnMatchedResult =
+              'return [\n  {\n    json: {\n      decision: matchedResult || "No Match",\n    },\n  },\n];';
+            decisionTableJSCodeArray.push(returnMatchedResult);
+            // Generate JS code
+            const jsCode = decisionTableJSCodeArray.join("\n");
+            // Generate n8n code node
+            n8nNodes.push({
+              ...n8nCodeNode,
+              parameters: {
+                ...n8nCodeNode.parameters,
+                jsCode,
+              },
+              position: [node.position.x, node.position.y],
+              name: node.data.label,
+              id: uuidv4(),
+            });
+          }
+        }
+        break;
+      default:
+        break;
+    }
+  }
+  // Generate n8n connections
+  edges.forEach((edge) => {
+    const sourceNode = nodes.find((node) => node.id === edge.source);
+    const targetNode = nodes.find((node) => node.id === edge.target);
+    if (sourceNode && targetNode) {
+      if (!n8nConnections[sourceNode.data.label]) {
+        n8nConnections[sourceNode.data.label] = {
+          main: [
+            [
+              {
+                node: targetNode.data.label,
+                type: "main",
+                index: 0,
+              },
+            ],
+          ],
+        };
+      }
+    }
+  });
+  return {
+    n8nNodes,
+    n8nConnections,
+  };
+};
+
+const getOperator = (operator: string) => {
+  switch (operator) {
+    case DecisionTableInputConditions[0]?.condition:
+      return "==";
+    case DecisionTableInputConditions[1]?.condition:
+      return "!=";
+    case DecisionTableInputConditions[2]?.condition:
+      return ">";
+    case DecisionTableInputConditions[3]?.condition:
+      return "<";
+    default:
+      return "==";
+  }
+};
