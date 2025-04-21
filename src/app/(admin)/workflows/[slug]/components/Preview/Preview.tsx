@@ -35,7 +35,7 @@ const Preview = ({ endpoint }: { endpoint: any }) => {
       { replayer: AI_SASS_NAME, text: AI_LOADING_TEXT },
     ]);
     setQuery("");
-    const AI_SASS_ENDPOINT_BASE_URL = process.env.NEXT_PUBLIC_AI_SASS_ENDPOINT_BASE_URL;
+    const AI_SASS_ENDPOINT_BASE_URL = process.env.NEXT_PUBLIC_AI_SAAS_ENDPOINT_BASE_URL;
     let payload = endpoint?.payload as any;
     try {
       // Check if have sessionId in payload

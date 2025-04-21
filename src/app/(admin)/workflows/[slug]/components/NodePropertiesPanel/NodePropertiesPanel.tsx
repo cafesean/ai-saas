@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+
 import { NodeTypes } from "@/constants/nodes";
 import { TriggerNodePropertiesPanel } from "@/components/nodes/TriggerNode";
 import { AIModelNodePropertiesPanel } from "@/components/nodes/AIModelNode";
@@ -6,6 +8,8 @@ import { LogicNodePropertiesPanel } from "@/components/nodes/LogicNode";
 import { DatabaseNodePropertiesPanel } from "@/components/nodes/DatabaseNode";
 import { WebhookNodePropertiesPanel } from "@/components/nodes/WebhookNode";
 import { DecisionTableNodePropertiesPanel } from "@/components/nodes/DecisionTableNode";
+import { api } from "@/utils/trpc";
+import { ModelStatus } from "@/constants/general";
 
 interface NodePropertiesPanelProps {
   nodeId: string;
@@ -18,6 +22,16 @@ function NodePropertiesPanel({
   nodes,
   setNodes,
 }: NodePropertiesPanelProps) {
+  const activeModels = api.model.getByStatus.useQuery(ModelStatus.ACTIVE, {
+    enabled: false,
+  });
+  const activeDecisionTables = api.decisionTable.getByStatus.useQuery(
+    ModelStatus.ACTIVE,
+    {
+      enabled: false,
+    },
+  );
+
   const node = nodes.find((n) => n.id === nodeId);
 
   if (!node) return null;
@@ -49,10 +63,14 @@ function NodePropertiesPanel({
         />
       );
     case NodeTypes.aiModel:
+      if (!activeModels.isFetched) {
+        activeModels.refetch();
+      }
       return (
         <AIModelNodePropertiesPanel
           node={node}
           updateNodeData={updateNodeData}
+          models={activeModels.data || []}
         />
       );
     case NodeTypes.rules:
@@ -78,10 +96,14 @@ function NodePropertiesPanel({
         />
       );
     case NodeTypes.decisionTable:
+      if (!activeDecisionTables.isFetched) {
+        activeDecisionTables.refetch();
+      }
       return (
         <DecisionTableNodePropertiesPanel
           node={node}
           updateNodeData={updateNodeData}
+          decisionTables={activeDecisionTables.data || []}
         />
       );
 

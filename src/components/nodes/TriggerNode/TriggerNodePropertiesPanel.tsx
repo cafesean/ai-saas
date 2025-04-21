@@ -14,7 +14,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
-import { TriggerTypes } from "@/constants/general";
+import { TriggerTypes, TriggerHTTPMethods } from "@/constants/general";
 
 export const TriggerNodePropertiesPanel = ({
   node,
@@ -33,6 +33,15 @@ export const TriggerNodePropertiesPanel = ({
           onChange={(e) => updateNodeData("label", e.target.value)}
         />
       </div>
+      {(node.data.type === TriggerTypes[0] ||
+        node.data.type === TriggerTypes[1]) && (
+        <div className="space-y-2">
+          <Label htmlFor="trigger-label">Trigger URL</Label>
+          <div className="text-xs">
+            {`${node.data.triggerHost}${node.data.path}`}
+          </div>
+        </div>
+      )}
       <div className="space-y-2">
         <Label htmlFor="trigger-type">Trigger Type</Label>
         <Select
@@ -44,7 +53,7 @@ export const TriggerNodePropertiesPanel = ({
           </SelectTrigger>
           <SelectContent>
             {TriggerTypes.map((type) => (
-              <SelectItem key={type} value={type}>
+              <SelectItem key={`trigger-type-${type}`} value={type}>
                 {type}
               </SelectItem>
             ))}
@@ -56,15 +65,19 @@ export const TriggerNodePropertiesPanel = ({
         node.data.type === TriggerTypes[1]) && (
         <div className="space-y-2">
           <Label htmlFor="http-method">HTTP Method</Label>
-          <Select defaultValue="POST">
+          <Select
+            value={node.data.method}
+            onValueChange={(value) => updateNodeData("method", value)}
+          >
             <SelectTrigger id="http-method">
               <SelectValue placeholder="Select HTTP method" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="GET">GET</SelectItem>
-              <SelectItem value="POST">POST</SelectItem>
-              <SelectItem value="PUT">PUT</SelectItem>
-              <SelectItem value="DELETE">DELETE</SelectItem>
+              {TriggerHTTPMethods.map((method) => (
+                <SelectItem key={`trigger-method-${method}`} value={method}>
+                  {method}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

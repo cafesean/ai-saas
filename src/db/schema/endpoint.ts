@@ -19,21 +19,27 @@ export const endpoints = pgTable(
   {
     id: serial("id").notNull().primaryKey(),
     uuid: uuid("uuid").notNull().defaultRandom(),
-    workflowId: uuid("workflow_id").notNull().unique(),
+    workflowId: uuid("workflow_id")
+      .notNull()
+      .references(() => workflows.uuid, { onDelete: "cascade" }),
     uri: text("uri").notNull(),
-    method: varchar("method", { length: 100 }).notNull().default(HTTPMethod.POST),
+    method: varchar("method", { length: 100 })
+      .notNull()
+      .default(HTTPMethod.POST),
     payload: json("payload"),
-    status: varchar("status", { length: 100 }).notNull().default(EndpointStatus.ACTIVE),
+    status: varchar("status", { length: 100 })
+      .notNull()
+      .default(EndpointStatus.ACTIVE),
     flowURI: text("flow_uri").notNull(),
-    flowMethod: varchar("flow_method", { length: 100 }).notNull().default(HTTPMethod.POST),
+    flowMethod: varchar("flow_method", { length: 100 })
+      .notNull()
+      .default(HTTPMethod.POST),
     clientId: text("client_id").notNull(),
     clientSecret: text("client_secret").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (table) => [
-    unique("workflowId_endpoints_unique").on(table.workflowId),
-  ]
+  (table) => [unique("workflowId_endpoints_unique").on(table.workflowId)],
 );
 
 export const endpointsRelations = relations(endpoints, ({ one }) => ({

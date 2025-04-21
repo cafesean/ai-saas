@@ -52,6 +52,16 @@ export const modelRouter = createTRPCRouter({
     return modelsData;
   }),
 
+  getByStatus: publicProcedure
+    .input(z.enum([ModelStatus.ACTIVE, ModelStatus.INACTIVE]))
+    .query(async ({ input }) => {
+      const modelsData = await db.query.models.findMany({
+        where: eq(models.status, input),
+        orderBy: desc(models.updatedAt),
+      });
+      return modelsData;
+    }),
+
   getByUUID: publicProcedure.input(z.string()).query(async ({ input }) => {
     if (!input) {
       throw new TRPCError({
