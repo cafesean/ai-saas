@@ -47,7 +47,7 @@ const ChatWidgetPage = () => {
       { replayer: AI_SASS_NAME, text: AI_LOADING_TEXT },
     ]);
     setQuery("");
-    const AI_SASS_ENDPOINT_BASE_URL = process.env.NEXT_PUBLIC_AI_SASS_ENDPOINT_BASE_URL;
+    const AI_SASS_ENDPOINT_BASE_URL = process.env.NEXT_PUBLIC_AI_SAAS_ENDPOINT_BASE_URL;
     const endpoint = widget.data?.workflow.endpoint;
     let payload = endpoint?.payload as any;
     try {

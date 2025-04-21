@@ -20,14 +20,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { SampleButton } from "@/components/ui/sample-button";
 
 export const AIModelNodePropertiesPanel = ({
   node,
   updateNodeData,
+  models,
 }: {
   node: any;
   updateNodeData: (key: string, value: any) => void;
+  models: any[];
 }) => {
   return (
     <div className="space-y-4">
@@ -42,28 +43,35 @@ export const AIModelNodePropertiesPanel = ({
       <div className="space-y-2">
         <Label htmlFor="model-name">Model</Label>
         <Select
-          value={node.data.modelName}
-          onValueChange={(value) => updateNodeData("modelName", value)}
+          value={node.data.model?.uuid}
+          onValueChange={(value) => {
+            if (value) {
+              const selectedModel = models.find(
+                (model) => model.uuid === value,
+              );
+              if (selectedModel) {
+                updateNodeData("model", {
+                  name: selectedModel.name,
+                  uuid: value,
+                });
+              }
+            }
+          }}
         >
           <SelectTrigger id="model-name">
             <SelectValue placeholder="Select AI model" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="GPT-4o">GPT-4o</SelectItem>
-            <SelectItem value="Credit Risk Predictor v3">
-              Credit Risk Predictor v3
-            </SelectItem>
-            <SelectItem value="Fraud Detection Engine">
-              Fraud Detection Engine
-            </SelectItem>
-            <SelectItem value="Customer Churn Predictor">
-              Customer Churn Predictor
-            </SelectItem>
+            {models.map((model) => (
+              <SelectItem key={model.uuid} value={model.uuid}>
+                {model.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
 
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label>Input Mapping</Label>
         <div className="border rounded-md p-3 space-y-2">
           <div className="flex items-center justify-between">
@@ -91,7 +99,7 @@ export const AIModelNodePropertiesPanel = ({
           <Plus className="mr-2 h-4 w-4" />
           Add Output Mapping
         </SampleButton>
-      </div>
+      </div> */}
 
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="advanced">

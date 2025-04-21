@@ -36,7 +36,7 @@ export const AIModelNode = ({ data, selected }: NodeProps) => {
           </div>
           <div>
             <p className="font-medium">{data.label}</p>
-            <p className="text-xs text-muted-foreground">{data.modelName}</p>
+            <p className="text-xs text-muted-foreground">{data.model?.name}</p>
           </div>
         </div>
         <Handle
