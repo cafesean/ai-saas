@@ -10,8 +10,18 @@ export const WorkflowStatus = {
 } as const;
 
 export const WorkflowTypes = {
-  EVENT_DRIVEN: "Event-Driven",
-  SCHEDULED: "Scheduled",
+  STANDARD: {
+    label: "Standard Workflow",
+    value: "Standard",
+  },
+  EVENT_DRIVEN: {
+    label: "Event-Driven Workflow",
+    value: "Event-Driven",
+  },
+  SCHEDULED: {
+    label: "Scheduled Workflow",
+    value: "Scheduled",
+  },
 } as const;
 
 export const WorkflowNodeDataActions = {
