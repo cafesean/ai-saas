@@ -8,7 +8,11 @@ import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { N8N_API } from "@/constants/api";
 import { EndpointStatus, WorkflowStatus } from "@/constants/general";
-import { DecisionTableInputConditions } from "@/constants/decisionTable";
+import {
+  DecisionTableInputNumberOperators,
+  DecisionTableInputStringOperators,
+  DecisionTableInputBooleanOperators,
+} from "@/constants/decisionTable";
 import { NodeTypes } from "@/constants/nodes";
 import {
   n8nHTTPRequestNode,
@@ -17,6 +21,7 @@ import {
   n8nWebhookNode,
   n8nSetNodeDefaultAssignments,
 } from "@/constants/n8n";
+import { DecisionDataTypes } from "@/constants/decisionTable";
 
 const workflowCreateSchema = z.object({
   name: z.string().min(1),
@@ -61,6 +66,7 @@ export const workflowRouter = createTRPCRouter({
     const workflowsData = await db.query.workflows.findMany({
       with: {
         endpoint: true,
+        nodes: true,
       },
       orderBy: desc(schema.workflows.id),
     });
@@ -472,9 +478,11 @@ const generateN8NNodesAndN8NConnections = async (
                     (input: any) => input.uuid === condition.dt_input_id,
                   );
                   conditions.push(
-                    `data.${decisionTableInput.name} ${getOperator(
+                    `data.${decisionTableInput.name}${getInputOperatorAndValue(
                       condition.condition,
-                    )} ${condition.value}`,
+                      decisionTableInput.dataType,
+                      condition.value,
+                    )}`,
                   );
                 },
               );
@@ -487,7 +495,12 @@ const generateN8NNodesAndN8NConnections = async (
                 const decisionTableOutput = decisionTableOutputs.find(
                   (output: any) => output.uuid === result.dt_output_id,
                 );
-                results.push(`${decisionTableOutput.name}: ${result.result}`);
+                results.push(
+                  `${decisionTableOutput.name}:${getOutputValue(
+                    result.result,
+                    decisionTableOutput.dataType,
+                  )}`,
+                );
               });
               decisionTableCode += results.join(", ");
               decisionTableCode += " },\n";
@@ -499,7 +512,8 @@ const generateN8NNodesAndN8NConnections = async (
             decisionTableCode += "];\n";
             decisionTableJSCodeArray.push(decisionTableCode);
             // Node input data
-            const nodeInputCode = "const data = $input.all()[0].json.body || $input.all()[0].json;\n";
+            const nodeInputCode =
+              "const data = $input.all()[0].json.body || $input.all()[0].json;\n";
             decisionTableJSCodeArray.push(nodeInputCode);
             // Default result
             const defaultResult = "let matchedResult = null;";
@@ -558,17 +572,69 @@ const generateN8NNodesAndN8NConnections = async (
   };
 };
 
-const getOperator = (operator: string) => {
-  switch (operator) {
-    case DecisionTableInputConditions[0]?.condition:
-      return "==";
-    case DecisionTableInputConditions[1]?.condition:
-      return "!=";
-    case DecisionTableInputConditions[2]?.condition:
-      return ">";
-    case DecisionTableInputConditions[3]?.condition:
-      return "<";
+const getInputOperatorAndValue = (
+  operator: string,
+  dateType?: string,
+  value?: string,
+) => {
+  switch (dateType) {
+    case DecisionDataTypes[2]?.value:
+      switch (operator) {
+        case DecisionTableInputBooleanOperators[0]?.operator:
+          return " == true";
+        case DecisionTableInputBooleanOperators[1]?.operator:
+          return " == false";
+        case DecisionTableInputBooleanOperators[2]?.operator:
+          return ` == ${value}`;
+        case DecisionTableInputBooleanOperators[3]?.operator:
+          return ` != ${value}`;
+      }
+    case DecisionDataTypes[0]?.value:
+      switch (operator) {
+        case DecisionTableInputStringOperators[0]?.operator:
+          return " != null";
+        case DecisionTableInputStringOperators[1]?.operator:
+          return " == null";
+        case DecisionTableInputStringOperators[2]?.operator:
+          return " == ''";
+        case DecisionTableInputStringOperators[3]?.operator:
+          return " != ''";
+        case DecisionTableInputStringOperators[4]?.operator:
+          return ` == '${value}'`;
+        case DecisionTableInputStringOperators[5]?.operator:
+          return ` != '${value}'`;
+        case DecisionTableInputStringOperators[6]?.operator:
+          return `.indexOf('${value}') != -1`;
+        case DecisionTableInputStringOperators[7]?.operator:
+          return `.indexOf('${value}') == -1`;
+        default:
+          return ` == '${value}'`;
+      }
     default:
-      return "==";
+      switch (operator) {
+        case DecisionTableInputNumberOperators[0]?.operator:
+          return ` == ${value}`;
+        case DecisionTableInputNumberOperators[1]?.operator:
+          return ` != ${value}`;
+        case DecisionTableInputNumberOperators[2]?.operator:
+          return ` > ${value}`;
+        case DecisionTableInputNumberOperators[3]?.operator:
+          return ` < ${value}`;
+        case DecisionTableInputNumberOperators[4]?.operator:
+          return ` >= ${value}`;
+        case DecisionTableInputNumberOperators[5]?.operator:
+          return ` <= ${value}`;
+        default:
+          return ` == ${value}`;
+      }
+  }
+};
+
+const getOutputValue = (value: string, dateType?: string) => {
+  switch (dateType) {
+    case DecisionDataTypes[0]?.value:
+      return ` '${value}'`;
+    default:
+      return ` ${value}`;
   }
 };
