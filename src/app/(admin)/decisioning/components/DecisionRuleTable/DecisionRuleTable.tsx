@@ -28,7 +28,11 @@ import {
 } from "@/types/DecisionTable";
 import { DecisionDataTypes } from "@/constants/decisionTable";
 import { isPartialBoolean } from "@/utils/func";
-import { DecisionTableInputConditions } from "@/constants/decisionTable";
+import {
+  DecisionTableInputNumberOperators,
+  DecisionTableInputStringOperators,
+  DecisionTableInputBooleanOperators,
+} from "@/constants/decisionTable";
 
 const validateValueByDataType = (value: string, dataType: string) => {
   if (value) {
@@ -117,6 +121,51 @@ const DraggableRow = ({
   // move the drag and drop reference to the same element
   drag(drop(ref));
 
+  const renderOpearators = (dataType: string) => {
+    let operators: { operator: string }[] = [];
+    switch (dataType) {
+      case DecisionDataTypes[0]?.value:
+        operators = DecisionTableInputStringOperators;
+        break;
+      case DecisionDataTypes[1]?.value:
+        operators = DecisionTableInputNumberOperators;
+        break;
+      case DecisionDataTypes[2]?.value:
+        operators = DecisionTableInputBooleanOperators;
+        break;
+      default:
+        return [];
+    }
+    return (
+      <SelectContent>
+        {operators.map((c) => (
+          <SelectItem key={`condition-${c.operator}`} value={c.operator}>
+            {c.operator}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    );
+  };
+
+  const hideInputValue = (dataType: string, operator?: string) => {
+    switch (dataType) {
+      case DecisionDataTypes[0]?.value:
+        return (
+          operator === DecisionTableInputStringOperators[0]?.operator ||
+          operator === DecisionTableInputStringOperators[1]?.operator ||
+          operator === DecisionTableInputStringOperators[2]?.operator ||
+          operator === DecisionTableInputStringOperators[3]?.operator
+        );
+      case DecisionDataTypes[2]?.value:
+        return (
+          operator === DecisionTableInputBooleanOperators[0]?.operator ||
+          operator === DecisionTableInputBooleanOperators[1]?.operator
+        );
+      default:
+        return false;
+    }
+  };
+
   return (
     <TableRow
       ref={ref}
@@ -147,18 +196,8 @@ const DraggableRow = ({
                 <SelectTrigger className="w-32 border-0 bg-transparent">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  {DecisionTableInputConditions.map((c) => (
-                    <SelectItem
-                      key={`condition-${c.condition}`}
-                      value={c.condition}
-                    >
-                      {c.condition}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                {renderOpearators(input.dataType)}
               </Select>
-
               <SampleInput
                 value={condition?.value || ""}
                 onChange={(e) => {
@@ -173,6 +212,7 @@ const DraggableRow = ({
                 }}
                 className="flex-1 border-0 border-l"
                 placeholder="Enter value"
+                disabled={hideInputValue(input.dataType, condition?.condition)}
               />
             </div>
           </TableCell>

@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useMemo } from "react";
 import {
   Plus,
   Search,
-  Filter,
   MoreHorizontal,
   Play,
-  Pause,
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -19,6 +17,7 @@ import {
   GitBranch,
   Cog,
   FileSpreadsheet,
+  XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { Route } from "next";
@@ -55,7 +54,8 @@ import {
 import Breadcrumbs from "@/components/breadcrambs";
 import { api, useUtils } from "@/utils/trpc";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
-import { WorkflowStatus } from "@/constants/general";
+import { WorkflowStatus, WorkflowTypes } from "@/constants/general";
+import { NodeTypes } from "@/constants/nodes";
 import { useModalState } from "@/framework/hooks/useModalState";
 import { WorkflowView } from "@/framework/types/workflow";
 import { getTimeAgo } from "@/utils/func";
@@ -63,6 +63,42 @@ import { AdminRoutes } from "@/constants/routes";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { DefaultSkeleton } from "@/components/skeletions/default-skeleton";
 import { WorkflowsSkeleton } from "@/components/skeletions/workflows-skeleton";
+import { ViewToggle } from "@/components/view-toggle";
+import { useViewToggle } from "@/framework/hooks/useViewToggle";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const WorkflowsGrid = ({
+  workflows,
+  onDelete,
+}: {
+  workflows: WorkflowCardProps[];
+  onDelete: (workflow: any) => void;
+}) => (
+  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    {workflows.map((workflow) => (
+      <WorkflowCard key={workflow.id} workflow={workflow} onDelete={onDelete} />
+    ))}
+  </div>
+);
+const WorkflowsList = ({
+  workflows,
+  onDelete,
+}: {
+  workflows: WorkflowCardProps[];
+  onDelete: (workflow: any) => void;
+}) => (
+  <ul className="space-y-2">
+    {workflows.map((workflow) => (
+      <li
+        key={workflow.id}
+        className="border p-3 rounded shadow-sm flex justify-between items-center"
+      >
+        <span>{workflow.name}</span>
+        <span className="text-xs text-muted-foreground">{workflow.status}</span>
+      </li>
+    ))}
+  </ul>
+);
 
 export default function WorkflowsPage() {
   const [isClient, setIsClient] = useState(false);
@@ -81,6 +117,7 @@ export default function WorkflowsPage() {
     closeDeleteConfirm,
     selectItem,
   } = useModalState<WorkflowView>();
+  const { viewMode, setViewMode } = useViewToggle("medium-grid");
 
   useEffect(() => {
     setIsClient(true);
@@ -88,7 +125,7 @@ export default function WorkflowsPage() {
 
   // tRPC hooks
   const utils = useUtils();
-  const workflows = api.workflow.getAll.useQuery();
+  const { data: workflows, isLoading, error } = api.workflow.getAll.useQuery();
   const create = api.workflow.create.useMutation({
     onSuccess: () => {
       utils.workflow.getAll.invalidate();
@@ -107,6 +144,9 @@ export default function WorkflowsPage() {
       toast.error(error.message);
     },
   });
+
+  // State for search
+  const [searchQuery, setSearchQuery] = useState("");
 
   const createWorkflow = async () => {
     // In a real app, this would create a new workflow and redirect to it
@@ -148,12 +188,73 @@ export default function WorkflowsPage() {
     }
   };
 
-  if (workflows.error) {
+  const filteredWorkflows = useMemo(() => {
+    if (!workflows) return [];
+
+    return workflows.filter(
+      (workflow) =>
+        workflow.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        workflow.description?.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [workflows, searchQuery]);
+
+  // Filter workflows by status
+  const publishedWorkflows = useMemo(
+    () =>
+      filteredWorkflows.filter(
+        (workflow) => workflow.status === WorkflowStatus.PUBLISHED,
+      ),
+    [filteredWorkflows],
+  );
+
+  const draftWorkflows = useMemo(
+    () =>
+      filteredWorkflows.filter(
+        (workflow) => workflow.status === WorkflowStatus.DRAFT,
+      ),
+    [filteredWorkflows],
+  );
+
+  const pausedWorkflows = useMemo(
+    () =>
+      filteredWorkflows.filter(
+        (workflow) => workflow.status === WorkflowStatus.PAUSED,
+      ),
+    [filteredWorkflows],
+  );
+
+  const renderWorkflows = (
+    workflowsData: WorkflowCardProps[],
+    emptyMessage: string,
+    onDelete: (workflow: any) => void,
+  ) => {
+    if (isLoading) {
+      // Adjust skeleton count based on list vs grid view
+      return <WorkflowsSkeleton count={viewMode === "list" ? 5 : 3} />;
+    }
+
+    if (workflowsData.length > 0) {
+      // Render list or grid based on viewMode
+      return viewMode === "list" ? (
+        <WorkflowsList workflows={workflowsData} onDelete={onDelete} />
+      ) : (
+        <WorkflowsGrid workflows={workflowsData} onDelete={onDelete} />
+      ); // Assume WorkflowsGrid handles different grid sizes if needed, or defaults to one
+    }
+
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">{emptyMessage}</p>
+      </div>
+    );
+  };
+
+  if (error) {
     return (
       <div className="flex flex-col grow">
         <div className="text-red-500">
           <h2 className="text-lg font-semibold mb-2">Error loading models</h2>
-          <p className="mb-2">{workflows.error.message}</p>
+          <p className="mb-2">{error.message}</p>
         </div>
       </div>
     );
@@ -171,100 +272,6 @@ export default function WorkflowsPage() {
               },
             ]}
             title="Workflows"
-            rightChildren={
-              <>
-                <SampleButton variant="outline" size="sm">
-                  <Filter className="mr-2 h-4 w-4" />
-                  Filter
-                </SampleButton>
-                <Dialog
-                  open={isCreateDialogOpen}
-                  onOpenChange={(open: boolean) => {
-                    setIsCreateDialogOpen(open);
-                    if (!open) {
-                      resetForm();
-                    }
-                  }}
-                >
-                  <DialogTrigger asChild>
-                    <SampleButton>
-                      <Plus className="mr-2 h-4 w-4" />
-                      New Workflow
-                    </SampleButton>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Create New Workflow</DialogTitle>
-                      <DialogDescription>
-                        Create a new workflow to automate processes using AI
-                        models and other components.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="name">Workflow Name</Label>
-                        <SampleInput
-                          id="name"
-                          placeholder="Enter workflow name"
-                          value={newWorkflowName}
-                          onChange={(e) => setNewWorkflowName(e.target.value)}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="type">Workflow Type</Label>
-                        <Select
-                          value={newWorkflowType}
-                          onValueChange={setNewWorkflowType}
-                        >
-                          <SelectTrigger id="type">
-                            <SelectValue placeholder="Select workflow type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="standard">
-                              Standard Workflow
-                            </SelectItem>
-                            <SelectItem value="scheduled">
-                              Scheduled Workflow
-                            </SelectItem>
-                            <SelectItem value="event-driven">
-                              Event-Driven Workflow
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="description">
-                          Description (Optional)
-                        </Label>
-                        <SampleInput
-                          id="description"
-                          placeholder="Enter workflow description"
-                          value={newDescriptioin}
-                          onChange={(e) => setNewDescriptioin(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <SampleButton
-                        variant="outline"
-                        onClick={() => {
-                          setIsCreateDialogOpen(false);
-                          resetForm();
-                        }}
-                      >
-                        Cancel
-                      </SampleButton>
-                      <SampleButton
-                        onClick={createWorkflow}
-                        disabled={!newWorkflowName}
-                      >
-                        Create Workflow
-                      </SampleButton>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </>
-            }
           />
           {isClient && (
             <>
@@ -305,7 +312,7 @@ export default function WorkflowsPage() {
                 </DialogContent>
               </Dialog>
               <div className="flex-1 p-4 md:p-4 space-y-6">
-                {!workflows.isLoading ? (
+                {!isLoading ? (
                   <>
                     <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                       <div className="space-y-1">
@@ -326,29 +333,150 @@ export default function WorkflowsPage() {
                             className="w-full pl-8"
                           />
                         </div>
+                        <ViewToggle
+                          viewMode={viewMode}
+                          onChange={setViewMode}
+                        />
+                        <Dialog
+                          open={isCreateDialogOpen}
+                          onOpenChange={(open: boolean) => {
+                            setIsCreateDialogOpen(open);
+                            if (!open) {
+                              resetForm();
+                            }
+                          }}
+                        >
+                          <DialogTrigger asChild>
+                            <SampleButton>
+                              <Plus className="mr-2 h-4 w-4" />
+                              New Workflow
+                            </SampleButton>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Create New Workflow</DialogTitle>
+                              <DialogDescription>
+                                Create a new workflow to automate processes
+                                using AI models and other components.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                              <div className="grid gap-2">
+                                <Label htmlFor="name">Workflow Name</Label>
+                                <SampleInput
+                                  id="name"
+                                  placeholder="Enter workflow name"
+                                  value={newWorkflowName}
+                                  onChange={(e) =>
+                                    setNewWorkflowName(e.target.value)
+                                  }
+                                />
+                              </div>
+                              <div className="grid gap-2">
+                                <Label htmlFor="type">Workflow Type</Label>
+                                <Select
+                                  value={newWorkflowType}
+                                  onValueChange={setNewWorkflowType}
+                                >
+                                  <SelectTrigger id="type">
+                                    <SelectValue placeholder="Select workflow type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem
+                                      value={WorkflowTypes.STANDARD.value}
+                                    >
+                                      {WorkflowTypes.STANDARD.label}
+                                    </SelectItem>
+                                    <SelectItem
+                                      value={WorkflowTypes.SCHEDULED.value}
+                                    >
+                                      {WorkflowTypes.SCHEDULED.label}
+                                    </SelectItem>
+                                    <SelectItem
+                                      value={WorkflowTypes.EVENT_DRIVEN.value}
+                                    >
+                                      {WorkflowTypes.EVENT_DRIVEN.label}
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="grid gap-2">
+                                <Label htmlFor="description">
+                                  Description (Optional)
+                                </Label>
+                                <SampleInput
+                                  id="description"
+                                  placeholder="Enter workflow description"
+                                  value={newDescriptioin}
+                                  onChange={(e) =>
+                                    setNewDescriptioin(e.target.value)
+                                  }
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <SampleButton
+                                variant="outline"
+                                onClick={() => {
+                                  setIsCreateDialogOpen(false);
+                                  resetForm();
+                                }}
+                              >
+                                Cancel
+                              </SampleButton>
+                              <SampleButton
+                                onClick={createWorkflow}
+                                disabled={!newWorkflowName}
+                              >
+                                Create Workflow
+                              </SampleButton>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
                       </div>
                     </div>
-                    {workflows.data && workflows.data.length > 0 ? (
-                      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                        {workflows.data.map((workflow) => (
-                          <WorkflowCard
-                            key={workflow.id}
-                            workflow={workflow}
-                            onDelete={openDeleteConfirm}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <p>No models created yet.</p>
-                        <p className="text-sm mt-1">
-                          Click "Add Workflow" to get started.
-                        </p>
-                      </div>
-                    )}
+                    <Tabs defaultValue="all">
+                      <TabsList>
+                        <TabsTrigger value="all">All</TabsTrigger>
+                        <TabsTrigger value="published">Published</TabsTrigger>
+                        <TabsTrigger value="draft">Draft</TabsTrigger>
+                        <TabsTrigger value="paused">Paused</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="all" className="mt-6">
+                        {renderWorkflows(
+                          filteredWorkflows,
+                          "No workflows found. Create one to get started.",
+                          openDeleteConfirm,
+                        )}
+                      </TabsContent>
+
+                      <TabsContent value="published" className="mt-6">
+                        {renderWorkflows(
+                          publishedWorkflows,
+                          "No published workflows found.",
+                          openDeleteConfirm,
+                        )}
+                      </TabsContent>
+
+                      <TabsContent value="draft" className="mt-6">
+                        {renderWorkflows(
+                          draftWorkflows,
+                          "No draft workflows found.",
+                          openDeleteConfirm,
+                        )}
+                      </TabsContent>
+
+                      <TabsContent value="paused" className="mt-6">
+                        {renderWorkflows(
+                          pausedWorkflows,
+                          "No paused workflows found.",
+                          openDeleteConfirm,
+                        )}
+                      </TabsContent>
+                    </Tabs>
                   </>
                 ) : (
-                  <WorkflowsSkeleton />
+                  <WorkflowsSkeleton count={viewMode === "list" ? 5 : 3} />
                 )}
               </div>
             </>
@@ -363,26 +491,61 @@ export default function WorkflowsPage() {
 }
 
 interface WorkflowCardProps {
-  workflow: {
-    id?: number | string;
-    uuid: string;
-    name: string;
-    description: string | null;
-    type: string | null;
-    status: string;
-    runs?: number;
-    created?: string;
-    lastRun?: string | null;
-    nodes?: string[];
-    decisionTables?: { id: string; name: string }[];
-    updatedAt: Date | string;
-  };
-  onDelete: (workflow: any) => void;
+  id?: number | string;
+  uuid: string;
+  name: string;
+  description: string | null;
+  type: string | null;
+  status: string;
+  runs?: number;
+  created?: string;
+  lastRun?: string | null;
+  nodes?: any[];
+  decisionTables?: { id: string; name: string }[];
+  updatedAt: Date | string;
 }
 
 // In the WorkflowCard component, add a section showing decision tables used
-function WorkflowCard({ workflow, onDelete }: WorkflowCardProps) {
+function WorkflowCard({
+  workflow,
+  onDelete,
+}: {
+  workflow: WorkflowCardProps;
+  onDelete: (workflow: any) => void;
+}) {
   const timeAgo = getTimeAgo(workflow.updatedAt);
+  // Find decision tables used in the workflow
+  const decisionTablesUsed = workflow.nodes?.filter(
+    (node) => node.type === NodeTypes.decisionTable,
+  );
+  const getStatusBadge = () => {
+    switch (workflow.status) {
+      case WorkflowStatus.PUBLISHED:
+        return (
+          <Badge variant="default" className="text-xs h-5">
+            <CheckCircle2 className="mr-1 h-3 w-3" /> Published
+          </Badge>
+        );
+      case WorkflowStatus.PAUSED:
+        return (
+          <Badge variant="secondary" className="text-xs h-5">
+            <XCircle className="mr-1 h-3 w-3" /> Paused
+          </Badge>
+        );
+      case WorkflowStatus.DRAFT:
+        return (
+          <Badge variant="outline" className="text-xs h-5">
+            <Clock className="mr-1 h-3 w-3" /> Draft
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline" className="text-xs h-5">
+            <AlertCircle className="mr-1 h-3 w-3" /> {workflow.status}
+          </Badge>
+        );
+    }
+  };
   return (
     <Card className="overflow-hidden">
       <div className="p-4">
@@ -394,43 +557,9 @@ function WorkflowCard({ workflow, onDelete }: WorkflowCardProps) {
             >
               <h3 className="font-medium">{workflow.name}</h3>
             </Link>
-            <Badge
-              variant={
-                workflow.status === WorkflowStatus.PUBLISHED
-                  ? "default"
-                  : workflow.status === WorkflowStatus.DRAFT
-                  ? "secondary"
-                  : "outline"
-              }
-              className="text-xs h-5"
-            >
-              {workflow.status === WorkflowStatus.PUBLISHED ? (
-                <>
-                  <CheckCircle2 className="mr-1 h-3 w-3" /> Published
-                </>
-              ) : workflow.status === WorkflowStatus.DRAFT ? (
-                <>
-                  <Clock className="mr-1 h-3 w-3" /> Draft
-                </>
-              ) : (
-                <>
-                  <AlertCircle className="mr-1 h-3 w-3" /> Paused
-                </>
-              )}
-            </Badge>
+            {getStatusBadge()}
           </div>
           <div className="flex items-center gap-2">
-            {workflow.status === WorkflowStatus.PUBLISHED ? (
-              <SampleButton variant="outline" size="icon" className="h-7 w-7">
-                <Pause className="h-3.5 w-3.5" />
-                <span className="sr-only">Pause Workflow</span>
-              </SampleButton>
-            ) : (
-              <SampleButton variant="outline" size="icon" className="h-7 w-7">
-                <Play className="h-3.5 w-3.5" />
-                <span className="sr-only">Start Workflow</span>
-              </SampleButton>
-            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SampleButton variant="ghost" size="icon" className="h-7 w-7">
@@ -451,8 +580,13 @@ function WorkflowCard({ workflow, onDelete }: WorkflowCardProps) {
                     Edit Workflow
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>View Run History</DropdownMenuItem>
-                <DropdownMenuItem>Duplicate Workflow</DropdownMenuItem>
+                <DropdownMenuItem>Duplicate</DropdownMenuItem>
+                <DropdownMenuItem>
+                  {workflow.status === WorkflowStatus.PUBLISHED
+                    ? "Pause Workflow"
+                    : "Publish Workflow"}
+                </DropdownMenuItem>
+                <DropdownMenuItem>Export</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive cursor-pointer"
@@ -470,58 +604,49 @@ function WorkflowCard({ workflow, onDelete }: WorkflowCardProps) {
         </p>
 
         <div className="flex items-center justify-between mb-3">
-          <div className="flex -space-x-2">
-            {workflow.nodes &&
-              workflow.nodes.map((node, index) => (
-                <div
-                  key={index}
-                  className={`flex h-6 w-6 items-center justify-center rounded-full border-2 border-background ${getNodeColor(
-                    node,
-                  )}`}
-                  title={`${node} Node`}
-                >
-                  {getNodeIcon(node)}
-                </div>
-              ))}
+          <div className="flex items-center text-xs text-muted-foreground">
+            <Zap className="mr-1 h-3 w-3" />
+            <span>{workflow.type}</span>
           </div>
 
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <div className="flex items-center">
-              <Clock className="mr-1 h-3 w-3" />
-              {timeAgo}
-            </div>
-            <div className="flex items-center">
-              <Zap className="mr-1 h-3 w-3" />
-              {workflow.runs ? workflow.runs.toLocaleString() : 0} runs
-            </div>
+          <div className="flex items-center text-xs text-muted-foreground">
+            <Play className="mr-1 h-3 w-3" />
+            <span>{workflow.runs} runs</span>
+          </div>
+
+          <div className="flex items-center text-xs text-muted-foreground">
+            <Clock className="mr-1 h-3 w-3" />
+            <span>
+              {workflow.lastRun ? `Last run: ${workflow.lastRun}` : "Never run"}
+            </span>
           </div>
         </div>
 
         {/* Add decision tables section if the workflow uses any */}
-        {workflow.decisionTables && workflow.decisionTables.length > 0 && (
+        {decisionTablesUsed && decisionTablesUsed.length > 0 && (
           <div className="border-t pt-3">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">
                 Decision Tables:
               </span>
               <span className="text-xs text-muted-foreground">
-                {workflow.decisionTables.length}
+                {decisionTablesUsed.length}
               </span>
             </div>
             <div className="flex flex-wrap gap-2 mt-1">
-              {workflow.decisionTables.slice(0, 2).map((table) => (
+              {decisionTablesUsed.slice(0, 2).map((table) => (
                 <Badge
-                  key={table.id}
+                  key={table.data.decisionTable.uuid}
                   variant="outline"
                   className="text-xs flex items-center"
                 >
                   <FileSpreadsheet className="h-3 w-3 mr-1" />
-                  {table.name}
+                  {table.data.decisionTable.name}
                 </Badge>
               ))}
-              {workflow.decisionTables.length > 2 && (
+              {decisionTablesUsed.length > 2 && (
                 <Badge variant="outline" className="text-xs">
-                  +{workflow.decisionTables.length - 2} more
+                  +{decisionTablesUsed.length - 2} more
                 </Badge>
               )}
             </div>
@@ -530,44 +655,4 @@ function WorkflowCard({ workflow, onDelete }: WorkflowCardProps) {
       </div>
     </Card>
   );
-}
-
-// Add these helper functions after the WorkflowCard function
-
-function getNodeColor(nodeType: string): string {
-  switch (nodeType) {
-    case "trigger":
-      return "bg-primary/10 text-primary";
-    case "aiModel":
-      return "bg-blue-100 text-blue-600";
-    case "rules":
-      return "bg-amber-100 text-amber-600";
-    case "logic":
-      return "bg-purple-100 text-purple-600";
-    case "database":
-      return "bg-green-100 text-green-600";
-    case "webhook":
-      return "bg-red-100 text-red-600";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
-}
-
-function getNodeIcon(nodeType: string): React.ReactNode {
-  switch (nodeType) {
-    case "trigger":
-      return <Zap className="h-3 w-3" />;
-    case "aiModel":
-      return <BrainCircuit className="h-3 w-3" />;
-    case "rules":
-      return <FileCode className="h-3 w-3" />;
-    case "logic":
-      return <GitBranch className="h-3 w-3" />;
-    case "database":
-      return <Database className="h-3 w-3" />;
-    case "webhook":
-      return <Webhook className="h-3 w-3" />;
-    default:
-      return <Cog className="h-3 w-3" />;
-  }
 }
