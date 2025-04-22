@@ -55,7 +55,7 @@ import { DecisionTableNode } from "@/components/nodes/DecisionTableNode";
 import { api, useUtils } from "@/utils/trpc";
 import Breadcrumbs from "@/components/breadcrambs";
 import { AdminRoutes } from "@/constants/routes";
-import { WorkflowStatus } from "@/constants/general";
+import { WorkflowStatus, WorkflowTypes } from "@/constants/general";
 import NodePropertiesPanel from "./components/NodePropertiesPanel";
 import AddNode from "./components/AddNode";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
@@ -485,10 +485,14 @@ export default function WorkflowDetailPage() {
                           <SelectValue placeholder="Select workflow type" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="standard">Standard</SelectItem>
-                          <SelectItem value="scheduled">Scheduled</SelectItem>
-                          <SelectItem value="event-driven">
-                            Event-Driven
+                          <SelectItem value={WorkflowTypes.STANDARD.value}>
+                            {WorkflowTypes.STANDARD.label}
+                          </SelectItem>
+                          <SelectItem value={WorkflowTypes.SCHEDULED.value}>
+                            {WorkflowTypes.SCHEDULED.label}
+                          </SelectItem>
+                          <SelectItem value={WorkflowTypes.EVENT_DRIVEN.value}>
+                            {WorkflowTypes.EVENT_DRIVEN.label}
                           </SelectItem>
                         </SelectContent>
                       </Select>

@@ -3,32 +3,68 @@ export const DecisionStatus = {
   INACTIVE: "inactive",
 };
 
-export const DecisionTableInputConditions = [
+export const DecisionTableInputNumberOperators = [
   {
-    condition: "equals",
+    operator: "is equal to",
   },
   {
-    condition: "not equals",
+    operator: "is not equal to",
   },
   {
-    condition: "greater than",
+    operator: "is greater than",
   },
   {
-    condition: "less than",
+    operator: "is less than",
   },
-  // {
-  //   condition: "contains",
-  // },
-  // {
-  //   condition: "does not contain",
-  // },
-  // {
-  //   condition: "start with",
-  // },
-  // {
-  //   condition: "end with",
-  // },
+  {
+    operator: "is greater than or equal to",
+  },
+  {
+    operator: "is less than or equal to",
+  },
+]
+
+export const DecisionTableInputStringOperators = [
+  {
+    operator: "exists",
+  },
+  {
+    operator: "does not exist",
+  },
+  {
+    operator: "is empty",
+  },
+  {
+    operator: "is not empty",
+  },
+  {
+    operator: "is equal to",
+  },
+  {
+    operator: "is not equal to",
+  },
+  {
+    operator: "contains",
+  },
+  {
+    operator: "does not contain",
+  },
 ];
+
+export const DecisionTableInputBooleanOperators = [
+  {
+    operator: "is true",
+  },
+  {
+    operator: "is false",
+  },
+  {
+    operator: "is equal to",
+  },
+  {
+    operator: "is not equal to",
+  },
+]
 
 export const DecisionDataTypes = [
   {
@@ -68,7 +104,7 @@ export const DefaultDecisionTableRows = {
 };
 
 export const DefaultDecisionTableInputCondition = {
-  condition: DecisionTableInputConditions[0]?.condition || "",
+  condition: DecisionTableInputNumberOperators[0]?.operator || "",
   value: "",
 };
 
