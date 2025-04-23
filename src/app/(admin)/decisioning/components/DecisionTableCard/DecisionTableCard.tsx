@@ -88,7 +88,7 @@ const DecisionTableCard = ({ table, onDelete }: DecisionTableCardProps) => {
                         table.uuid,
                       )}` as Route
                     }
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 w-full h-full"
                   >
                     Edit Table
                   </Link>

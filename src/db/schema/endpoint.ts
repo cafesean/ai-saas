@@ -13,12 +13,13 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { EndpointStatus, HTTPMethod } from "@/constants/general";
-import { workflows } from "./workflow";
+import { workflows, workflowRunHistory } from "./workflow";
+
 export const endpoints = pgTable(
   "endpoints",
   {
     id: serial("id").notNull().primaryKey(),
-    uuid: uuid("uuid").notNull().defaultRandom(),
+    uuid: uuid("uuid").unique().notNull().defaultRandom(),
     workflowId: uuid("workflow_id")
       .notNull()
       .references(() => workflows.uuid, { onDelete: "cascade" }),
@@ -39,10 +40,13 @@ export const endpoints = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (table) => [unique("workflowId_endpoints_unique").on(table.workflowId)],
+  (table) => [
+    index("endpoint_id_idx").on(table.id),
+    index("endpoint_uuid_idx").on(table.uuid),
+  ],
 );
 
-export const endpointsRelations = relations(endpoints, ({ one }) => ({
+export const endpointsRelations = relations(endpoints, ({ one, many }) => ({
   workflow: one(workflows, {
     fields: [endpoints.workflowId],
     references: [workflows.uuid],

@@ -6,6 +6,8 @@ import schema from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
+import { WorkflowRunHistoryStatus } from "@/constants/general";
+
 const instance = axios.create();
 
 export async function POST(
@@ -35,6 +37,9 @@ export async function POST(
     // }
     const endpoint = await db.query.endpoints.findFirst({
       where: eq(schema.endpoints.uri, uri),
+      with: {
+        workflow: true,
+      },
     });
     // if (clientId !== endpoint?.clientId || clientSecret !== endpoint.clientSecret) {
     //   return NextResponse.json(
@@ -53,6 +58,16 @@ export async function POST(
     //     }
     //   }
     // }
+    // Check if the workflow in endpoint is published
+    if (endpoint?.workflow.status !== "published") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Workflow is not published",
+        },
+        { status: 400 },
+      );
+    }
     const endpointOptions = {
       baseURL: process.env.N8N_API_URL,
       headers: {
@@ -65,46 +80,60 @@ export async function POST(
         ...payload,
       },
     };
-    const endpointResponse = await instance(endpointOptions);
-    if (payload && payload.stream) {
-      const content = endpointResponse.data[0].response.text;
-      const readableStream = new ReadableStream({
-        start(controller) {
-          let currentIndex = 0;
-          const chunkSize = 64;
-          const interval = setInterval(() => {
-            if (currentIndex < content.length) {
-              const chunk = content.slice(
-                currentIndex,
-                currentIndex + chunkSize,
-              );
-              controller.enqueue(new TextEncoder().encode(chunk));
-              currentIndex += chunkSize;
-            } else {
-              clearInterval(interval);
-              controller.close();
-            }
-          }, 100);
-        },
-      });
-      return new Response(readableStream, {
-        headers: {
-          "Content-Type": "text/event-stream", // 设置响应头为 EventStream
-          "Cache-Control": "no-cache", // 禁用缓存
-          Connection: "keep-alive", // 保持连接
-        },
-      });
+    if (endpoint) {
+      const endpointResponse = await instance(endpointOptions);
+      if (payload && payload.stream) {
+        const content = endpointResponse.data[0].response.text;
+        const readableStream = new ReadableStream({
+          start(controller) {
+            let currentIndex = 0;
+            const chunkSize = 64;
+            const interval = setInterval(() => {
+              if (currentIndex < content.length) {
+                const chunk = content.slice(
+                  currentIndex,
+                  currentIndex + chunkSize,
+                );
+                controller.enqueue(new TextEncoder().encode(chunk));
+                currentIndex += chunkSize;
+              } else {
+                clearInterval(interval);
+                controller.close();
+              }
+            }, 100);
+          },
+        });
+        return new Response(readableStream, {
+          headers: {
+            "Content-Type": "text/event-stream", // 设置响应头为 EventStream
+            "Cache-Control": "no-cache", // 禁用缓存
+            Connection: "keep-alive", // 保持连接
+          },
+        });
+      } else {
+        // Insert success response into workflow_run_history
+        // Later should move the MQ
+        await db
+          .insert(schema.workflowRunHistory)
+          .values({
+            workflowId: endpoint?.workflow.uuid,
+            path: endpoint?.uri,
+            method: endpoint?.method,
+            payload: payload,
+            response: endpointResponse.data,
+            status: WorkflowRunHistoryStatus.SUCCESS,
+          })
+          .returning();
+        return NextResponse.json({
+          success: true,
+          data: endpointResponse.data,
+        });
+      }
     } else {
-      return NextResponse.json({
-        success: true,
-        data: endpointResponse.data,
-      });
+      throw new Error("Endpoint not found");
     }
   } catch (error) {
     console.log(error);
-    return NextResponse.json(
-      { error: "Invalid request body" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error }, { status: 400 });
   }
 }
