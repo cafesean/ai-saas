@@ -4,7 +4,6 @@ import { useEffect, Suspense } from "react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
-
 import { useCallback, useState } from "react";
 import ReactFlow, {
   Background,
@@ -21,7 +20,15 @@ import ReactFlow, {
   ReactFlowProvider,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { Save, Play, Plus, Settings, X } from "lucide-react";
+import {
+  Save,
+  Play,
+  Pause,
+  Plus,
+  Settings,
+  X,
+  MoreHorizontal,
+} from "lucide-react";
 
 import { SampleButton } from "@/components/ui/sample-button";
 import { SampleInput } from "@/components/ui/sample-input";
@@ -67,10 +74,18 @@ import {
 import { ErrorBoundary } from "@/components/error-boundary";
 import { DefaultSkeleton } from "@/components/skeletions/default-skeleton";
 import WorkflowDetailLoading from "./components/LoadingSkelenton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useModalState } from "@/framework/hooks/useModalState";
 
 // Import the decision service for connection validation
 import { decisionService } from "@/lib/decision-service";
 import { NodeTypes as WorkflowNodeTypes } from "@/constants/nodes";
+import { WorkflowView } from "@/framework/types/workflow";
 
 // Define node types
 const nodeTypes: NodeTypes = {
@@ -135,6 +150,12 @@ export default function WorkflowDetailPage() {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [isAddNodeDialogOpen, setIsAddNodeDialogOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const {
+    deleteConfirmOpen: changeStatusConfirmOpen,
+    selectedItem: selectedWorkflow,
+    openDeleteConfirm: openChangeStatusConfirm,
+    closeDeleteConfirm: closeChangeStatusConfirm,
+  } = useModalState<WorkflowView>();
 
   // tRPC hooks
   const utils = useUtils();
@@ -142,7 +163,6 @@ export default function WorkflowDetailPage() {
   const updateWorkflowSettings = api.workflow.updateSettings.useMutation({
     onSuccess: () => {
       utils.workflow.getByUUID.invalidate({ uuid: slug });
-      utils.workflow.getAll.invalidate();
       toast.success("Workflow settings updated successfully");
     },
     onError: (error) => {
@@ -152,8 +172,16 @@ export default function WorkflowDetailPage() {
   const updateWorkflow = api.workflow.update.useMutation({
     onSuccess: () => {
       utils.workflow.getByUUID.invalidate({ uuid: slug });
-      utils.workflow.getAll.invalidate();
       toast.success("Workflow updated successfully");
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+  const updateWorkflowStatus = api.workflow.updateStatus.useMutation({
+    onSuccess: () => {
+      utils.workflow.getByUUID.invalidate({ uuid: slug });
+      toast.success("Workflow status updated successfully");
     },
     onError: (error) => {
       toast.error(error.message);
@@ -317,6 +345,19 @@ export default function WorkflowDetailPage() {
     onEdgesChange(changes);
   };
 
+  const confirmChangeStatus = async () => {
+    closeChangeStatusConfirm();
+    if (selectedWorkflow) {
+      await updateWorkflowStatus.mutateAsync({
+        uuid: selectedWorkflow.uuid,
+        status:
+          selectedWorkflow.status === WorkflowStatus.PUBLISHED
+            ? WorkflowStatus.PAUSED
+            : WorkflowStatus.PUBLISHED,
+      });
+    }
+  };
+
   if (workflow.error) {
     return (
       <div className="flex flex-col grow">
@@ -372,14 +413,46 @@ export default function WorkflowDetailPage() {
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
                   </SampleButton>
-                  <SampleButton variant="outline" size="sm">
-                    <Play className="mr-2 h-4 w-4" />
-                    Test Run
+                  <SampleButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openChangeStatusConfirm(workflowItem)}
+                  >
+                    {workflowItem?.status === WorkflowStatus.PUBLISHED ? (
+                      <>
+                        <Pause className="mr-2 h-4 w-4" />
+                        Pause
+                      </>
+                    ) : (
+                      <>
+                        <Play className="mr-2 h-4 w-4" />
+                        Publish
+                      </>
+                    )}
                   </SampleButton>
-                  <SampleButton size="sm" onClick={saveWorkflowChanges}>
+                  <SampleButton
+                    size="sm"
+                    onClick={saveWorkflowChanges}
+                    disabled={workflowItem?.status === WorkflowStatus.PUBLISHED}
+                  >
                     <Save className="mr-2 h-4 w-4" />
                     Save
                   </SampleButton>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <SampleButton
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                      >
+                        <MoreHorizontal className="h-3.5 w-3.5" />
+                        <span className="sr-only">More Options</span>
+                      </SampleButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem>Test Run</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </>
               }
             />
@@ -607,8 +680,54 @@ export default function WorkflowDetailPage() {
                   >
                     Cancel
                   </SampleButton>
-                  <SampleButton onClick={saveSettings}>
+                  <SampleButton
+                    onClick={saveSettings}
+                    disabled={workflowItem?.status === WorkflowStatus.PUBLISHED}
+                  >
                     Save Changes
+                  </SampleButton>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <Dialog
+              open={changeStatusConfirmOpen}
+              onOpenChange={closeChangeStatusConfirm}
+            >
+              <DialogContent className="modal-content">
+                <DialogHeader className="modal-header">
+                  <DialogTitle className="modal-title">
+                    {workflowItem?.status === WorkflowStatus.PUBLISHED
+                      ? "Pause Workflow"
+                      : "Publish Workflow"}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="modal-section">
+                  <p className="modal-text">
+                    Are you sure you want to{" "}
+                    {workflowItem?.status === WorkflowStatus.PUBLISHED
+                      ? "Pause"
+                      : "Publish"}{" "}
+                    this workflow?
+                  </p>
+                </div>
+                <DialogFooter className="modal-footer">
+                  <SampleButton
+                    type="button"
+                    variant="secondary"
+                    className="modal-button"
+                    onClick={() => closeChangeStatusConfirm()}
+                  >
+                    Cancel
+                  </SampleButton>
+                  <SampleButton
+                    type="button"
+                    variant="default"
+                    className="modal-button"
+                    onClick={confirmChangeStatus}
+                  >
+                    {workflowItem?.status === WorkflowStatus.PUBLISHED
+                      ? "Pause"
+                      : "Publish"}
                   </SampleButton>
                 </DialogFooter>
               </DialogContent>
@@ -616,9 +735,9 @@ export default function WorkflowDetailPage() {
           </Suspense>
         </ErrorBoundary>
       </div>
-      {(updateWorkflowSettings.isPending || updateWorkflow.isPending) && (
-        <FullScreenLoading />
-      )}
+      {(updateWorkflowSettings.isPending ||
+        updateWorkflow.isPending ||
+        updateWorkflowStatus.isPending) && <FullScreenLoading />}
     </ReactFlowProvider>
   );
 }
