@@ -6,7 +6,7 @@ import schema from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
-import { WorkflowRunHistoryStatus } from "@/constants/general";
+import { WorkflowRunHistoryStatus, WorkflowStatus } from "@/constants/general";
 
 const instance = axios.create();
 
@@ -59,7 +59,7 @@ export async function POST(
     //   }
     // }
     // Check if the workflow in endpoint is published
-    if (endpoint?.workflow.status !== "published") {
+    if (endpoint?.workflow.status !== WorkflowStatus.PUBLISHED) {
       return NextResponse.json(
         {
           success: false,
