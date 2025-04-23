@@ -29,6 +29,12 @@ export const WorkflowNodeDataActions = {
   delete: "delete",
 };
 
+export const WorkflowRunHistoryStatus = {
+  SUCCESS: "success",
+  FAILURE: "failure",
+  RUNNING: "running",
+};
+
 export const TriggerTypes = [
   "HTTP Request",
   "Webhook",

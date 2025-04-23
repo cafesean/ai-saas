@@ -10,12 +10,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Zap,
-  Database,
-  Webhook,
-  FileCode,
-  BrainCircuit,
-  GitBranch,
-  Cog,
   FileSpreadsheet,
   XCircle,
 } from "lucide-react";
@@ -66,38 +60,51 @@ import { WorkflowsSkeleton } from "@/components/skeletions/workflows-skeleton";
 import { ViewToggle } from "@/components/view-toggle";
 import { useViewToggle } from "@/framework/hooks/useViewToggle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WorkflowCardProps } from "@/types/Workflow";
+import { WorkflowList } from "./components/WorkflowList";
 
 const WorkflowsGrid = ({
   workflows,
   onDelete,
+  onChangeStatus,
+  viewMode,
 }: {
   workflows: WorkflowCardProps[];
   onDelete: (workflow: any) => void;
-}) => (
-  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-    {workflows.map((workflow) => (
-      <WorkflowCard key={workflow.id} workflow={workflow} onDelete={onDelete} />
-    ))}
-  </div>
-);
+  onChangeStatus: (workflow: any) => void;
+  viewMode?: string;
+}) => {
+  const gridColsClass =
+    viewMode === "large-grid"
+      ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+      : "grid gap-4 md:grid-cols-3 lg:grid-cols-4"; // Default to medium/smaller grid
+  return (
+    <div className={gridColsClass}>
+      {workflows.map((workflow) => (
+        <WorkflowCard
+          key={workflow.id}
+          workflow={workflow}
+          onDelete={onDelete}
+          onChangeStatus={onChangeStatus}
+        />
+      ))}
+    </div>
+  );
+};
 const WorkflowsList = ({
   workflows,
   onDelete,
+  onChangeStatus,
 }: {
   workflows: WorkflowCardProps[];
   onDelete: (workflow: any) => void;
+  onChangeStatus: (workflow: any) => void;
 }) => (
-  <ul className="space-y-2">
-    {workflows.map((workflow) => (
-      <li
-        key={workflow.id}
-        className="border p-3 rounded shadow-sm flex justify-between items-center"
-      >
-        <span>{workflow.name}</span>
-        <span className="text-xs text-muted-foreground">{workflow.status}</span>
-      </li>
-    ))}
-  </ul>
+  <WorkflowList
+    workflows={workflows}
+    onDelete={onDelete}
+    onChangeStatus={onChangeStatus}
+  />
 );
 
 export default function WorkflowsPage() {
@@ -107,15 +114,16 @@ export default function WorkflowsPage() {
   const [newWorkflowType, setNewWorkflowType] = useState("standard");
   const [newDescriptioin, setNewDescriptioin] = useState("");
   const {
-    isModalOpen,
     deleteConfirmOpen,
-    isConfirming,
     selectedItem: selectedWorkflow,
-    openModal,
-    closeModal,
     openDeleteConfirm,
     closeDeleteConfirm,
-    selectItem,
+  } = useModalState<WorkflowView>();
+  const {
+    deleteConfirmOpen: changeStatusConfirmOpen,
+    selectedItem: updateStatusWorkflow,
+    openDeleteConfirm: openChangeStatusConfirm,
+    closeDeleteConfirm: closeChangeStatusConfirm,
   } = useModalState<WorkflowView>();
   const { viewMode, setViewMode } = useViewToggle("medium-grid");
 
@@ -139,6 +147,15 @@ export default function WorkflowsPage() {
     onSuccess: () => {
       utils.workflow.getAll.invalidate();
       toast.success("Workflow deleted successfully");
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+  const updateWorkflowStatus = api.workflow.updateStatus.useMutation({
+    onSuccess: () => {
+      utils.workflow.getAll.invalidate();
+      toast.success("Workflow status updated successfully");
     },
     onError: (error) => {
       toast.error(error.message);
@@ -227,6 +244,7 @@ export default function WorkflowsPage() {
     workflowsData: WorkflowCardProps[],
     emptyMessage: string,
     onDelete: (workflow: any) => void,
+    onChangeStatus: (workflow: any) => void,
   ) => {
     if (isLoading) {
       // Adjust skeleton count based on list vs grid view
@@ -236,9 +254,18 @@ export default function WorkflowsPage() {
     if (workflowsData.length > 0) {
       // Render list or grid based on viewMode
       return viewMode === "list" ? (
-        <WorkflowsList workflows={workflowsData} onDelete={onDelete} />
+        <WorkflowsList
+          workflows={workflowsData}
+          onDelete={onDelete}
+          onChangeStatus={onChangeStatus}
+        />
       ) : (
-        <WorkflowsGrid workflows={workflowsData} onDelete={onDelete} />
+        <WorkflowsGrid
+          workflows={workflowsData}
+          onDelete={onDelete}
+          onChangeStatus={onChangeStatus}
+          viewMode={viewMode}
+        />
       ); // Assume WorkflowsGrid handles different grid sizes if needed, or defaults to one
     }
 
@@ -247,6 +274,19 @@ export default function WorkflowsPage() {
         <p className="text-muted-foreground">{emptyMessage}</p>
       </div>
     );
+  };
+
+  const confirmChangeStatus = async () => {
+    closeChangeStatusConfirm();
+    if (updateStatusWorkflow) {
+      await updateWorkflowStatus.mutateAsync({
+        uuid: updateStatusWorkflow.uuid,
+        status:
+          updateStatusWorkflow.status === WorkflowStatus.PUBLISHED
+            ? WorkflowStatus.PAUSED
+            : WorkflowStatus.PUBLISHED,
+      });
+    }
   };
 
   if (error) {
@@ -447,6 +487,7 @@ export default function WorkflowsPage() {
                           filteredWorkflows,
                           "No workflows found. Create one to get started.",
                           openDeleteConfirm,
+                          openChangeStatusConfirm,
                         )}
                       </TabsContent>
 
@@ -455,6 +496,7 @@ export default function WorkflowsPage() {
                           publishedWorkflows,
                           "No published workflows found.",
                           openDeleteConfirm,
+                          openChangeStatusConfirm,
                         )}
                       </TabsContent>
 
@@ -463,6 +505,7 @@ export default function WorkflowsPage() {
                           draftWorkflows,
                           "No draft workflows found.",
                           openDeleteConfirm,
+                          openChangeStatusConfirm,
                         )}
                       </TabsContent>
 
@@ -471,6 +514,7 @@ export default function WorkflowsPage() {
                           pausedWorkflows,
                           "No paused workflows found.",
                           openDeleteConfirm,
+                          openChangeStatusConfirm,
                         )}
                       </TabsContent>
                     </Tabs>
@@ -479,41 +523,70 @@ export default function WorkflowsPage() {
                   <WorkflowsSkeleton count={viewMode === "list" ? 5 : 3} />
                 )}
               </div>
+              <Dialog
+                open={changeStatusConfirmOpen}
+                onOpenChange={closeChangeStatusConfirm}
+              >
+                <DialogContent className="modal-content">
+                  <DialogHeader className="modal-header">
+                    <DialogTitle className="modal-title">
+                      {updateStatusWorkflow?.status === WorkflowStatus.PUBLISHED
+                        ? "Pause Workflow"
+                        : "Publish Workflow"}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="modal-section">
+                    <p className="modal-text">
+                      Are you sure you want to{" "}
+                      {updateStatusWorkflow?.status === WorkflowStatus.PUBLISHED
+                        ? "Pause"
+                        : "Publish"}{" "}
+                      this workflow?
+                    </p>
+                  </div>
+                  <DialogFooter className="modal-footer">
+                    <SampleButton
+                      type="button"
+                      variant="secondary"
+                      className="modal-button"
+                      onClick={() => closeChangeStatusConfirm()}
+                    >
+                      Cancel
+                    </SampleButton>
+                    <SampleButton
+                      type="button"
+                      variant="default"
+                      className="modal-button"
+                      onClick={confirmChangeStatus}
+                    >
+                      {updateStatusWorkflow?.status === WorkflowStatus.PUBLISHED
+                        ? "Pause"
+                        : "Publish"}
+                    </SampleButton>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </>
           )}
-          {(create.isPending || deleteWorkflow.isPending) && (
-            <FullScreenLoading />
-          )}
+          {(create.isPending ||
+            deleteWorkflow.isPending ||
+            updateWorkflowStatus.isPending) && <FullScreenLoading />}
         </Suspense>
       </ErrorBoundary>
     </div>
   );
 }
 
-interface WorkflowCardProps {
-  id?: number | string;
-  uuid: string;
-  name: string;
-  description: string | null;
-  type: string | null;
-  status: string;
-  runs?: number;
-  created?: string;
-  lastRun?: string | null;
-  nodes?: any[];
-  decisionTables?: { id: string; name: string }[];
-  updatedAt: Date | string;
-}
-
 // In the WorkflowCard component, add a section showing decision tables used
 function WorkflowCard({
   workflow,
   onDelete,
+  onChangeStatus,
 }: {
   workflow: WorkflowCardProps;
   onDelete: (workflow: any) => void;
+  onChangeStatus: (workflow: any) => void;
 }) {
-  const timeAgo = getTimeAgo(workflow.updatedAt);
   // Find decision tables used in the workflow
   const decisionTablesUsed = workflow.nodes?.filter(
     (node) => node.type === NodeTypes.decisionTable,
@@ -576,12 +649,16 @@ function WorkflowCard({
                         workflow.uuid,
                       ) as Route
                     }`}
+                    className="flex items-center gap-2 w-full h-full"
                   >
                     Edit Workflow
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>Duplicate</DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => onChangeStatus(workflow)}
+                >
                   {workflow.status === WorkflowStatus.PUBLISHED
                     ? "Pause Workflow"
                     : "Publish Workflow"}
@@ -611,13 +688,15 @@ function WorkflowCard({
 
           <div className="flex items-center text-xs text-muted-foreground">
             <Play className="mr-1 h-3 w-3" />
-            <span>{workflow.runs} runs</span>
+            <span>{workflow.runs?.count} runs</span>
           </div>
 
           <div className="flex items-center text-xs text-muted-foreground">
             <Clock className="mr-1 h-3 w-3" />
             <span>
-              {workflow.lastRun ? `Last run: ${workflow.lastRun}` : "Never run"}
+              {workflow.runs?.lastRunAt
+                ? `Last run: ${getTimeAgo(workflow.runs?.lastRunAt)}`
+                : "Never run"}
             </span>
           </div>
         </div>

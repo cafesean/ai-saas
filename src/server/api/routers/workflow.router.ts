@@ -2,7 +2,7 @@ import { unknown, z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import { db } from "@/db/config";
 import schema, { rules } from "@/db/schema";
-import { eq, asc, desc } from "drizzle-orm";
+import { eq, asc, desc, count, inArray, max } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
@@ -63,14 +63,39 @@ const instance = axios.create();
 
 export const workflowRouter = createTRPCRouter({
   getAll: publicProcedure.query(async ({ ctx }) => {
-    const workflowsData = await db.query.workflows.findMany({
+    // 1. Get workflow data with endpoints and nodes
+    const workflowsData = await ctx.db.query.workflows.findMany({
       with: {
         endpoint: true,
         nodes: true,
       },
       orderBy: desc(schema.workflows.id),
     });
-    return workflowsData;
+
+    // 2. Bulk get workflow run history counts AND last run timestamps
+    const workflowUUIDs = workflowsData.map((w) => w.uuid);
+
+    const historyStats = await ctx.db
+      .select({
+        workflowId: schema.workflowRunHistory.workflowId,
+        count: count(),
+        lastRunAt: max(schema.workflowRunHistory.createdAt),
+      })
+      .from(schema.workflowRunHistory)
+      .where(inArray(schema.workflowRunHistory.workflowId, workflowUUIDs))
+      .groupBy(schema.workflowRunHistory.workflowId);
+
+    // 3. Merge workflow data with history stats
+    return workflowsData.map((workflow) => {
+      const stats = historyStats.find((s) => s.workflowId === workflow.uuid);
+      return {
+        ...workflow,
+        runs: {
+          count: stats?.count || 0,
+          lastRunAt: stats?.lastRunAt || null,
+        },
+      };
+    });
   }),
 
   getAllByStatus: publicProcedure
@@ -112,6 +137,28 @@ export const workflowRouter = createTRPCRouter({
       });
       return workflowData;
     }),
+
+  updateStatus: publicProcedure
+    .input(z.object({ uuid: z.string(), status: z.nativeEnum(WorkflowStatus) }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const workflowData = await db
+          .update(schema.workflows)
+          .set({
+            status: input.status,
+          })
+          .where(eq(schema.workflows.uuid, input.uuid))
+          .returning();
+        return workflowData[0];
+      } catch (error) {
+        console.error(error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to update workflow status",
+        });
+      }
+    }),
+
   updateSettings: publicProcedure
     .input(workflowUpdateSettingsSchema)
     .mutation(async ({ ctx, input }) => {
@@ -337,11 +384,11 @@ export const workflowRouter = createTRPCRouter({
           const n8nWebhookNodes = n8nNodes.filter(
             (node: any) => node.type === n8nWebhookNode.type,
           );
+          await tx
+            .delete(schema.endpoints)
+            .where(eq(schema.endpoints.workflowId, workflow.uuid));
           if (n8nWebhookNodes) {
             // Delete all endpoints associated with the workflow
-            await tx
-              .delete(schema.endpoints)
-              .where(eq(schema.endpoints.workflowId, workflow.uuid));
             for (const node of n8nWebhookNodes) {
               const endpoint = await tx
                 .insert(schema.endpoints)

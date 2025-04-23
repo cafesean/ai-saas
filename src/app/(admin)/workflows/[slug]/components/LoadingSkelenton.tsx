@@ -16,9 +16,6 @@ export default function WorkflowDetailLoading() {
           <span>Back to Workflows</span>
         </Link>
         <Skeleton className="h-6 w-48" />
-        <div className="ml-auto flex items-center gap-2">
-          <ThemeToggle />
-        </div>
       </header>
 
       <main className="flex-1 p-4 md:p-6">
