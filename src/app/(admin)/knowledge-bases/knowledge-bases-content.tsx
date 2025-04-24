@@ -37,7 +37,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/sample-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { ViewToggle } from "@/components/view-toggle"; // Remove type import here
@@ -83,7 +83,7 @@ export const KnowledgeBasesContent = () => {
   const [processingStep, setProcessingStep] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   // Remove local state: const [viewMode, setViewMode] = useState<ViewMode>("medium-grid")
-  const { viewMode, setViewMode } = useViewToggle<ViewMode>("medium-grid"); // Use hook
+  const { viewMode, setViewMode } = useViewToggle("medium-grid"); // Use hook
 
   const {
     data: knowledgeBasesResult,

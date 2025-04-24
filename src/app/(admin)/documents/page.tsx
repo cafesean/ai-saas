@@ -55,7 +55,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/sample-select";
 import { ThemeToggle } from "@/components/theme-toggle";
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
