@@ -19,7 +19,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/sample-select";
 import { VectorDatabase } from "@/framework/hooks/useVectorDbs";
 import { CreateKnowledgeBaseFormValues } from "@/schemas/knowledge-bases";
 
