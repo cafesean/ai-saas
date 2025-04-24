@@ -72,7 +72,7 @@ import {
   TriggerHTTPMethods,
 } from "@/constants/general";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { DefaultSkeleton } from "@/components/skeletions/default-skeleton";
+import { DefaultSkeleton } from "@/components/skeletons/default-skeleton";
 import WorkflowDetailLoading from "./components/LoadingSkelenton";
 import {
   DropdownMenu,
