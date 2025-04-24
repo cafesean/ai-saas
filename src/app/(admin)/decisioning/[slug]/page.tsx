@@ -46,7 +46,7 @@ import {
 import InputPanel from "./components/InputPanel";
 import OutputPanel from "./components/OutputPanel";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { DefaultSkeleton } from "@/components/skeletions/default-skeleton";
+import { DefaultSkeleton } from "@/components/skeletons/default-skeleton";
 import LoadingSkelenton from "./components/LoadingSkelenton";
 
 const DecisionTableDetailPage = () => {
