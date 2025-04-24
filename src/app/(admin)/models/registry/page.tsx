@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 
 import { ErrorBoundary } from "@/components/error-boundary";
-import { DefaultSkeleton } from "@/components/skeletions/default-skeleton";
+import { DefaultSkeleton } from "@/components/skeletons/default-skeleton";
 
 export default function ModelRegistryPage() {
   return (
