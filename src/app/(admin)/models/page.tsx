@@ -23,15 +23,15 @@ import { ModelInputType } from "@/constants/model";
 import { ModelStatus, S3_UPLOAD } from "@/constants/general";
 import { S3_API } from "@/constants/api";
 import { ViewToggle } from "@/components/view-toggle";
-import { useViewToggle } from "@/framework/hooks/useViewToggle";
+import { useViewToggle, type ViewMode } from "@/framework/hooks/useViewToggle";
 import { Separator } from "@/components/ui/separator";
 import { ModelsSummary } from "./components/ModelSummary";
 import { ModelsList } from "./components/ModelList";
 import { useModels } from "@/framework/hooks/useModels";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { PageError } from "@/components/page-error";
-import { ModelsSkeleton } from "@/components/skeletions/models-skeleton";
-import { DefaultSkeleton } from "@/components/skeletions/default-skeleton";
+import { ModelsSkeleton } from "@/components/skeletons/models-skeleton";
+import { DefaultSkeleton } from "@/components/skeletons/default-skeleton";
 
 type ModelView = {
   uuid: string;
