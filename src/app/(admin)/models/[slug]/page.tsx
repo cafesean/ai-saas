@@ -176,7 +176,9 @@ const ModelDetail = () => {
                         </CardHeader>
                         <CardContent>
                           <p className="text-2xl font-bold">
-                            {toPercent(model?.metrics[0]?.accuracy, 2) || "0.00%"}
+                            {model?.metrics[0]?.accuracy
+                              ? toPercent(model?.metrics[0]?.accuracy, 2)
+                              : "0.00%"}
                           </p>
                           <SampleButton
                             variant="link"
@@ -216,8 +218,8 @@ const ModelDetail = () => {
                           <FeatureImportanceDetail
                             feature={{
                               name:
-                                model?.metrics[0]?.features?.features?.[0]?.name ||
-                                "Feature",
+                                model?.metrics[0]?.features?.features?.[0]
+                                  ?.name || "Feature",
                               importance: model?.metrics[0]?.features
                                 ?.features?.[0]?.importance
                                 ? model?.metrics[0]?.features?.features?.[0]?.importance.toFixed(
@@ -353,9 +355,7 @@ const ModelDetail = () => {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <ModelVersions
-                          versions={model?.metrics || []}
-                        />
+                        <ModelVersions versions={model?.metrics || []} />
                       </CardContent>
                     </Card>
                   </TabsContent>
