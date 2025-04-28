@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
+
 import { SampleButton } from "@/components/ui/sample-button";
 import {
   Dialog,
@@ -18,8 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
-
+import { toPercent } from "@/utils/func";
 interface AllKPIsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -75,47 +76,50 @@ export function AllKPIsDialog({
             <TabsTrigger value="business">Business Impact</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="classification" className="space-y-4 py-4">
+          <TabsContent
+            value="classification"
+            className="space-y-4 py-4 max-h-[500px] overflow-y-auto"
+          >
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <MetricCard
                 title="K-S Score"
-                value={model.metrics?.ks || "67.8%"}
+                value={model.metrics[0]?.ks || "67.8%"}
                 trend={2.3}
                 description="Measures separation between positive and negative distributions"
               />
               <MetricCard
                 title="AUC-ROC"
-                value={model.metrics?.aucRoc || "0.91"}
+                value={model.metrics[0]?.aucRoc || "0.91"}
                 trend={0.01}
                 description="Area under the ROC curve"
               />
               <MetricCard
                 title="Accuracy"
-                value={model.metrics?.accuracy || "91.2%"}
+                value={model?.metrics[0]?.accuracy || "91.2%"}
                 trend={0.8}
                 description="Proportion of correct predictions"
               />
               <MetricCard
                 title="Gini Coefficient"
-                value={model.metrics?.gini || "0.82"}
+                value={model.metrics[0]?.gini || "0.82"}
                 trend={0.03}
                 description="Measure of statistical dispersion"
               />
               <MetricCard
                 title="Precision"
-                value="89.5%"
+                value="0.895"
                 trend={1.2}
                 description="Ratio of true positives to all positive predictions"
               />
               <MetricCard
                 title="Recall"
-                value="92.3%"
+                value="0.923"
                 trend={-0.5}
                 description="Ratio of true positives to all actual positives"
               />
               <MetricCard
                 title="F1 Score"
-                value="90.8%"
+                value="0.908"
                 trend={0.3}
                 description="Harmonic mean of precision and recall"
               />
@@ -146,7 +150,10 @@ export function AllKPIsDialog({
             </div>
           </TabsContent>
 
-          <TabsContent value="performance" className="space-y-4 py-4">
+          <TabsContent
+            value="performance"
+            className="space-y-4 py-4 max-h-[500px] overflow-y-auto"
+          >
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <MetricCard
                 title="Latency (p50)"
@@ -202,7 +209,10 @@ export function AllKPIsDialog({
             </div>
           </TabsContent>
 
-          <TabsContent value="business" className="space-y-4 py-4">
+          <TabsContent
+            value="business"
+            className="space-y-4 py-4 max-h-[500px] overflow-y-auto"
+          >
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <MetricCard
                 title="Cost per Inference"
@@ -297,7 +307,7 @@ function MetricCard({
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">
-          {(parseFloat(value) * 100).toFixed(1)}%
+          {toPercent(parseFloat(value), 2)}
         </div>
         <div
           className={`text-xs flex items-center mt-1 ${
