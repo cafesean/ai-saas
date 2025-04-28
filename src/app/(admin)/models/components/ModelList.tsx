@@ -86,7 +86,7 @@ function ModelsListComponent({ models, viewMode, onDelete }: ModelsListProps) {
                       {model.name}
                     </Link>
                     <div className="text-sm text-muted-foreground">
-                      v{model.version}
+                      v{model.metrics[0].version}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -114,8 +114,8 @@ function ModelsListComponent({ models, viewMode, onDelete }: ModelsListProps) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {model.metrics?.accuracy
-                      ? (parseFloat(model.metrics?.accuracy) * 100).toFixed(1)
+                    {model?.metrics[0]?.accuracy
+                      ? (parseFloat(model?.metrics[0]?.accuracy) * 100).toFixed(1)
                       : 0}
                     %
                   </TableCell>
@@ -195,7 +195,7 @@ function ModelsListComponent({ models, viewMode, onDelete }: ModelsListProps) {
               </Badge>
             </div>
             <CardDescription className="text-xs">
-              v{model.version}
+              v{model.metrics[0].version}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow space-y-2 text-sm">
@@ -211,13 +211,13 @@ function ModelsListComponent({ models, viewMode, onDelete }: ModelsListProps) {
                 <span>{model.framework}</span>
               </div>
             )}
-            {model.metrics?.accuracy && (
+            {model?.metrics[0]?.accuracy && (
               <div className="flex items-center gap-2">
                 <Tag className="h-4 w-4 text-muted-foreground" />
                 <span>
                   Accuracy:{" "}
-                  {model.metrics?.accuracy
-                    ? (parseFloat(model.metrics?.accuracy) * 100).toFixed(1)
+                  {model?.metrics[0]?.accuracy
+                    ? (parseFloat(model?.metrics[0]?.accuracy) * 100).toFixed(1)
                     : 0}
                   %
                 </span>

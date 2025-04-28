@@ -40,6 +40,22 @@ type ModelView = {
   status: string | null;
 };
 
+const formatFeatures = (features: any[], types: any, importances: any) => {
+  return features.map((feature, index) => {
+    const featureType =
+      typeof types === "object" ? types[feature] : types[index];
+    const featureImportance =
+      typeof importances === "object"
+        ? importances[feature]
+        : importances[index];
+    return {
+      name: feature,
+      type: featureType,
+      importance: featureImportance,
+    };
+  });
+};
+
 const ModelsPage = () => {
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [challengerGroups, setChallengerGroups] = useState<any[]>([]);
@@ -153,6 +169,16 @@ const ModelsPage = () => {
           let framework = "PyTorch";
           let metrics = metadata?.performance_metrics || null;
           let modelType = metadata?.model_type || "Classification";
+          let features = metadata?.feature_names || [];
+          let featureTypes = metadata?.feature_types || null;
+          let featuresImportants = metadata?.feature_importance || null;
+          if (features && featureTypes) {
+            features = formatFeatures(
+              features,
+              featureTypes,
+              featuresImportants,
+            );
+          }
           if (metrics) {
             metrics = {
               ...metrics,
@@ -164,6 +190,9 @@ const ModelsPage = () => {
               accuracyChart: metrics.accuracy_chart,
               aurocChart: metrics.auroc_chart,
               giniChart: metrics.gini_chart,
+              features: {
+                features,
+              },
             };
           }
           // Create model

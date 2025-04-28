@@ -128,7 +128,7 @@ function ModelCard({
                 </div>
 
                 <div className="text-sm text-muted-foreground mb-4">
-                  Version {model?.version} • Last updated{" "}
+                  Version {model.metrics[0]?.version} • Last updated{" "}
                   {String(model?.updatedAt)} •{" "}
                   {model?.inferences?.toLocaleString()} inferences
                 </div>
@@ -136,24 +136,24 @@ function ModelCard({
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                   <MetricDisplay
                     label={ModelMetric.ks.label}
-                    value={model.metrics ? model.metrics.ks : ""}
+                    value={model.metrics[0] ? model.metrics[0].ks : ""}
                     chartData={
-                      model.metrics
+                      model.metrics[0]
                         ? {
                             ...ModelMetric.ks.chart,
-                            data: model.metrics.ksChart,
+                            data: model.metrics[0].ksChart,
                           }
                         : { ...ModelMetric.ks.chart }
                     }
                   />
                   <MetricDisplay
                     label={ModelMetric.accuracy.label}
-                    value={model.metrics ? model.metrics.accuracy : ""}
+                    value={model.metrics[0] ? model.metrics[0].accuracy : ""}
                     chartData={
-                      model.metrics
+                      model.metrics[0]
                         ? {
                             ...ModelMetric.accuracy.chart,
-                            data: model.metrics.accuracyChart,
+                            data: model.metrics[0].accuracyChart,
                           }
                         : {
                             ...ModelMetric.accuracy.chart,
@@ -162,12 +162,12 @@ function ModelCard({
                   />
                   <MetricDisplay
                     label={ModelMetric.gini.label}
-                    value={model.metrics ? model.metrics.gini : ""}
+                    value={model.metrics[0] ? model.metrics[0].gini : ""}
                     chartData={
-                      model.metrics
+                      model.metrics[0]
                         ? {
                             ...ModelMetric.gini.chart,
-                            data: model.metrics.giniChart,
+                            data: model.metrics[0].giniChart,
                           }
                         : {
                             ...ModelMetric.gini.chart,
@@ -176,12 +176,12 @@ function ModelCard({
                   />
                   <MetricDisplay
                     label={ModelMetric.aucroc.label}
-                    value={model.metrics ? model.metrics.auroc : ""}
+                    value={model.metrics[0] ? model.metrics[0].auroc : ""}
                     chartData={
-                      model.metrics
+                      model.metrics[0]
                         ? {
                             ...ModelMetric.aucroc.chart,
-                            data: model.metrics.aurocChart,
+                            data: model.metrics[0].aurocChart,
                           }
                         : {
                             ...ModelMetric.aucroc.chart,

@@ -27,7 +27,6 @@ export const models = pgTable(
     metadataFileName: varchar("metadata_file_name", { length: 200 }),
     metadataFileKey: varchar("metadata_file_key", { length: 200 }),
     defineInputs: json("define_inputs"),
-    version: varchar("version", { length: 100 }),
     status: varchar("status", { length: 100 })
       .notNull()
       .default(ModelStatus.INACTIVE),
@@ -58,6 +57,7 @@ export const model_metrics = pgTable("model_metrics", {
   modelId: integer("model_id")
     .references(() => models.id, { onDelete: "cascade" })
     .notNull(),
+  version: varchar("version", { length: 100 }).notNull(),
   ks: varchar("ks", { length: 100 }),
   auroc: varchar("auroc", { length: 100 }),
   gini: varchar("gini", { length: 100 }),
@@ -66,6 +66,7 @@ export const model_metrics = pgTable("model_metrics", {
   aurocChart: text("auroc_chart"),
   giniChart: text("gini_chart"),
   accuracyChart: text("accuracy_chart"),
+  features: json("features"),
   createdAt: timestamp("created_at", {
     withTimezone: true,
     mode: "date",
@@ -81,9 +82,13 @@ export const model_metrics = pgTable("model_metrics", {
 });
 
 // Relations
-export const modelsRelations = relations(models, ({ one }) => ({
-  metrics: one(model_metrics, {
-    fields: [models.id],
-    references: [model_metrics.modelId],
+export const modelsRelations = relations(models, ({ many }) => ({
+  metrics: many(model_metrics),
+}));
+
+export const model_metricsRelations = relations(model_metrics, ({ one }) => ({
+  model: one(models, {
+    fields: [model_metrics.modelId],
+    references: [models.id],
   }),
 }));
