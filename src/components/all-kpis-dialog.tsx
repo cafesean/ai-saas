@@ -83,25 +83,25 @@ export function AllKPIsDialog({
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <MetricCard
                 title="K-S Score"
-                value={model.metrics[0]?.ks || "67.8%"}
+                value={model.metrics[0]?.ks || "0.0%"}
                 trend={2.3}
                 description="Measures separation between positive and negative distributions"
               />
               <MetricCard
                 title="AUC-ROC"
-                value={model.metrics[0]?.aucRoc || "0.91"}
+                value={model.metrics[0]?.aucRoc || "0.0"}
                 trend={0.01}
                 description="Area under the ROC curve"
               />
               <MetricCard
                 title="Accuracy"
-                value={model?.metrics[0]?.accuracy || "91.2%"}
+                value={model?.metrics[0]?.accuracy || "0.0%"}
                 trend={0.8}
                 description="Proportion of correct predictions"
               />
               <MetricCard
                 title="Gini Coefficient"
-                value={model.metrics[0]?.gini || "0.82"}
+                value={model.metrics[0]?.gini || "0.0"}
                 trend={0.03}
                 description="Measure of statistical dispersion"
               />

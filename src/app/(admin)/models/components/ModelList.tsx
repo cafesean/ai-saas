@@ -195,7 +195,7 @@ function ModelsListComponent({ models, viewMode, onDelete }: ModelsListProps) {
               </Badge>
             </div>
             <CardDescription className="text-xs">
-              v{model.metrics[0].version}
+              v{model.metrics[0]?.version}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow space-y-2 text-sm">
