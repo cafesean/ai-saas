@@ -111,7 +111,7 @@ export default function WorkflowsPage() {
   const [isClient, setIsClient] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState("");
-  const [newWorkflowType, setNewWorkflowType] = useState("standard");
+  const [newWorkflowType, setNewWorkflowType] = useState("");
   const [newDescriptioin, setNewDescriptioin] = useState("");
   const {
     deleteConfirmOpen,

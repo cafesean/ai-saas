@@ -45,3 +45,7 @@ export const capitalizeFirstLetterLowercase = (str: string) => {
   if (!str) return "";
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };
+
+export const toPercent = (decimal: number, decimalPlaces = 0) => {
+  return (decimal * 100).toFixed(decimalPlaces) + "%";
+};
