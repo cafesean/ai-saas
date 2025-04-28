@@ -1,5 +1,10 @@
 import { templates } from "./n8n";
-import { models, model_metrics, modelsRelations } from "./model";
+import {
+  models,
+  model_metrics,
+  modelsRelations,
+  model_metricsRelations,
+} from "./model";
 import {
   workflows,
   nodes,
@@ -64,6 +69,7 @@ export {
   conditionsRelations,
   ruleFlowActionsRelations,
   modelsRelations,
+  model_metricsRelations,
   decision_tables,
   decision_table_rows,
   decision_table_inputs,
@@ -104,6 +110,7 @@ export default {
   models,
   model_metrics,
   modelsRelations,
+  model_metricsRelations,
   decision_tables,
   decision_table_rows,
   decision_table_inputs,

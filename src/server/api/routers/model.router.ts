@@ -3,7 +3,7 @@ import { eq, asc, desc } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
 import { db } from "@/db/config";
-import { models, model_metrics } from "@/db/schema";
+import schema, { models, model_metrics } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 import { ModelStatus } from "@/constants/general";
 import { createTRPCRouter, publicProcedure } from "../trpc";
@@ -37,6 +37,7 @@ const modelSchema = z.object({
       aurocChart: z.string().nullable(),
       giniChart: z.string().nullable(),
       accuracyChart: z.string().nullable(),
+      features: z.record(z.any()).optional(),
     })
     .nullable(),
 });
@@ -46,7 +47,9 @@ export const modelRouter = createTRPCRouter({
     const modelsData = await db.query.models.findMany({
       orderBy: desc(models.updatedAt),
       with: {
-        metrics: true,
+        metrics: {
+          orderBy: desc(schema.model_metrics.createdAt),
+        },
       },
     });
     return modelsData;
@@ -72,7 +75,9 @@ export const modelRouter = createTRPCRouter({
     const model = await db.query.models.findFirst({
       where: eq(models.uuid, input),
       with: {
-        metrics: true,
+        metrics: {
+          orderBy: desc(schema.model_metrics.createdAt),
+        },
       },
     });
 
@@ -95,7 +100,6 @@ export const modelRouter = createTRPCRouter({
             uuid: input.uuid,
             name: input.name,
             description: input.description,
-            version: input.version,
             fileName: input.fileName,
             fileKey: input.fileKey,
             metadataFileName: input.metadataFileName ?? null,
@@ -112,6 +116,7 @@ export const modelRouter = createTRPCRouter({
             .values({
               uuid: uuidv4(),
               modelId: model.id,
+              version: input.version || "1.0.0",
               ks: input.metrics.ks,
               auroc: input.metrics.auroc,
               gini: input.metrics.gini,
@@ -120,6 +125,7 @@ export const modelRouter = createTRPCRouter({
               aurocChart: input.metrics.aurocChart,
               giniChart: input.metrics.giniChart,
               accuracyChart: input.metrics.accuracyChart,
+              features: input.metrics.features,
             })
             .returning();
         }
@@ -149,7 +155,6 @@ export const modelRouter = createTRPCRouter({
             metadataFileKey: input.metadataFileKey ?? null,
             defineInputs: input.defineInputs,
             status: input.status || ModelStatus.INACTIVE,
-            version: input.version,
             type: input.type,
             framework: input.framework,
           })
@@ -180,6 +185,7 @@ export const modelRouter = createTRPCRouter({
                 .values({
                   uuid: uuidv4(),
                   modelId: model.id,
+                  version: input.version || "1.0.0",
                   ks: input.metrics.ks,
                   auroc: input.metrics.auroc,
                   gini: input.metrics.gini,
@@ -188,6 +194,7 @@ export const modelRouter = createTRPCRouter({
                   aurocChart: input.metrics.aurocChart,
                   giniChart: input.metrics.giniChart,
                   accuracyChart: input.metrics.accuracyChart,
+                  features: input.metrics.features,
                 })
                 .returning();
             }
