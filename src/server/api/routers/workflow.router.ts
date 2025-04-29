@@ -477,11 +477,53 @@ const generateN8NNodesAndN8NConnections = async (
         });
         break;
       case NodeTypes.aiModel:
+        // Find model
+        const modelUUID = node.data.model.uuid;
+        const model = await tx.query.models.findFirst({
+          where: eq(schema.models.uuid, modelUUID),
+        });
+        const queryParameters = [];
+        if (model.fileKey) {
+          queryParameters.push({
+            name: "model_path",
+            value: `${model.fileKey}`,
+          });
+        }
+        if (model.metadataFileKey) {
+          queryParameters.push({
+            name: "metadata_path",
+            value: `${model.metadataFileKey}`,
+          });
+        }
         n8nNodes.push({
           ...n8nHTTPRequestNode,
           parameters: {
             ...n8nHTTPRequestNode.parameters,
-            url: process.env.MODEL_MOCK_URL,
+            url: process.env.MODEL_SERVICE_URL?.replace(
+              "{model_uuid}",
+              modelUUID,
+            ),
+            sendQuery: true,
+            queryParameters: {
+              parameters: queryParameters                               ,
+            },
+            sendHeaders: true,
+            headerParameters: {
+              parameters: [
+                {
+                  name: process.env.MODEL_SERVICE_ACCESS_ID_KEY,
+                  value: process.env.MODEL_SERVICE_ACCESS_ID_VALUE,
+                },
+                {
+                  name: process.env.MODEL_SERVICE_SECRET_KEY,
+                  value: process.env.MODEL_SERVICE_SECRET_VALUE,
+                },
+              ],
+            },
+            sendBody: true,
+            specifyBody: "json",
+            jsonBody:
+              "={{  $input.all()[0].json.body || $input.all()[0].json }}",
           },
           position: [node.position.x, node.position.y],
           name: node.data.label,
