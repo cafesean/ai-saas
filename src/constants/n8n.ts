@@ -19,6 +19,7 @@ export const n8nHTTPRequestNode = {
   type: "n8n-nodes-base.httpRequest",
   typeVersion: 4.2,
   parameters: {
+    method: "POST",
     url: "",
     options: {},
   },

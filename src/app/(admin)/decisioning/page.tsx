@@ -63,6 +63,7 @@ const DecisionTablesPage = () => {
   const createModel = api.decisionTable.create.useMutation({
     onSuccess: (data) => {
       utils.decisionTable.getAll.invalidate();
+      utils.decisionTable.getByStatus.refetch();
       toast.success("Decision Table created successfully");
     },
     onError: (error) => {
@@ -70,7 +71,11 @@ const DecisionTablesPage = () => {
     },
   });
   const deleteDecisionTable = api.decisionTable.delete.useMutation({
-    onSuccess: () => utils.decisionTable.getAll.invalidate(),
+    onSuccess: () => {
+      utils.decisionTable.getAll.invalidate();
+      utils.decisionTable.getByStatus.refetch();
+      toast.success("Decision Table deleted successfully");
+    },
   });
 
   const handleDelete = (decisionTable: DecisionTableView) => {
