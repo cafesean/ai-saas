@@ -41,6 +41,7 @@ export function useModels({
   const createModelMutation = api.model.create.useMutation({
     onSuccess: (data) => {
       utils.model.getAll.invalidate();
+      utils.model.getByStatus.refetch();
       toast.success("Model created successfully");
     },
     onError: (error) => {
@@ -50,6 +51,7 @@ export function useModels({
   const updateModelMutation = api.model.update.useMutation();
   const deleteModelMutation = api.model.delete.useMutation({
     onSuccess: (data) => {
+      utils.model.getByStatus.refetch();
       toast.success("Model deleted successfully");
     },
     onError: (error) => {

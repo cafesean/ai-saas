@@ -1,7 +1,12 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-export type ModelStatus = "champion" | "challenger" | "published" | "draft" | string;
+export type ModelStatus =
+  | "champion"
+  | "challenger"
+  | "published"
+  | "draft"
+  | string;
 
 export interface Feature {
   name: string;
@@ -17,10 +22,9 @@ export interface Inference {
 }
 
 export interface Model {
-  id: number;
+  id?: number;
   uuid: string;
   name: string;
-  version: string | null;
   status: ModelStatus;
   framework: string | null;
   type: string | null;
@@ -33,6 +37,7 @@ export interface Model {
   createdAt: Date | string;
   updatedAt: Date | string;
   metrics?: {
+    version: string;
     ks: string | null;
     auroc: string | null;
     gini: string | null;
@@ -41,7 +46,8 @@ export interface Model {
     aurocChart: string | null;
     giniChart: string | null;
     accuracyChart: string | null;
-  } | null;
+    features?: any;
+  }[] | null;
 }
 
 interface ModelState {
