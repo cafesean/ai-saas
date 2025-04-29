@@ -22,6 +22,7 @@ function NodePropertiesPanel({
   nodes,
   setNodes,
 }: NodePropertiesPanelProps) {
+  
   const activeModels = api.model.getByStatus.useQuery(ModelStatus.ACTIVE, {
     enabled: false,
   });
