@@ -115,9 +115,16 @@ const ModelsPage = () => {
     } else if (files.length > 2) {
       toast.error("You can only upload 2 files at a time.");
       return;
-    } else if (files.length === 1 && files[0]?.name?.endsWith(".json")) {
-      toast.error("Please upload a model file.");
+    } else if (files.length < 2) {
+      toast.error("Please upload a model file and metadata file.");
       return;
+    } else if (files.length === 2) {
+      // Check if both files are JSON files
+      const isJson = files.every((file) => file.name.endsWith(".json"));
+      if (isJson) {
+        toast.error("Please upload a model file and metadata file.");
+        return;
+      }
     }
     setImporting(true);
     let modelFileName = "";
@@ -172,6 +179,8 @@ const ModelsPage = () => {
           let features = metadata?.feature_names || [];
           let featureTypes = metadata?.feature_types || null;
           let featuresImportants = metadata?.feature_importance || null;
+          let outputs = metadata?.outputs || null;
+          console.log(outputs)
           if (features && featureTypes) {
             features = formatFeatures(
               features,
@@ -194,6 +203,11 @@ const ModelsPage = () => {
                 features,
               },
             };
+            if (outputs) {
+              metrics.outputs = {
+                outputs,
+              };
+            }
           }
           // Create model
           await createModel({

@@ -378,30 +378,39 @@ const ModelDetail = () => {
                             trained on a proprietary dataset with{" "}
                             {model?.features?.length || 0} key features.
                           </p>
-
-                          <h3>Input Format</h3>
-                          <p>
-                            The model accepts input data in JSON format with the
-                            following structure:
-                          </p>
-                          <pre>{`{
+                          {model?.metrics[0]?.features?.features && (
+                            <>
+                              <h3>Input Format</h3>
+                              <p>
+                                The model accepts input data in JSON format with
+                                the following structure:
+                              </p>
+                              <pre>{`{
   ${
-    model?.features
+    model?.metrics[0]?.features?.features
       ?.map((f: any) => `"${f.name}": <${f.type || "value"}>`)
       .join(",\n  ") || '"feature": <value>'
   }
 }`}</pre>
+                            </>
+                          )}
 
-                          <h3>Output Format</h3>
-                          <p>
-                            The model returns predictions in the following
-                            format:
-                          </p>
-                          <pre>{`{
-  "prediction": "<class>",
-  "confidence": <value between 0 and 1>,
-  "timestamp": "<ISO date>"
+                          {model?.metrics[0]?.outputs?.outputs && (
+                            <>
+                              <h3>Output Format</h3>
+                              <p>
+                                The model returns predictions in the following
+                                format:
+                              </p>
+                              <pre>{`{
+  ${
+    model?.metrics[0]?.outputs?.outputs
+      ?.map((f: any) => `"${f.name}": <${f.type || "value"}>`)
+      .join(",\n  ") || '"feature": <value>'
+  }
 }`}</pre>
+                            </>
+                          )}
 
                           <h3>Training Methodology</h3>
                           <p>

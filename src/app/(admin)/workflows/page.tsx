@@ -125,7 +125,7 @@ export default function WorkflowsPage() {
     openDeleteConfirm: openChangeStatusConfirm,
     closeDeleteConfirm: closeChangeStatusConfirm,
   } = useModalState<WorkflowView>();
-  const { viewMode, setViewMode } = useViewToggle("medium-grid");
+  const { viewMode, setViewMode } = useViewToggle("large-grid");
 
   useEffect(() => {
     setIsClient(true);
