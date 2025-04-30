@@ -84,7 +84,7 @@ export function FeatureImportanceDetail({
             <div>
               <h5 className="text-sm font-medium mb-1">Correlations</h5>
               <div className="space-y-1">
-                {feature.correlations.map((correlation, index) => (
+                {feature.correlations.map((correlation: any, index) => (
                   <div key={index} className="text-sm flex justify-between">
                     <span>{correlation.feature}</span>
                     <span

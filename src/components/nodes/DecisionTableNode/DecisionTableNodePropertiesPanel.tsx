@@ -46,7 +46,7 @@ export const DecisionTableNodePropertiesPanel = ({
           }}
         >
           <SelectTrigger id="model-name">
-            <SelectValue placeholder="Select AI model" />
+            <SelectValue placeholder="Select Decision Table" />
           </SelectTrigger>
           <SelectContent>
             {decisionTables.map((decisionTable) => (

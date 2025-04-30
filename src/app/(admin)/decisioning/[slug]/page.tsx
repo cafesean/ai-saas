@@ -65,6 +65,7 @@ const DecisionTableDetailPage = () => {
   const updateStatus = api.decisionTable.updateStatus.useMutation({
     onSuccess: () => {
       utils.decisionTable.getByUUID.invalidate();
+      utils.decisionTable.getByStatus.refetch();
     },
   });
   const updateDecisionTable = api.decisionTable.update.useMutation({

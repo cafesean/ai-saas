@@ -29,15 +29,16 @@ const modelSchema = z.object({
   framework: z.string().nullable().optional(),
   metrics: z
     .object({
-      ks: z.string().nullable(),
-      auroc: z.string().nullable(),
-      gini: z.string().nullable(),
-      accuracy: z.string().nullable(),
-      ksChart: z.string().nullable(),
-      aurocChart: z.string().nullable(),
-      giniChart: z.string().nullable(),
-      accuracyChart: z.string().nullable(),
+      ks: z.string().optional(),
+      auroc: z.string().optional(),
+      gini: z.string().optional(),
+      accuracy: z.string().optional(),
+      ksChart: z.string().optional(),
+      aurocChart: z.string().optional(),
+      giniChart: z.string().optional(),
+      accuracyChart: z.string().optional(),
       features: z.record(z.any()).optional(),
+      outputs: z.record(z.any()).optional(),
     })
     .nullable(),
 });
@@ -126,6 +127,7 @@ export const modelRouter = createTRPCRouter({
               giniChart: input.metrics.giniChart,
               accuracyChart: input.metrics.accuracyChart,
               features: input.metrics.features,
+              outputs: input.metrics.outputs,
             })
             .returning();
         }

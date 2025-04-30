@@ -67,6 +67,7 @@ export const model_metrics = pgTable("model_metrics", {
   giniChart: text("gini_chart"),
   accuracyChart: text("accuracy_chart"),
   features: json("features"),
+  outputs: json("outputs"),
   createdAt: timestamp("created_at", {
     withTimezone: true,
     mode: "date",
