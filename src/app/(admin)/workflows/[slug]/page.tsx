@@ -81,6 +81,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useModalState } from "@/framework/hooks/useModalState";
+import { WorkflowTestRunDialog } from "@/components/workflow-test-run-dialog";
 
 // Import the decision service for connection validation
 import { decisionService } from "@/lib/decision-service";
@@ -150,6 +151,7 @@ export default function WorkflowDetailPage() {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [isAddNodeDialogOpen, setIsAddNodeDialogOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isTestRunDialogOpen, setIsTestRunDialogOpen] = useState(false);
   const {
     deleteConfirmOpen: changeStatusConfirmOpen,
     selectedItem: selectedWorkflow,
@@ -450,7 +452,12 @@ export default function WorkflowDetailPage() {
                       </SampleButton>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Test Run</DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setIsTestRunDialogOpen(true)}
+                        className="cursor-pointer"
+                      >
+                        Test Run
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </>
@@ -732,6 +739,13 @@ export default function WorkflowDetailPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            {isTestRunDialogOpen && (
+              <WorkflowTestRunDialog
+                open={isTestRunDialogOpen}
+                onOpenChange={(open) => setIsTestRunDialogOpen(open)}
+                workflow={workflowItem}
+              />
+            )}
           </Suspense>
         </ErrorBoundary>
       </div>
