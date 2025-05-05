@@ -117,10 +117,6 @@ export function RunInferenceDialog({
     const option = {
       url: `/api/inference/${model.uuid}`,
       method: "POST",
-      params: {
-        model_path: model.fileKey,
-        metadata_path: model.metadataFileKey,
-      },
       data: {
         ...formValues,
       },
