@@ -28,6 +28,7 @@ import {
 import { SampleCheckbox } from "@/components/ui/sample-checkbox";
 import { Label } from "@/components/ui/label";
 import { toPercent } from "@/utils/func";
+import { mapFeatureType } from "@/lib/model-service";
 
 interface Feature {
   name: string;
@@ -263,7 +264,9 @@ export function ModelFeaturesViewer({
                       {feature.name}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{feature.type}</Badge>
+                      <Badge variant="outline">
+                        {mapFeatureType(feature.type)}
+                      </Badge>
                     </TableCell>
                     <TableCell
                       className="max-w-[300px] truncate"
