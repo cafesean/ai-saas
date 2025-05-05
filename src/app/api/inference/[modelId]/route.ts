@@ -34,7 +34,7 @@ export async function POST(
     }
     if (model) {
       const inferenceOptions = {
-        baseURL: process.env.MODEL_SERVICE_URL?.replace(
+        baseURL: process.env.INFERENCE_URL?.replace(
           "{model_uuid}",
           modelId,
         ),
@@ -53,7 +53,6 @@ export async function POST(
         },
       };
       const inferenceResponse = await instance(inferenceOptions);
-      console.log(inferenceResponse.data);
       if (inferenceResponse.data && !inferenceResponse.data.error) {
         // Insert inference into inferences table
         await db.insert(schema.inferences).values({
