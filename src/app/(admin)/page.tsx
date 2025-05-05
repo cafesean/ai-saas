@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { Route } from "next";
 
+import { api, useUtils } from "@/utils/trpc";
 import {
   Card,
   CardContent,
@@ -21,11 +24,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { SampleButton } from "@/components/ui/sample-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { formatNumber, getTimeAgo } from "@/utils/func";
+import { AdminRoutes } from "@/constants/routes";
 
 // Prevent static prerendering to fix TRPC issues
 export const dynamic = "force-dynamic";
 
 export default function Home() {
+  const { data: stats, isLoading, error } = api.dashboard.getStats.useQuery();
   return (
     <div className="flex min-h-screen flex-col">
       <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -57,9 +63,11 @@ export default function Home() {
                     <Brain className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-5xl font-bold animate-float">24</div>
+                    <div className="text-5xl font-bold animate-float">
+                      {stats?.totalModels || 0}
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      +2 from last month
+                      +{stats?.modelsLastMonth || 0} from last month
                     </p>
                     <div className="text-xs text-primary flex items-center mt-2">
                       View all models
@@ -73,14 +81,16 @@ export default function Home() {
                 <Card className="card-hover transition-all hover:border-primary cursor-pointer">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">
-                      Published Models
+                      Active Models
                     </CardTitle>
                     <CheckCircle className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-5xl font-bold animate-float">18</div>
+                    <div className="text-5xl font-bold animate-float">
+                      {stats?.activeModels || 0}
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      +3 from last month
+                      +{stats?.activeModelsLastMonth || 0} from last month
                     </p>
                     <div className="text-xs text-primary flex items-center mt-2">
                       View published models
@@ -99,7 +109,9 @@ export default function Home() {
                     <Activity className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-5xl font-bold animate-float">1.2M</div>
+                    <div className="text-5xl font-bold animate-float">
+                      {formatNumber(stats?.totalInferences || 0)}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       +12% from last month
                     </p>
@@ -115,14 +127,16 @@ export default function Home() {
                 <Card className="card-hover transition-all hover:border-primary cursor-pointer">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">
-                      Active Workflows
+                      Published Workflows
                     </CardTitle>
                     <Clock className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-5xl font-bold animate-float">7</div>
+                    <div className="text-5xl font-bold animate-float">
+                      {stats?.publishedWorkflows || 0}
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      +1 from last month
+                      +{stats?.publishedWorkflowsLastMonth || 0} from last month
                     </p>
                     <div className="text-xs text-primary flex items-center mt-2">
                       View workflows
@@ -136,115 +150,65 @@ export default function Home() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
               <Card className="col-span-4 card-hover">
                 <CardHeader>
-                  <CardTitle>Active Workflows</CardTitle>
+                  <CardTitle>Published Workflows</CardTitle>
                   <CardDescription>
                     Workflows currently using AI models
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-4 rounded-lg border p-3 animate-slide-in">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                          <FileText className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <div className="font-medium">
-                            Microfinance Loan Preapproval
+                    {stats?.latestThreePublishedWorkflows.map(
+                      (workflow, index) => {
+                        const animationDelay = `${index * 0.1}s`;
+                        return (
+                          <div
+                            key={`latest-workflow-${workflow.uuid}`}
+                            className="grid grid-cols-[1fr_auto_auto] items-center gap-4 rounded-lg border p-3 animate-slide-in"
+                            style={{ animationDelay: animationDelay }}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                                <FileText className="h-4 w-4 text-primary" />
+                              </div>
+                              <div>
+                                <div className="font-medium">
+                                  {workflow.name}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {workflow.description}
+                                </div>
+                              </div>
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className="bg-success/10 text-success"
+                            >
+                              {workflow.status}
+                            </Badge>
+                            <Link
+                              href={
+                                AdminRoutes.workflowDetail.replace(
+                                  ":uuid",
+                                  workflow.uuid,
+                                ) as Route
+                              }
+                            >
+                              <SampleButton
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <ArrowUpRight className="h-4 w-4" />
+                                <span className="sr-only">View workflow</span>
+                              </SampleButton>
+                            </Link>
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            Credit Risk Assessment
-                          </div>
-                        </div>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className="bg-success/10 text-success"
-                      >
-                        Active
-                      </Badge>
-                      <Link href="/workflows/credit-risk-scorecard">
-                        <SampleButton
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                        >
-                          <ArrowUpRight className="h-4 w-4" />
-                          <span className="sr-only">View workflow</span>
-                        </SampleButton>
-                      </Link>
-                    </div>
-
-                    <div
-                      className="grid grid-cols-[1fr_auto_auto] items-center gap-4 rounded-lg border p-3 animate-slide-in"
-                      style={{ animationDelay: "0.1s" }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                          <Users className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <div className="font-medium">
-                            Customer Churn Prediction
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            Telecom Services
-                          </div>
-                        </div>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className="bg-success/10 text-success"
-                      >
-                        Active
-                      </Badge>
-                      <Link href="/workflows/2">
-                        <SampleButton
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                        >
-                          <ArrowUpRight className="h-4 w-4" />
-                          <span className="sr-only">View workflow</span>
-                        </SampleButton>
-                      </Link>
-                    </div>
-
-                    <div
-                      className="grid grid-cols-[1fr_auto_auto] items-center gap-4 rounded-lg border p-3 animate-slide-in"
-                      style={{ animationDelay: "0.2s" }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                          <Activity className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <div className="font-medium">Fraud Detection</div>
-                          <div className="text-sm text-muted-foreground">
-                            Banking Transactions
-                          </div>
-                        </div>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className="bg-success/10 text-success"
-                      >
-                        Active
-                      </Badge>
-                      <Link href="/workflows/3">
-                        <SampleButton
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                        >
-                          <ArrowUpRight className="h-4 w-4" />
-                          <span className="sr-only">View workflow</span>
-                        </SampleButton>
-                      </Link>
-                    </div>
+                        );
+                      },
+                    )}
 
                     <Link
-                      href="/workflows"
+                      href={AdminRoutes.workflows as Route}
                       className="flex items-center justify-center text-sm text-primary"
                     >
                       View all workflows
@@ -261,90 +225,33 @@ export default function Home() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-center gap-4 rounded-lg border p-3 animate-slide-in">
-                      <Avatar className="h-9 w-9">
-                        <AvatarImage
-                          src="/placeholder.svg?height=36&width=36"
-                          alt="Avatar"
-                        />
-                        <AvatarFallback>AA</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 space-y-1">
-                        <p className="text-sm font-medium leading-none">
-                          Ahmed Al-Mansouri
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Loan Preapproval: Approved
-                        </p>
-                      </div>
-                      <p className="text-xs text-muted-foreground">2m ago</p>
-                    </div>
-
-                    <div
-                      className="flex items-center gap-4 rounded-lg border p-3 animate-slide-in"
-                      style={{ animationDelay: "0.1s" }}
-                    >
-                      <Avatar className="h-9 w-9">
-                        <AvatarImage
-                          src="/placeholder.svg?height=36&width=36"
-                          alt="Avatar"
-                        />
-                        <AvatarFallback>FA</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 space-y-1">
-                        <p className="text-sm font-medium leading-none">
-                          Fatima Al-Zahrani
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Churn Prediction: Low Risk
-                        </p>
-                      </div>
-                      <p className="text-xs text-muted-foreground">15m ago</p>
-                    </div>
-
-                    <div
-                      className="flex items-center gap-4 rounded-lg border p-3 animate-slide-in"
-                      style={{ animationDelay: "0.2s" }}
-                    >
-                      <Avatar className="h-9 w-9">
-                        <AvatarImage
-                          src="/placeholder.svg?height=36&width=36"
-                          alt="Avatar"
-                        />
-                        <AvatarFallback>SA</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 space-y-1">
-                        <p className="text-sm font-medium leading-none">
-                          Saeed Al-Qahtani
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Fraud Detection: Flagged
-                        </p>
-                      </div>
-                      <p className="text-xs text-muted-foreground">1h ago</p>
-                    </div>
-
-                    <div
-                      className="flex items-center gap-4 rounded-lg border p-3 animate-slide-in"
-                      style={{ animationDelay: "0.3s" }}
-                    >
-                      <Avatar className="h-9 w-9">
-                        <AvatarImage
-                          src="/placeholder.svg?height=36&width=36"
-                          alt="Avatar"
-                        />
-                        <AvatarFallback>NA</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 space-y-1">
-                        <p className="text-sm font-medium leading-none">
-                          Noura Al-Saud
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Loan Preapproval: Rejected
-                        </p>
-                      </div>
-                      <p className="text-xs text-muted-foreground">3h ago</p>
-                    </div>
+                    {stats?.latestThreeInferences.map((inference, index) => {
+                      const animationDelay = `${index * 0.1}s`;
+                      return (
+                        <div
+                          key={`latest-inference-${inference.inference.uuid}`}
+                          className="flex items-center gap-4 rounded-lg border p-3 animate-slide-in"
+                          style={{ animationDelay: animationDelay }}
+                        >
+                          <Avatar className="h-9 w-9">
+                            <AvatarImage
+                              src="/placeholder.svg?height=36&width=36"
+                              alt="Avatar"
+                            />
+                            <AvatarFallback>FA</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 space-y-1">
+                            <p className="text-sm font-medium leading-none">
+                              {inference.model.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground"></p>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {getTimeAgo(inference.inference.createdAt)}
+                          </p>
+                        </div>
+                      );
+                    })}
 
                     <Link
                       href={`/analytics` as Route}

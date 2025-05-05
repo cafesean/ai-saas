@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import axios from "axios";
+import { toast } from "sonner";
+
 import { SampleButton } from "@/components/ui/sample-button";
 import {
   Dialog,
@@ -19,7 +22,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/sample-select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -38,6 +41,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { mapFeatureType } from "@/lib/model-service";
+
+const instance = axios.create();
 
 interface Feature {
   name: string;
@@ -56,6 +62,30 @@ interface RunInferenceDialogProps {
   model: any;
 }
 
+const formatFeatures = (model: any) => {
+  const features = model.metrics[0]?.features?.features?.map(
+    (feature: any) => ({
+      name: feature.name,
+      type: mapFeatureType(feature.type),
+      description: "",
+      required: false,
+      range: "",
+      defaultValue: "0",
+    }),
+  );
+  return features;
+};
+
+const validateValueByDataType = (value: string, type: string) => {
+  if (value) {
+    switch (type) {
+      case "number":
+        return !isNaN(parseFloat(value)) && isFinite(Number(value));
+    }
+  }
+  return true;
+};
+
 export function RunInferenceDialog({
   open,
   onOpenChange,
@@ -66,161 +96,52 @@ export function RunInferenceDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [isResultOpen, setIsResultOpen] = useState(true);
-
   // Extract features from model or use default credit scoring features
-  const features: Feature[] = model?.features || [
-    {
-      name: "payment_history_score",
-      type: "number",
-      description: "Credit score based on payment history (300-850)",
-      required: true,
-      range: "300,850",
-      defaultValue: "720",
-    },
-    {
-      name: "credit_utilization",
-      type: "number",
-      description: "Credit utilization ratio (0.0-1.0)",
-      required: true,
-      range: "0,1",
-      defaultValue: "0.3",
-    },
-    {
-      name: "account_age_years",
-      type: "number",
-      description: "Age of oldest account in years",
-      required: true,
-      defaultValue: "5",
-    },
-    {
-      name: "recent_inquiries",
-      type: "number",
-      description: "Number of credit inquiries in last 12 months",
-      required: true,
-      defaultValue: "1",
-    },
-    {
-      name: "income_level",
-      type: "select",
-      description: "Annual income level",
-      required: true,
-      options: ["low", "medium", "high"],
-      defaultValue: "medium",
-    },
-    {
-      name: "employment_status",
-      type: "select",
-      description: "Current employment status",
-      required: true,
-      options: ["unemployed", "part_time", "full_time", "self_employed"],
-      defaultValue: "full_time",
-    },
-    {
-      name: "debt_to_income",
-      type: "number",
-      description: "Debt to income ratio (0.0-1.0)",
-      required: true,
-      range: "0,1",
-      defaultValue: "0.28",
-    },
-    {
-      name: "loan_amount",
-      type: "number",
-      description: "Requested loan amount in dollars",
-      required: true,
-      defaultValue: "25000",
-    },
-    {
-      name: "loan_term_months",
-      type: "select",
-      description: "Requested loan term in months",
-      required: true,
-      options: ["12", "24", "36", "48", "60"],
-      defaultValue: "36",
-    },
-    {
-      name: "loan_purpose",
-      type: "select",
-      description: "Purpose of the loan",
-      required: true,
-      options: [
-        "auto",
-        "home",
-        "education",
-        "medical",
-        "debt_consolidation",
-        "other",
-      ],
-      defaultValue: "auto",
-    },
-  ];
+  const features: Feature[] = formatFeatures(model) || [];
 
-  const handleInputChange = (name: string, value: any) => {
-    setFormValues((prev) => ({ ...prev, [name]: value }));
+  const handleInputChange = (name: string, value: any, type: string) => {
+    if (validateValueByDataType(value, type)) {
+      switch (type) {
+        case "number":
+          setFormValues((prev) => ({ ...prev, [name]: parseFloat(value) }));
+          break;
+        default:
+          setFormValues((prev) => ({ ...prev, [name]: value }));
+          break;
+      }
+    }
   };
 
   const handleSubmit = async () => {
     setIsLoading(true);
+    const option = {
+      url: `/api/inference/${model.uuid}`,
+      method: "POST",
+      params: {
+        model_path: model.fileKey,
+        metadata_path: model.metadataFileKey,
+      },
+      data: {
+        ...formValues,
+      },
+    };
+    const inferenceResponse = await instance(option);
+    if (!inferenceResponse?.data?.data?.error) {
+      setResult({
+        prediction: inferenceResponse?.data?.data.prob,
+        probability: Math.round(inferenceResponse?.data?.data.probability * 100) / 100,
+        timestamp: new Date().toISOString(),
+        features: Object.entries(formValues).map(([key, value]) => ({
+          name: key,
+          value,
+        })),
+      });
+    } else {
+      toast.error(inferenceResponse?.data?.data?.error);
+    }
 
-    // Simulate API call
-    setTimeout(() => {
-      // Generate a sample result based on the model type
-      if (model?.type === "credit-scoring" || !model?.type) {
-        setResult({
-          score: 682,
-          decision: "Approve",
-          probability: 0.78,
-          riskLevel: "Medium-Low",
-          timestamp: new Date().toISOString(),
-          factors: [
-            {
-              name: "Payment History",
-              impact: "positive",
-              value: formValues.payment_history_score || "Good",
-            },
-            {
-              name: "Credit Utilization",
-              impact: "negative",
-              value: formValues.credit_utilization || "High",
-            },
-            {
-              name: "Length of Credit History",
-              impact: "positive",
-              value: formValues.account_age_years || "Long",
-            },
-            {
-              name: "Recent Inquiries",
-              impact: "negative",
-              value: formValues.recent_inquiries || "Multiple",
-            },
-          ],
-          limits: {
-            recommendedLimit: "$5,000",
-            maxLimit: "$8,000",
-            minLimit: "$2,000",
-          },
-          terms: {
-            recommendedTerm: "36 months",
-            interestRate: "12.5%",
-            monthlyPayment: "$165.27",
-          },
-        });
-      } else {
-        // Generic result for other model types
-        setResult({
-          prediction: Math.random() > 0.5 ? 1 : 0,
-          probability: Math.random().toFixed(2),
-          timestamp: new Date().toISOString(),
-          features: Object.entries(formValues).map(([key, value]) => ({
-            name: key,
-            value,
-          })),
-        });
-      }
-
-      setActiveTab("result");
-      setIsLoading(false);
-    }, 1500);
+    setActiveTab("result");
+    setIsLoading(false);
   };
 
   const resetForm = () => {
@@ -231,7 +152,7 @@ export function RunInferenceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px]">
+      <DialogContent className="sm:max-w-[900px]">
         <DialogHeader>
           <DialogTitle>Run Model Inference</DialogTitle>
           <DialogDescription>
@@ -256,7 +177,7 @@ export function RunInferenceDialog({
               {features.map((feature) => (
                 <div
                   key={feature.name}
-                  className="grid grid-cols-4 items-center gap-4"
+                  className="grid grid-cols-2 items-center gap-4"
                 >
                   <Label htmlFor={feature.name} className="text-right">
                     {feature.name}
@@ -264,7 +185,7 @@ export function RunInferenceDialog({
                       <span className="text-destructive ml-1">*</span>
                     )}
                   </Label>
-                  <div className="col-span-3 space-y-1">
+                  <div className="col-span-1 space-y-1">
                     {renderInputForFeature(
                       feature,
                       formValues,
@@ -375,18 +296,18 @@ export function RunInferenceDialog({
 function renderInputForFeature(
   feature: Feature,
   values: Record<string, any>,
-  onChange: (name: string, value: any) => void,
+  onChange: (name: string, value: any, type: string) => void,
 ) {
-  const value = values[feature.name] || feature.defaultValue || "";
+  const value = values[feature.name] || "";
 
   switch (feature.type) {
     case "number":
       return (
         <Input
           id={feature.name}
-          type="number"
+          type="text"
           value={value}
-          onChange={(e) => onChange(feature.name, e.target.value)}
+          onChange={(e) => onChange(feature.name, e.target.value, feature.type)}
           placeholder={feature.description}
           required={feature.required}
         />
@@ -397,7 +318,9 @@ function renderInputForFeature(
           <Switch
             id={feature.name}
             checked={value === true}
-            onCheckedChange={(checked) => onChange(feature.name, checked)}
+            onCheckedChange={(checked) =>
+              onChange(feature.name, checked, feature.type)
+            }
           />
           <Label htmlFor={feature.name}>Enabled</Label>
         </div>
@@ -406,7 +329,7 @@ function renderInputForFeature(
       return (
         <Select
           value={value}
-          onValueChange={(val) => onChange(feature.name, val)}
+          onValueChange={(val) => onChange(feature.name, val, feature.type)}
         >
           <SelectTrigger id={feature.name}>
             <SelectValue placeholder={`Select ${feature.name}`} />
@@ -429,8 +352,10 @@ function renderInputForFeature(
             min={min}
             max={max}
             step={1}
-            value={[Number.parseInt(value) || (min || 0)]}
-            onValueChange={(val) => onChange(feature.name, val[0])}
+            value={[Number.parseInt(value) || min || 0]}
+            onValueChange={(val) =>
+              onChange(feature.name, val[0], feature.type)
+            }
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>{min}</span>
@@ -445,7 +370,7 @@ function renderInputForFeature(
           id={feature.name}
           type="text"
           value={value}
-          onChange={(e) => onChange(feature.name, e.target.value)}
+          onChange={(e) => onChange(feature.name, e.target.value, feature.type)}
           placeholder={feature.description}
           required={feature.required}
         />

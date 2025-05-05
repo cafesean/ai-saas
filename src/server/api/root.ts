@@ -7,6 +7,13 @@ import { widgetsRouter } from "./routers/widget.router";
 import { rulesRouter } from "./routers/rule.router";
 import { decisionTableRouter } from "./routers/decisionTable.router";
 import { knowledgeBasesRouter } from "./routers/knowledge-bases.router";
+import { dashboardRouter } from "./routers/dashboard.router";
+/**
+ *
+/**
+ * This is the primary router for your server.
+/**
+ *
 
 /**
  * This is the primary router for your server.
@@ -23,6 +30,7 @@ export const appRouter = createTRPCRouter({
   rule: rulesRouter,
   decisionTable: decisionTableRouter,
   knowledgeBases: knowledgeBasesRouter,
+  dashboard: dashboardRouter,
 });
 
 // Export type definition of API
