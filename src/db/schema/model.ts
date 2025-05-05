@@ -82,14 +82,44 @@ export const model_metrics = pgTable("model_metrics", {
     .notNull(),
 });
 
+export const inferences = pgTable("inferences", {
+  id: serial("id").notNull().primaryKey(),
+  uuid: uuid("uuid").unique().notNull().defaultRandom(),
+  modelId: integer("model_id")
+    .references(() => models.id, { onDelete: "cascade" })
+    .notNull(),
+  input: json("input"),
+  output: json("output"),
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+    mode: "date",
+  })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", {
+    withTimezone: true,
+    mode: "date",
+  })
+    .defaultNow()
+    .notNull(),
+});
+
 // Relations
 export const modelsRelations = relations(models, ({ many }) => ({
   metrics: many(model_metrics),
+  inferences: many(inferences),
 }));
 
 export const model_metricsRelations = relations(model_metrics, ({ one }) => ({
   model: one(models, {
     fields: [model_metrics.modelId],
+    references: [models.id],
+  }),
+}));
+
+export const inferencesRelations = relations(inferences, ({ one }) => ({
+  model: one(models, {
+    fields: [inferences.modelId],
     references: [models.id],
   }),
 }));

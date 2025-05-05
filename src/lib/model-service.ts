@@ -274,3 +274,12 @@ export async function deleteModel(id: string) {
 
   return;
 }
+
+export const mapFeatureType = (feature: string) => {
+  switch (feature) {
+    case "int64":
+    case "float64":
+      return "number";
+  };
+  return feature;
+};

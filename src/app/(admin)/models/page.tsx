@@ -180,7 +180,6 @@ const ModelsPage = () => {
           let featureTypes = metadata?.feature_types || null;
           let featuresImportants = metadata?.feature_importance || null;
           let outputs = metadata?.outputs || null;
-          console.log(outputs)
           if (features && featureTypes) {
             features = formatFeatures(
               features,
