@@ -22,10 +22,16 @@ export const N8N_API = {
 };
 
 export const Google_API = {
-  getFiles: '/api/google/files',
-  downloadFile: '/api/google/download',
+  getFiles: "/api/google/files",
+  downloadFile: "/api/google/download",
 };
 
 export const S3_API = {
-  upload: '/api/upload',
+  upload: "/api/upload",
+  download: "/api/s3/download",
+  delete: "/api/s3",
+};
+
+export const KNOWLEDGE_BASE_API = {
+  embeddingDocument: "/api/knowledge-base/embedding",
 };

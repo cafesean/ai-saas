@@ -6,16 +6,19 @@
  * Represents a knowledge base in the system
  */
 export interface KnowledgeBase {
-  id: string;
+  id: number;
+  uuid: string;
   name: string;
-  description: string;
+  description: string | null;
   documentCount: number;
-  lastUpdated: string;
-  status: "Active" | "Processing" | "Inactive" | "Error";
+  lastUpdated?: string;
+  status: string;
   embeddingModel: string;
   embeddingDimensions: number;
-  vectorDb: string;
-  creator: string;
+  vectorDB: string;
+  creator?: string;
+  createdAt?: string; 
+  updatedAt?: string;
 }
 
 /**
@@ -27,6 +30,7 @@ export interface VectorDatabase {
   description: string;
   type?: string;
   status: "Connected" | "Not Connected" | "Error";
+  provider: string;
 }
 
 /**
@@ -39,6 +43,7 @@ export interface EmbeddingModel {
   maxTokens?: number;
   description: string;
   provider: string;
+  status?: string;
 }
 
 /**

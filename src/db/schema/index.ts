@@ -44,6 +44,12 @@ import {
   decisionTableInputConditionsRelations,
   decisionTableOutputResultsRelations,
 } from "./decision_table";
+import {
+  knowledge_bases,
+  knowledge_base_documents,
+  knowledgeBaseRelations,
+  knowledgeBaseDocumentRelations,
+} from "./knowledge_base";
 
 export {
   templates,
@@ -86,6 +92,10 @@ export {
   decisionTableOutputsRelations,
   decisionTableInputConditionsRelations,
   decisionTableOutputResultsRelations,
+  knowledge_bases,
+  knowledge_base_documents,
+  knowledgeBaseRelations,
+  knowledgeBaseDocumentRelations,
 };
 
 export default {
@@ -129,4 +139,8 @@ export default {
   decisionTableRowsRelations,
   decisionTableInputsRelations,
   decisionTableOutputsRelations,
+  knowledge_bases,
+  knowledge_base_documents,
+  knowledgeBaseRelations,
+  knowledgeBaseDocumentRelations,
 };

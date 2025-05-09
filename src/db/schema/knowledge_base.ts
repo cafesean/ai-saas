@@ -1,0 +1,106 @@
+import {
+  pgTable,
+  uuid,
+  varchar,
+  timestamp,
+  json,
+  uniqueIndex,
+  index,
+  serial,
+  text,
+  integer,
+  decimal,
+  bigint,
+} from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+
+import {
+  KnowledgeBaseStatus,
+  KnowledgeBaseDocumentStatus,
+} from "@/constants/knowledgeBase";
+
+export const knowledge_bases = pgTable(
+  "knowledge_bases",
+  {
+    id: serial("id").notNull().primaryKey(),
+    uuid: uuid("uuid").unique().notNull().defaultRandom(),
+    name: varchar("name", { length: 200 }).notNull(),
+    description: text("description"),
+    vectorDB: varchar("vector_db", { length: 300 }).notNull(),
+    embeddingModel: varchar("embedding_model", { length: 300 }).notNull(),
+    status: varchar("status", { length: 100 })
+      .notNull()
+      .default(KnowledgeBaseStatus.draft),
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("knowledge_base_id_idx").on(table.id),
+    index("knowledge_base_uuid_idx").on(table.uuid),
+  ],
+);
+
+export const knowledge_base_documents = pgTable(
+  "knowledge_base_documents",
+  {
+    id: serial("id").notNull().primaryKey(),
+    uuid: uuid("uuid").unique().notNull().defaultRandom(),
+    kb_id: uuid("kb_id")
+      .notNull()
+      .references(() => knowledge_bases.uuid, {
+        onDelete: "cascade",
+      }),
+    name: varchar("name", { length: 200 }).notNull(),
+    status: varchar("status", { length: 100 })
+      .notNull()
+      .default(KnowledgeBaseDocumentStatus.processing),
+    size: bigint("size", { mode: "number" }).notNull(),
+    path: text("path").notNull(),
+    chunkSize: varchar("chunkSize", { length: 100 }).default("1000"),
+    chunkOverlap: varchar("chunk_overlap", { length: 100 }).default("200"),
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("kb_document_id_idx").on(table.id),
+    index("kb_document_uuid_idx").on(table.uuid),
+  ],
+);
+
+// Relations
+export const knowledgeBaseRelations = relations(
+  knowledge_bases,
+  ({ many }) => ({
+    documents: many(knowledge_base_documents),
+  }),
+);
+
+export const knowledgeBaseDocumentRelations = relations(
+  knowledge_base_documents,
+  ({ one }) => ({
+    knowledgeBase: one(knowledge_bases, {
+      fields: [knowledge_base_documents.kb_id],
+      references: [knowledge_bases.uuid],
+    }),
+  }),
+);
