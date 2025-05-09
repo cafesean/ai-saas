@@ -407,7 +407,7 @@ export default function KnowledgeBaseDetail() {
     const embeddingTasks = embeddingTrackers.map((tracker, index) => {
       const formData = new FormData();
       formData.append("file", tracker.file);
-      formData.append("user_id", process.env.MOCK_USER_ID || "");
+      formData.append("user_id", process.env.NEXT_PUBLIC_MOCK_USER_ID || "");
       formData.append("kb_id", knowledgeBaseItem?.uuid || "");
       formData.append("document_id", payload.documents[index]?.uuid || "");
       formData.append("chunk_size", payload.chunk_size || "1000");
