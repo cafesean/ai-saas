@@ -153,7 +153,6 @@ export async function deleteMultipleFilesFromS3(
   if (!keys.length) {
     return { success: true, deletedCount: 0 };
   }
-
   try {
     const response = await s3Client.send(
       new DeleteObjectsCommand({
@@ -164,7 +163,6 @@ export async function deleteMultipleFilesFromS3(
         },
       }),
     );
-
     const errors =
       response.Errors?.map((error) => ({
         key: error.Key || "unknown",

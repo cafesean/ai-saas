@@ -515,12 +515,13 @@ export default function KnowledgeBaseDetail() {
       // Delete document
       try {
         // Get delete keys
-        const documentsKeysToDelete = selectedDocuments.map((documentId) => {
+        const documentsKeysToDelete = documentsToDelete.map((documentId) => {
           const document = knowledgeBaseItem?.documents.find(
             (doc) => doc.uuid === documentId,
           );
           return document?.path;
         });
+
         // Delete from s3
         const deleteDocuments = await axios.delete(S3_API.delete, {
           data: {
