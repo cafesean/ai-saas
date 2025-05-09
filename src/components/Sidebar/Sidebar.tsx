@@ -84,7 +84,7 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
     },
     {
       title: "Knowledge Bases",
-      href: "/knowledge-bases",
+      href: AdminRoutes.knowledgebase,
       icon: Database,
     },
     {

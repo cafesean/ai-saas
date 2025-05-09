@@ -1,16 +1,15 @@
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import { z } from "zod";
+
 import {
-  mockKnowledgeBases,
   mockVectorDatabases,
   mockEmbeddingModels,
 } from "./knowledge-bases/mockData";
-import type {
-  KnowledgeBase,
-  VectorDatabase,
-  EmbeddingModel,
-  CreateKnowledgeBaseParams,
-} from "@/types/knowledge-base";
+import type { EmbeddingModel } from "@/types/knowledge-base";
+import { db } from "@/db/config";
+import { createTRPCRouter, publicProcedure } from "../trpc";
+import schema, { knowledge_bases } from "@/db/schema";
+import { KnowledgeBaseEmbeddingModels } from "@/constants/knowledgeBase";
 
 /**
  * Knowledge bases router with procedures for managing knowledge bases
@@ -19,13 +18,36 @@ export const knowledgeBasesRouter = createTRPCRouter({
   /**
    * Get all knowledge bases
    */
-  getAllKnowledgeBases: publicProcedure.query(async () => {
-    // In a real implementation, this would fetch from a database
-    return {
-      knowledgeBases: mockKnowledgeBases,
-      total: mockKnowledgeBases.length,
-    };
-  }),
+  getAllKnowledgeBases: publicProcedure
+    .input(z.void())
+    .query(async ({ ctx }) => {
+      const knowledgeBasesData = await ctx.db.query.knowledge_bases.findMany({
+        with: {
+          documents: {
+            columns: {
+              id: true,
+              uuid: true,
+              path: true,
+            },
+          },
+        },
+        orderBy: desc(knowledge_bases.updatedAt),
+      });
+
+      const result = knowledgeBasesData.map((kb) => ({
+        ...kb,
+        documentCount: kb.documents.length,
+        embeddingDimensions:
+          KnowledgeBaseEmbeddingModels.filter(
+            (model: EmbeddingModel) => model.name === kb.embeddingModel,
+          )[0]?.dimensions || 0,
+      }));
+
+      return {
+        knowledgeBases: result,
+        total: knowledgeBasesData.length,
+      };
+    }),
 
   /**
    * Get a single knowledge base by ID
@@ -33,18 +55,22 @@ export const knowledgeBasesRouter = createTRPCRouter({
   getKnowledgeBaseById: publicProcedure
     .input(
       z.object({
-        id: z.string(),
+        uuid: z.string(),
       }),
     )
-    .query(async ({ input }: { input: { id: string } }) => {
-      // In a real implementation, this would fetch from a database
-      const knowledgeBase = mockKnowledgeBases.find((kb) => kb.id === input.id);
-
-      if (!knowledgeBase) {
-        throw new Error(`Knowledge base with ID ${input.id} not found`);
+    .query(async ({ input }: { input: { uuid: string } }) => {
+      try {
+        const workflowData = await db.query.knowledge_bases.findFirst({
+          where: eq(schema.knowledge_bases.uuid, input.uuid),
+          with: {
+            documents: true,
+          },
+        });
+        return workflowData;
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to fetch knowledge base");
       }
-
-      return knowledgeBase;
     }),
 
   /**
@@ -56,7 +82,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
         name: z.string().min(1),
         description: z.string(),
         embeddingModel: z.string(),
-        vectorDb: z.string(),
+        vectorDB: z.string(),
       }),
     )
     .mutation(
@@ -67,27 +93,134 @@ export const knowledgeBasesRouter = createTRPCRouter({
           name: string;
           description: string;
           embeddingModel: string;
-          vectorDb: string;
+          vectorDB: string;
         };
       }) => {
         // In a real implementation, this would insert into a database
-        const newKnowledgeBase: KnowledgeBase = {
-          id: `kb-${mockKnowledgeBases.length + 1}`,
-          name: input.name,
-          description: input.description,
-          documentCount: 0,
-          lastUpdated: "Just now",
-          status: "Active",
-          embeddingModel: input.embeddingModel,
-          embeddingDimensions: 1536, // Default value, would be determined by model
-          vectorDb: input.vectorDb,
-          creator: "Current User", // Would come from auth context
-        };
+        const newKnowledgeBase = await db
+          .insert(schema.knowledge_bases)
+          .values(input)
+          .returning();
 
         // In a real implementation, we would add to the database
         return newKnowledgeBase;
       },
     ),
+
+  updateKnowledgeBaseStatus: publicProcedure
+    .input(
+      z.object({
+        uuid: z.string(),
+        status: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const [kb] = await db
+          .update(schema.knowledge_bases)
+          .set({ status: input.status })
+          .where(eq(schema.knowledge_bases.uuid, input.uuid))
+          .returning();
+
+        return kb;
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to change status");
+      }
+    }),
+
+  deleteKnowledgeBase: publicProcedure
+    .input(
+      z.object({
+        uuid: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const [kb] = await db
+          .delete(schema.knowledge_bases)
+          .where(eq(schema.knowledge_bases.uuid, input.uuid))
+          .returning();
+        return kb;
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to delete knowledge base");
+      }
+    }),
+
+  addKnowledgeBaseDocuments: publicProcedure
+    .input(
+      z.object({
+        kbId: z.string(),
+        chunkSize: z.string(),
+        chunkOverlap: z.string(),
+        documents: z.array(
+          z.object({
+            uuid: z.string(),
+            name: z.string(),
+            size: z.number(),
+            path: z.string(),
+          }),
+        ),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        // Map documents to insert into the database
+        const documentsToInsert = input.documents.map((doc) => ({
+          uuid: doc.uuid,
+          kb_id: input.kbId,
+          name: doc.name,
+          size: doc.size,
+          path: doc.path,
+          chunkSize: input.chunkSize,
+          chunkOverlap: input.chunkOverlap,
+        }));
+        const kbDocuments = await db
+          .insert(schema.knowledge_base_documents)
+          .values(documentsToInsert)
+          .returning();
+        return {
+          success: true,
+          data: {
+            documents: kbDocuments,
+          },
+        };
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to add documents to knowledge base");
+      }
+    }),
+
+  deleteKnowledgeBaseDocuments: publicProcedure
+    .input(
+      z.object({
+        kbId: z.string(),
+        documents: z.array(z.string()),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const deletedDocuments = await db
+          .delete(schema.knowledge_base_documents)
+          .where(
+            and(
+              eq(schema.knowledge_base_documents.kb_id, input.kbId),
+              inArray(schema.knowledge_base_documents.uuid, input.documents),
+            ),
+          )
+          .returning();
+        return {
+          success: true,
+          data: {
+            documents: deletedDocuments,
+          },
+        };
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to delete documents from knowledge base");
+      }
+    }),
 
   /**
    * Get all vector databases

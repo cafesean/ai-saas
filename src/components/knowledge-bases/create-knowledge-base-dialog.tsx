@@ -20,7 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/sample-select";
-import { VectorDatabase } from "@/framework/hooks/useVectorDbs";
+import {
+  KnowledgeBaseVectorDatabase,
+  KnowledgeBaseEmbeddingModels,
+} from "@/constants/knowledgeBase";
 import { CreateKnowledgeBaseFormValues } from "@/schemas/knowledge-bases";
 
 interface CreateKnowledgeBaseDialogProps {
@@ -36,35 +39,17 @@ export function CreateKnowledgeBaseDialog({
 }: CreateKnowledgeBaseDialogProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [vectorDb, setVectorDb] = useState("");
+  const [vectorDB, setVectorDB] = useState("");
   const [embeddingModel, setEmbeddingModel] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<
     Partial<Record<keyof CreateKnowledgeBaseFormValues, string>>
   >({});
 
-  // Mock vector DBs - in a real app, fetch these from your API
-  const vectorDbs = [
-    {
-      id: "vdb1",
-      name: "Production Embeddings DB",
-      provider: "PostgreSQL pgvector",
-    },
-    { id: "vdb2", name: "Development Vector Store", provider: "Redis Stack" },
-    { id: "vdb3", name: "Customer Support KB", provider: "Pinecone" },
-  ];
-
-  // Mock embedding models - in a real app, fetch these from your API
-  const embeddingModels = [
-    { id: "em1", name: "OpenAI Ada-002", dimensions: 1536 },
-    { id: "em2", name: "HuggingFace Sentence Transformers", dimensions: 768 },
-    { id: "em3", name: "Cohere Embed v3", dimensions: 1024 },
-  ];
-
   const resetForm = () => {
     setName("");
     setDescription("");
-    setVectorDb("");
+    setVectorDB("");
     setEmbeddingModel("");
     setErrors({});
   };
@@ -77,7 +62,7 @@ export function CreateKnowledgeBaseDialog({
       Record<keyof CreateKnowledgeBaseFormValues, string>
     > = {};
     if (!name) newErrors.name = "Name is required";
-    if (!vectorDb) newErrors.vectorDb = "Vector database is required";
+    if (!vectorDB) newErrors.vectorDB = "Vector database is required";
     if (!embeddingModel)
       newErrors.embeddingModel = "Embedding model is required";
 
@@ -92,7 +77,7 @@ export function CreateKnowledgeBaseDialog({
       await onCreate({
         name,
         description,
-        vectorDb,
+        vectorDB,
         embeddingModel,
       });
       resetForm();
@@ -149,23 +134,25 @@ export function CreateKnowledgeBaseDialog({
               <Label htmlFor="vectorDb">
                 Vector Database <span className="text-destructive">*</span>
               </Label>
-              <Select value={vectorDb} onValueChange={setVectorDb}>
+              <Select value={vectorDB} onValueChange={setVectorDB}>
                 <SelectTrigger
                   id="vectorDb"
-                  className={errors.vectorDb ? "border-destructive" : ""}
+                  className={errors.vectorDB ? "border-destructive" : ""}
                 >
                   <SelectValue placeholder="Select a vector database" />
                 </SelectTrigger>
                 <SelectContent>
-                  {vectorDbs.map((db) => (
-                    <SelectItem key={db.id} value={db.id}>
+                  {KnowledgeBaseVectorDatabase.filter(
+                    (db) => db.status === "Connected",
+                  ).map((db) => (
+                    <SelectItem key={db.id} value={db.name}>
                       {db.name} ({db.provider})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {errors.vectorDb && (
-                <p className="text-xs text-destructive">{errors.vectorDb}</p>
+              {errors.vectorDB && (
+                <p className="text-xs text-destructive">{errors.vectorDB}</p>
               )}
             </div>
             <div className="grid gap-2">
@@ -180,8 +167,10 @@ export function CreateKnowledgeBaseDialog({
                   <SelectValue placeholder="Select an embedding model" />
                 </SelectTrigger>
                 <SelectContent>
-                  {embeddingModels.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
+                  {KnowledgeBaseEmbeddingModels.filter(
+                    (model) => model.status === "Active",
+                  ).map((model) => (
+                    <SelectItem key={model.id} value={model.name}>
                       {model.name} ({model.dimensions} dimensions)
                     </SelectItem>
                   ))}
