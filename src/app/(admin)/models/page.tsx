@@ -4,6 +4,7 @@ import React, { useState, Suspense, memo } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import { Brain, RefreshCw, Download, Plus } from "lucide-react";
+import axios from "axios";
 
 import { SampleButton } from "@/components/ui/sample-button";
 import { useModalState } from "@/framework/hooks/useModalState";
@@ -29,7 +30,6 @@ import { ModelsSummary } from "./components/ModelSummary";
 import { ModelsList } from "./components/ModelList";
 import { useModels } from "@/framework/hooks/useModels";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { PageError } from "@/components/page-error";
 import { ModelsSkeleton } from "@/components/skeletons/models-skeleton";
 import { DefaultSkeleton } from "@/components/skeletons/default-skeleton";
 
@@ -38,6 +38,8 @@ type ModelView = {
   name: string;
   description: string | null;
   status: string | null;
+  fileKey?: string;
+  metadataFileKey?: string;
 };
 
 const formatFeatures = (features: any[], types: any, importances: any) => {
@@ -70,6 +72,7 @@ const ModelsPage = () => {
   const [importing, setImporting] = useState<boolean>(false);
   const [buildDialogOpen, setBuildDialogOpen] = useState(false);
   const [connectDialogOpen, setConnectDialogOpen] = useState(false);
+  const [deletingModel, setDeletingModel] = useState(false);
   const { viewMode, setViewMode } = useViewToggle("medium-grid");
 
   // tRPC hooks
@@ -236,10 +239,28 @@ const ModelsPage = () => {
   };
 
   const confirmDelete = async () => {
+    closeDeleteConfirm();
     if (selectedModel) {
+      setDeletingModel(true);
+      // Delete from s3
+      const deleteKeys = [];
+      if (selectedModel.fileKey) {
+        deleteKeys.push(selectedModel.fileKey);
+      }
+      if (selectedModel.metadataFileKey) {
+        deleteKeys.push(selectedModel.metadataFileKey);
+      }
+
       try {
-        await deleteModel(selectedModel.uuid);
-        closeDeleteConfirm();
+        const deleteDocuments = await axios.delete(S3_API.delete, {
+          data: {
+            keys: deleteKeys,
+          },
+        });
+        if (deleteDocuments.data.success) {
+          await deleteModel(selectedModel.uuid);
+          setDeletingModel(false);
+        }
       } catch (error) {
         console.error("Error deleting model:", error);
       }
@@ -371,7 +392,7 @@ const ModelsPage = () => {
           ) : (
             <ModelsSkeleton count={5} className="m-6" />
           )}
-          {importing && <FullScreenLoading />}
+          {(importing || deletingModel) && <FullScreenLoading />}
         </Suspense>
       </ErrorBoundary>
     </div>

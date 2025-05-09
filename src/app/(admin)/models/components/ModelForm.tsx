@@ -320,7 +320,7 @@ export default function ModelForm() {
               type="button"
               variant="primary"
               onClick={handleSubmit}
-              disabled={create.isLoading || update.isLoading}
+              disabled={create.isPending || update.isPending}
             >
               {isEditMode ? "Update" : "Create"}
             </Button>
@@ -335,7 +335,7 @@ export default function ModelForm() {
         </div>
       )}
 
-      {(create.isLoading || update.isLoading) && <FullScreenLoading />}
+      {(create.isPending || update.isPending) && <FullScreenLoading />}
     </div>
   );
 }
