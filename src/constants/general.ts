@@ -85,8 +85,8 @@ export const AI_SASS_NAME = "AI Sass";
 export const AI_LOADING_TEXT = "Loading...";
 
 export const S3_UPLOAD = {
-  modelsPath: process.env.MODEL_S3_FOLDER || "models",
-  knowledgebasePath: process.env.KNOWLEDGE_BASE_S3_FOLDER || "knowledgebase",
+  modelsPath: process.env.NEXT_PUBLIC_MODEL_S3_FOLDER || "models",
+  knowledgebasePath: process.env.NEXT_PUBLIC_KNOWLEDGE_BASE_S3_FOLDER || "knowledgebase",
   maxSize: 50 * 1024 * 1024, // 50MB
   maxProgressingBar: 90,
   completeProgressBar: 100,
