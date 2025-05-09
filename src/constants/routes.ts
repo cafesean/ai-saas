@@ -16,4 +16,6 @@ export const AdminRoutes = {
   decisionTables: "/decisioning",
   decisionTableDetail: "/decisioning/:uuid",
   createRule: "/rules/create",
+  knowledgebase: "/knowledge-bases",
+  knowledgebaseDetail: "/knowledge-bases/:uuid",
 };
