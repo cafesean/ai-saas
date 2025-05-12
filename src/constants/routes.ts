@@ -18,4 +18,5 @@ export const AdminRoutes = {
   createRule: "/rules/create",
   knowledgebase: "/knowledge-bases",
   knowledgebaseDetail: "/knowledge-bases/:uuid",
+  knowledgebaseChat: "/knowledge-bases/:uuid/chat",
 };
