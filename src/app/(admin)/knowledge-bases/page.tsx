@@ -60,7 +60,7 @@ export default function KnowledgeBasesPage() {
       utils.knowledgeBases.getAllKnowledgeBases.invalidate();
       toast.success("Knowledge Base created successfully");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(error.message);
     },
   });
@@ -166,7 +166,7 @@ export default function KnowledgeBasesPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
+    <div className="flex w-full flex-col bg-background">
       <main className="flex-1 p-8 pt-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
           <div className="space-y-1">
