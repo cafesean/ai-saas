@@ -1475,7 +1475,8 @@ export default function KnowledgeBaseDetail() {
               <DialogDescription />
               <div className="modal-section">
                 <p className="modal-text">
-                  Are you sure you want to open this knowledge base's chat?
+                  Still have documents under processing. Are you sure you want to
+                  open this knowledge base's chat?
                 </p>
               </div>
               <DialogFooter className="modal-footer">
