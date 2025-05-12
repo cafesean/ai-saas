@@ -29,7 +29,6 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { SampleButton } from "@/components/ui/sample-button";
 import {
@@ -74,16 +73,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ViewToggle } from "@/components/view-toggle";
 import { api, useUtils } from "@/utils/trpc";
 import Breadcrumbs from "@/components/breadcrambs";
 import { KnowledgeBaseDetailSkeleton } from "@/components/skeletons/knowledge-base-detail-skeleton";
 import { AdminRoutes } from "@/constants/routes";
-import { KnowledgeBaseStatus } from "@/constants/knowledgeBase";
+import {
+  KnowledgeBaseStatus,
+  KnowledgeBaseDocumentStatus,
+} from "@/constants/knowledgeBase";
 import { getTimeAgo, formatSize } from "@/utils/func";
 import { S3_UPLOAD } from "@/constants/general";
 import { S3_API, KNOWLEDGE_BASE_API } from "@/constants/api";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
+import { useModalState } from "@/framework/hooks/useModalState";
 
 // Sample data for a specific knowledge base
 const knowledgeBase = {
@@ -212,6 +214,13 @@ export default function KnowledgeBaseDetail() {
   const slug = params.slug as string;
 
   const router = useRouter();
+
+  const {
+    deleteConfirmOpen: openChatConfirmOpen,
+    selectedItem: openChatKnowledgeBase,
+    openDeleteConfirm: openChatConfirm,
+    closeDeleteConfirm: closeOpenChatConfirm,
+  } = useModalState<any>();
   // tRPC hooks
   const utils = useUtils();
   const {
@@ -563,20 +572,6 @@ export default function KnowledgeBaseDetail() {
     setDeleteingDocuments(false);
   };
 
-  // Get grid class based on view mode
-  const getGridClass = () => {
-    switch (viewMode) {
-      case "large-grid":
-        return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-2";
-      case "medium-grid":
-        return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
-      case "list":
-        return "grid-cols-1";
-      default:
-        return "grid-cols-1";
-    }
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setFiles(Array.from(e.target.files));
@@ -593,8 +588,34 @@ export default function KnowledgeBaseDetail() {
     }
   };
 
+  const handleClickChatWithKB = () => {
+    const processingDocuments = knowledgeBaseItem?.documents.filter(
+      (doc) => doc.status === KnowledgeBaseDocumentStatus.processing,
+    );
+    if (processingDocuments && processingDocuments?.length > 0) {
+      openChatConfirm(knowledgeBaseItem);
+    } else {
+      router.push(
+        AdminRoutes.knowledgebaseChat.replace(
+          ":uuid",
+          knowledgeBaseItem?.uuid || "",
+        ) as Route,
+      );
+    }
+  };
+
+  const confirmOpenChat = async () => {
+    closeOpenChatConfirm();
+    router.push(
+      AdminRoutes.knowledgebaseChat.replace(
+        ":uuid",
+        openChatKnowledgeBase.uuid || "",
+      ) as Route,
+    );
+  };
+
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background animate-fade-in">
+    <div className="flex w-full flex-col bg-background animate-fade-in">
       {!isLoading ? (
         <>
           <Breadcrumbs
@@ -635,11 +656,9 @@ export default function KnowledgeBaseDetail() {
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Refresh
                 </SampleButton>
-                <SampleButton asChild>
+                <SampleButton onClick={handleClickChatWithKB}>
                   {/* Use resolved kbId */}
-                  <Link href={`/knowledge-bases/${slug}/chat`}>
-                    Chat with KB
-                  </Link>
+                  Chat with KB
                 </SampleButton>
               </>
             }
@@ -877,7 +896,6 @@ export default function KnowledgeBaseDetail() {
                     />
                   </div>
                   <div className="flex gap-2">
-                    <ViewToggle viewMode={viewMode} onChange={setViewMode} />
                     <SampleButton variant="outline" size="sm">
                       <Filter className="mr-2 h-4 w-4" />
                       Filter
@@ -1438,6 +1456,44 @@ export default function KnowledgeBaseDetail() {
                   onClick={confirmDeleteDocuments}
                 >
                   Delete
+                </SampleButton>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Open Chat confirm */}
+          <Dialog
+            open={openChatConfirmOpen}
+            onOpenChange={closeOpenChatConfirm}
+          >
+            <DialogContent className="modal-content">
+              <DialogHeader className="modal-header">
+                <DialogTitle className="modal-title">
+                  Open Knowledge Base Chat
+                </DialogTitle>
+              </DialogHeader>
+              <DialogDescription />
+              <div className="modal-section">
+                <p className="modal-text">
+                  Are you sure you want to open this knowledge base's chat?
+                </p>
+              </div>
+              <DialogFooter className="modal-footer">
+                <SampleButton
+                  type="button"
+                  variant="secondary"
+                  className="modal-button"
+                  onClick={() => closeOpenChatConfirm()}
+                >
+                  Cancel
+                </SampleButton>
+                <SampleButton
+                  type="button"
+                  variant="default"
+                  className="modal-button"
+                  onClick={confirmOpenChat}
+                >
+                  Open
                 </SampleButton>
               </DialogFooter>
             </DialogContent>

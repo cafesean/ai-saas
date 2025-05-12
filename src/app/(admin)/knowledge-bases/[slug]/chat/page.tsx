@@ -1,10 +1,9 @@
 "use client";
 
 import type React from "react";
-
+import { useParams } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import {
-  ArrowLeft,
   Send,
   Paperclip,
   Copy,
@@ -18,6 +17,9 @@ import {
   User,
   Bot,
 } from "lucide-react";
+import { toast } from "sonner";
+import axios from "axios";
+
 import { SampleButton } from "@/components/ui/sample-button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -42,11 +44,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Link from "next/link";
+import Breadcrumbs from "@/components/breadcrambs";
+import { AdminRoutes } from "@/constants/routes";
+import { api, useUtils } from "@/utils/trpc";
+import { Badge } from "@/components/ui/badge";
+import { KNOWLEDGE_BASE_API } from "@/constants/api";
 
 // Knowledge base data
 const knowledgeBase = {
@@ -92,11 +96,16 @@ const potentialSources = [
   },
 ];
 
-export default function KnowledgeBaseChatPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function KnowledgeBaseChatPage() {
+  const params = useParams();
+  const slug = params.slug as string;
+  const {
+    data: knowledgeBaseItem,
+    isLoading: isLoadingKnowledgeBase,
+    error,
+  } = api.knowledgeBases.getKnowledgeBaseById.useQuery({
+    uuid: slug,
+  });
   const [conversation, setConversation] = useState(initialConversation);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -114,7 +123,7 @@ export default function KnowledgeBaseChatPage({
     }
   }, [conversation.messages]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
 
     // Add user message to conversation
@@ -133,29 +142,59 @@ export default function KnowledgeBaseChatPage({
     setInputMessage("");
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = {
-        id: `msg-${Date.now() + 1}`,
-        role: "assistant",
-        content:
-          "Based on the Saudi banking regulations, microfinance institutions must maintain a capital adequacy ratio of at least 12% as mandated by the Saudi Central Bank. Additionally, for microfinance loans, the loan-to-value ratio should not exceed 70% for unsecured loans and 85% for secured loans with appropriate collateral. All lenders must also adhere to the consumer protection guidelines outlined in the Financial Consumer Protection Principles document issued in March 2023.",
-        timestamp: new Date().toISOString(),
-        sources: potentialSources,
+    try {
+      const payload = {
+        query: inputMessage,
+        kbId: knowledgeBaseItem?.uuid,
+        userId: process.env.NEXT_PUBLIC_MOCK_USER_ID,
       };
-
-      setConversation((prev) => ({
-        ...prev,
-        messages: [...prev.messages, aiResponse],
-      }));
-
-      setIsLoading(false);
-
-      // If this is the first message, suggest a title
-      if (conversation.messages.length === 0) {
-        setChatTitle("Inquiry about microfinance regulations");
+      const askQuery = await axios.post(KNOWLEDGE_BASE_API.chat, {
+        data: {
+          ...payload,
+        },
+      });
+      if (askQuery.data.success) {
+        const aiResponse = {
+          id: `msg-${Date.now() + 1}`,
+          role: "assistant",
+          content: askQuery.data.data.text,
+          timestamp: new Date().toISOString(),
+          sources: [],
+        };
+        setConversation((prev) => ({
+          ...prev,
+          messages: [...prev.messages, aiResponse],
+        }));
+        setIsLoading(false);
       }
-    }, 2000);
+    } catch (error) {
+      toast.error("Ask query failed.");
+      setIsLoading(false);
+    }
+
+    // Simulate AI response
+    // setTimeout(() => {
+    //   const aiResponse = {
+    //     id: `msg-${Date.now() + 1}`,
+    //     role: "assistant",
+    //     content:
+    //       "Based on the Saudi banking regulations, microfinance institutions must maintain a capital adequacy ratio of at least 12% as mandated by the Saudi Central Bank. Additionally, for microfinance loans, the loan-to-value ratio should not exceed 70% for unsecured loans and 85% for secured loans with appropriate collateral. All lenders must also adhere to the consumer protection guidelines outlined in the Financial Consumer Protection Principles document issued in March 2023.",
+    //     timestamp: new Date().toISOString(),
+    //     sources: potentialSources,
+    //   };
+
+    //   setConversation((prev) => ({
+    //     ...prev,
+    //     messages: [...prev.messages, aiResponse],
+    //   }));
+
+    //   setIsLoading(false);
+
+    //   // If this is the first message, suggest a title
+    //   if (conversation.messages.length === 0) {
+    //     setChatTitle("Inquiry about microfinance regulations");
+    //   }
+    // }, 2000);
   };
 
   const handleSaveConversation = () => {
@@ -172,51 +211,47 @@ export default function KnowledgeBaseChatPage({
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
-        <Link
-          href={`/knowledge-bases/${params.id}`}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span>Back to Knowledge Base</span>
-        </Link>
-        <div className="flex items-center gap-2">
-          <h1 className="text-lg font-semibold">
-            Chat with: {knowledgeBase.name}
-          </h1>
+    <div className="flex w-full flex-col bg-background">
+      <Breadcrumbs
+        items={[
+          {
+            label: "Back to Knowledge Base",
+            link: AdminRoutes.knowledgebaseDetail.replace(":uuid", slug),
+          },
+        ]}
+        title={knowledgeBaseItem?.name}
+        badge={
           <Badge variant="outline" className="text-xs font-normal">
             {knowledgeBase.embeddingModel.split("-").pop()}
           </Badge>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <ThemeToggle />
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <SampleButton variant="outline" size="sm">
-                <MoreHorizontal className="mr-2 h-4 w-4" />
-                Actions
-              </SampleButton>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setIsSaveDialogOpen(true)}>
-                <SquarePen className="mr-2 h-4 w-4" />
-                Save Conversation
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Download className="mr-2 h-4 w-4" />
-                Export Chat
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Clear Conversation
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </header>
-
+        }
+        rightChildren={
+          <>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SampleButton variant="outline" size="sm">
+                  <MoreHorizontal className="mr-2 h-4 w-4" />
+                  Actions
+                </SampleButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsSaveDialogOpen(true)}>
+                  <SquarePen className="mr-2 h-4 w-4" />
+                  Save Conversation
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export Chat
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-destructive">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Clear Conversation
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        }
+      />
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col">
           {/* Messages area */}
@@ -317,7 +352,13 @@ export default function KnowledgeBaseChatPage({
                         )}
 
                         <div className="flex items-center gap-2 text-xs">
-                          <div className="text-muted-foreground">
+                          <div
+                            className={
+                              message.role === "assistant"
+                                ? "text-black"
+                                : "text-white"
+                            }
+                          >
                             {new Date(message.timestamp).toLocaleTimeString(
                               [],
                               {
@@ -387,7 +428,7 @@ export default function KnowledgeBaseChatPage({
 
           {/* Input area */}
           <div className="border-t bg-background px-4 py-3">
-            <div className="mx-auto flex max-w-3xl items-end gap-3">
+            <div className="mx-auto flex max-w-3xl items-center gap-3">
               <SampleButton variant="outline" size="icon" className="shrink-0">
                 <Paperclip className="h-4 w-4" />
               </SampleButton>
@@ -401,7 +442,7 @@ export default function KnowledgeBaseChatPage({
                   onKeyDown={handleKeyDown}
                   rows={1}
                 />
-                <div className="absolute right-3 top-3">
+                <div className="absolute top-1 right-1">
                   <SampleButton
                     size="icon"
                     type="submit"

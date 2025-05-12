@@ -34,4 +34,5 @@ export const S3_API = {
 
 export const KNOWLEDGE_BASE_API = {
   embeddingDocument: "/api/knowledge-base/embedding",
+  chat: "/api/knowledge-base/chat",
 };

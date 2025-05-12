@@ -22,7 +22,7 @@ export default function AdminLayout({
           <aside className="hidden w-64 border-r md:block">
             <ClientSidebar />
           </aside>
-          <main className="flex-1">{children}</main>
+          <main className="flex flex-1">{children}</main>
         </div>
       </div>
     </Suspense>
