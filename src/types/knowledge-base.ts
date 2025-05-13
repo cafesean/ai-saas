@@ -27,6 +27,7 @@ export interface KnowledgeBase {
 export interface VectorDatabase {
   id: string;
   name: string;
+  value: string;
   description: string;
   type?: string;
   status: "Connected" | "Not Connected" | "Error";
@@ -39,6 +40,7 @@ export interface VectorDatabase {
 export interface EmbeddingModel {
   id: string;
   name: string;
+  value: string;
   dimensions: number;
   maxTokens?: number;
   description: string;
