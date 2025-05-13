@@ -6,7 +6,6 @@ import { useParams } from "next/navigation";
 import axios, { AxiosProgressEvent } from "axios";
 import { toast } from "sonner";
 import {
-  Activity,
   Clock,
   Copy,
   Database,
@@ -54,16 +53,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
+import { SampleInput } from "@/components/ui/sample-input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/sample-select";
 import {
   Table,
   TableBody,
@@ -86,6 +78,7 @@ import { S3_UPLOAD } from "@/constants/general";
 import { S3_API, KNOWLEDGE_BASE_API } from "@/constants/api";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
 import { useModalState } from "@/framework/hooks/useModalState";
+import KnowledgeBaseSettings from "./components/KnowledgeBaseSettings";
 
 // Sample data for a specific knowledge base
 const knowledgeBase = {
@@ -184,31 +177,6 @@ const chatHistory = [
   },
 ];
 
-// Sample embedding models
-const embeddingModels = [
-  {
-    id: "text-embedding-3-small",
-    name: "text-embedding-3-small",
-    dimensions: 1536,
-    description: "Efficient embedding model with 1536 dimensions",
-    provider: "OpenAI",
-  },
-  {
-    id: "text-embedding-3-large",
-    name: "text-embedding-3-large",
-    dimensions: 3072,
-    description: "High-quality embedding model with 3072 dimensions",
-    provider: "OpenAI",
-  },
-  {
-    id: "text-embedding-ada-002",
-    name: "text-embedding-ada-002",
-    dimensions: 1536,
-    description: "Legacy embedding model with 1536 dimensions",
-    provider: "OpenAI",
-  },
-];
-
 export default function KnowledgeBaseDetail() {
   const params = useParams();
   const slug = params.slug as string;
@@ -249,6 +217,16 @@ export default function KnowledgeBaseDetail() {
         toast.error(error.message);
       },
     });
+  const updateKnowledgeBase =
+    api.knowledgeBases.updateKnowledgeBase.useMutation({
+      onSuccess: () => {
+        utils.knowledgeBases.getKnowledgeBaseById.invalidate({ uuid: slug });
+        toast.success("Knowledge base updated successfully");
+      },
+      onError: (error) => {
+        toast.error(error.message);
+      },
+    });
 
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isReprocessDialogOpen, setIsReprocessDialogOpen] = useState(false);
@@ -267,7 +245,6 @@ export default function KnowledgeBaseDetail() {
   const [processingStep, setProcessingStep] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [documentsToDelete, setDocumentsToDelete] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<any>("list");
   const [chunkSize, setChunkSize] = useState<string>("1000");
   const [chunkOverlap, setChunkOverlap] = useState<string>("200");
   const [files, setFiles] = useState<File[]>([]);
@@ -470,40 +447,6 @@ export default function KnowledgeBaseDetail() {
     }, 200);
   };
 
-  // Function to handle embedding model change
-  const handleEmbeddingModelChange = () => {
-    setIsProcessing(true);
-    setProcessingProgress(0);
-    setProcessingStep("Preparing to change embedding model...");
-
-    // Simulate the process
-    const interval = setInterval(() => {
-      setProcessingProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsProcessing(false);
-          setIsEmbeddingChangeDialogOpen(false);
-          return 100;
-        }
-
-        // Update the processing step based on progress
-        if (prev < 20) {
-          setProcessingStep("Initializing embedding model change...");
-        } else if (prev < 40) {
-          setProcessingStep("Retrieving documents...");
-        } else if (prev < 60) {
-          setProcessingStep("Generating new embeddings...");
-        } else if (prev < 80) {
-          setProcessingStep("Updating vector database...");
-        } else {
-          setProcessingStep("Finalizing changes...");
-        }
-
-        return prev + 2;
-      });
-    }, 100);
-  };
-
   // Click delete for one document
   const handleDeleteOneDocument = async (documentId: string) => {
     setShowDeleteConfirm(true);
@@ -612,6 +555,20 @@ export default function KnowledgeBaseDetail() {
         openChatKnowledgeBase.uuid || "",
       ) as Route,
     );
+  };
+
+  const handleUpdateKB = async (data: any) => {
+    try {
+      const payload = {
+        ...data,
+        uuid: knowledgeBaseItem?.uuid,
+      };
+      const updateRes = await updateKnowledgeBase.mutateAsync(payload);
+    } catch (error: any) {
+      if (error?.response?.status === 400) {
+        toast.error(error?.response?.data?.error);
+      }
+    }
   };
 
   return (
@@ -810,7 +767,7 @@ export default function KnowledgeBaseDetail() {
 
                             <div className="grid gap-2">
                               <Label htmlFor="chunk-size">Chunk Size</Label>
-                              <Input
+                              <SampleInput
                                 id="chunk-size"
                                 value={chunkSize}
                                 onChange={(e) => {
@@ -834,7 +791,7 @@ export default function KnowledgeBaseDetail() {
                               <Label htmlFor="chunk-overlap">
                                 Chunk Overlap
                               </Label>
-                              <Input
+                              <SampleInput
                                 id="chunk-overlap"
                                 value={chunkOverlap}
                                 onChange={(e) => {
@@ -887,7 +844,7 @@ export default function KnowledgeBaseDetail() {
                 <div className="flex flex-col sm:flex-row justify-between gap-4">
                   <div className="relative w-full sm:w-96">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
+                    <SampleInput
                       type="search"
                       placeholder="Search documents..."
                       className="w-full pl-8"
@@ -1109,129 +1066,10 @@ export default function KnowledgeBaseDetail() {
               </TabsContent>
 
               <TabsContent value="settings" className="space-y-6 pt-4">
-                <div className="grid gap-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Knowledge Base Details</CardTitle>
-                      <CardDescription>
-                        Manage your knowledge base settings.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid gap-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <Label>Name</Label>
-                            <Input
-                              type="text"
-                              value={knowledgeBase.name}
-                              className="mt-1"
-                            />
-                          </div>
-                          <div>
-                            <Label>Description</Label>
-                            <Input
-                              type="text"
-                              value={knowledgeBase.description}
-                              className="mt-1"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <Label>Status</Label>
-                            <Input
-                              type="text"
-                              value={knowledgeBase.status}
-                              className="mt-1"
-                              disabled
-                            />
-                          </div>
-                          <div>
-                            <Label>Created By</Label>
-                            <Input
-                              type="text"
-                              value={knowledgeBase.creator}
-                              className="mt-1"
-                              disabled
-                            />
-                          </div>
-                          <div>
-                            <Label>Created Date</Label>
-                            <Input
-                              type="text"
-                              value={knowledgeBase.created}
-                              className="mt-1"
-                              disabled
-                            />
-                          </div>
-                        </div>
-                        <div className="flex justify-end mt-4">
-                          <SampleButton>Save Changes</SampleButton>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Embedding Model</CardTitle>
-                      <CardDescription>
-                        Select the embedding model for your knowledge base.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid gap-4">
-                        <div className="grid gap-2">
-                          <Label>Current Embedding Model</Label>
-                          <div className="p-3 border rounded-md bg-muted/20">
-                            <div className="font-medium">
-                              {knowledgeBase.embeddingModel}
-                            </div>
-                            <div className="text-sm text-muted-foreground mt-1">
-                              {knowledgeBase.embeddingDimensions} dimensions
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="grid gap-2">
-                          <Label htmlFor="embedding-model">
-                            Change Embedding Model
-                          </Label>
-                          <Select
-                            value={selectedEmbeddingModel}
-                            onValueChange={(value) => {
-                              setSelectedEmbeddingModel(value);
-                              if (value !== knowledgeBase.embeddingModel) {
-                                setIsEmbeddingChangeDialogOpen(true);
-                              }
-                            }}
-                          >
-                            <SelectTrigger id="embedding-model">
-                              <SelectValue placeholder="Select embedding model" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {embeddingModels.map((model) => (
-                                <SelectItem key={model.id} value={model.id}>
-                                  {model.name} ({model.dimensions} dimensions)
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Changing the embedding model will require
-                            regenerating all embeddings.
-                          </p>
-                        </div>
-
-                        <div className="flex justify-end mt-4">
-                          <SampleButton>Save Changes</SampleButton>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                <KnowledgeBaseSettings
+                  knowledgeBaseItem={knowledgeBaseItem}
+                  handleUpdateKB={handleUpdateKB}
+                />
               </TabsContent>
             </Tabs>
           </main>
@@ -1344,97 +1182,6 @@ export default function KnowledgeBaseDetail() {
             </DialogContent>
           </Dialog>
 
-          {/* Embedding Model Change Dialog */}
-          <Dialog
-            open={isEmbeddingChangeDialogOpen}
-            onOpenChange={setIsEmbeddingChangeDialogOpen}
-          >
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Change Embedding Model</DialogTitle>
-                <DialogDescription>
-                  Changing the embedding model requires regenerating all
-                  embeddings in this knowledge base.
-                </DialogDescription>
-              </DialogHeader>
-              {isProcessing ? (
-                <div className="py-6 space-y-4">
-                  <div className="text-center">
-                    <h3 className="text-lg font-medium mb-2">
-                      Changing Embedding Model
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {processingStep}
-                    </p>
-                  </div>
-                  <Progress value={processingProgress} className="w-full" />
-                  <p className="text-sm text-center text-muted-foreground">
-                    {processingProgress}% complete
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div className="py-4 space-y-4">
-                    <div className="grid gap-2">
-                      <Label>Current Model</Label>
-                      <div className="p-3 border rounded-md bg-muted/20">
-                        <div className="font-medium">
-                          {knowledgeBase.embeddingModel}
-                        </div>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {knowledgeBase.embeddingDimensions} dimensions
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label>New Model</Label>
-                      <div className="p-3 border rounded-md bg-muted/20">
-                        <div className="font-medium">
-                          {selectedEmbeddingModel}
-                        </div>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {
-                            embeddingModels.find(
-                              (m) => m.id === selectedEmbeddingModel,
-                            )?.dimensions
-                          }{" "}
-                          dimensions
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-md bg-amber-50 dark:bg-amber-950 p-3 text-amber-600 dark:text-amber-300">
-                      <div className="flex">
-                        <Activity className="h-5 w-5 mr-2 flex-shrink-0" />
-                        <div className="text-sm">
-                          This process will regenerate embeddings for all{" "}
-                          {knowledgeBase.documentCount} documents in this
-                          knowledge base. This may take some time and will
-                          update the vector database.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <SampleButton
-                      variant="outline"
-                      onClick={() => {
-                        setIsEmbeddingChangeDialogOpen(false);
-                        setSelectedEmbeddingModel(knowledgeBase.embeddingModel);
-                      }}
-                    >
-                      Cancel
-                    </SampleButton>
-                    <SampleButton onClick={handleEmbeddingModelChange}>
-                      Change Model & Regenerate
-                    </SampleButton>
-                  </DialogFooter>
-                </>
-              )}
-            </DialogContent>
-          </Dialog>
-
           {/* Delete Confirmation Dialog */}
           <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
             <DialogContent className="sm:max-w-[400px]">
@@ -1475,8 +1222,8 @@ export default function KnowledgeBaseDetail() {
               <DialogDescription />
               <div className="modal-section">
                 <p className="modal-text">
-                  Still have documents under processing. Are you sure you want to
-                  open this knowledge base's chat?
+                  Still have documents under processing. Are you sure you want
+                  to open this knowledge base's chat?
                 </p>
               </div>
               <DialogFooter className="modal-footer">
@@ -1503,7 +1250,9 @@ export default function KnowledgeBaseDetail() {
       ) : (
         <KnowledgeBaseDetailSkeleton />
       )}
-      {deleteingDocuments && <FullScreenLoading />}
+      {(deleteingDocuments || updateKnowledgeBase.isPending) && (
+        <FullScreenLoading />
+      )}
     </div>
   );
 }

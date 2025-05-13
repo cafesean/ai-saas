@@ -107,6 +107,43 @@ export const knowledgeBasesRouter = createTRPCRouter({
       },
     ),
 
+  /**
+   * Update a knowledge base by ID
+   */
+  updateKnowledgeBase: publicProcedure
+    .input(
+      z.object({
+        uuid: z.string(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        embeddingModel: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const updateInfo: any = {};
+        if (input.name) {
+          updateInfo["name"] = input.name;
+        }
+        if (input.description) {
+          updateInfo["description"] = input.description;
+        }
+        if (input.embeddingModel) {
+          updateInfo["embeddingModel"] = input.embeddingModel;
+        }
+        const kb = await db.transaction(async (tx) => {
+          const [kb] = await tx
+            .update(schema.knowledge_bases)
+            .set(updateInfo)
+            .where(eq(schema.knowledge_bases.uuid, input.uuid))
+            .returning();
+        });
+        return kb;
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to update knowledge base");
+      }
+    }),
   updateKnowledgeBaseStatus: publicProcedure
     .input(
       z.object({
@@ -219,6 +256,29 @@ export const knowledgeBasesRouter = createTRPCRouter({
       } catch (error) {
         console.error(error);
         throw new Error("Failed to delete documents from knowledge base");
+      }
+    }),
+
+  getKnowledgeBaseDocuments: publicProcedure
+    .input(
+      z.object({
+        kbId: z.string(),
+      }),
+    )
+    .query(async ({ input }) => {
+      try {
+        const documents = await db.query.knowledge_base_documents.findMany({
+          where: eq(schema.knowledge_base_documents.kb_id, input.kbId),
+        });
+        return {
+          success: true,
+          data: {
+            documents,
+          },
+        };
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to fetch documents from knowledge base");
       }
     }),
 
