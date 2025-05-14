@@ -18,16 +18,13 @@ export async function POST(request: NextRequest, res: NextResponse) {
       where: eq(schema.knowledge_base_documents.uuid, payload.documentId),
     });
     // Check if the workflow in endpoint is published
-    if (
-      document &&
-      document.status !== KnowledgeBaseDocumentStatus.processing
-    ) {
+    if (document && document.status == KnowledgeBaseDocumentStatus.processed) {
       return NextResponse.json(
         {
-          success: false,
-          error: "Document already embedded.",
+          success: true,
+          message: "Document already embedded.",
         },
-        { status: 400 },
+        { status: 200 },
       );
     }
     if (document) {
