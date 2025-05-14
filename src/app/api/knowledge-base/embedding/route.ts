@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       {
         headers: {
           "Content-Type": "multipart/form-data",
+          Authorization: "Basic " + process.env.N8N_BASIC_AUTH_TOKEN,
         },
         timeout: 5 * 60 * 1000,
       },
@@ -106,6 +107,7 @@ export async function DELETE(request: NextRequest, res: NextResponse) {
         },
         headers: {
           "Content-Type": "application/json",
+          Authorization: "Basic " + process.env.N8N_BASIC_AUTH_TOKEN,
         },
         timeout: 5 * 60 * 1000,
       },

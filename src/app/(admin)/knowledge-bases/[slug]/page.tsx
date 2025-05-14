@@ -396,8 +396,8 @@ export default function KnowledgeBaseDetail() {
       formData.append("user_id", process.env.NEXT_PUBLIC_MOCK_USER_ID || "");
       formData.append("kb_id", knowledgeBaseItem?.uuid || "");
       formData.append("document_id", payload.documents[index]?.uuid || "");
-      formData.append("chunk_size", payload.chunk_size || "1000");
-      formData.append("chunk_overlap", payload.chunk_overlap || "200");
+      formData.append("chunk_size", payload.chunkSize || "1000");
+      formData.append("chunk_overlap", payload.chunkOverlap || "200");
 
       return axios.post(KNOWLEDGE_BASE_API.embeddingDocument, formData, {
         headers: {
