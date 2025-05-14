@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-    
+
     const originalName = file.name;
     const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
     const fileType = file.type;
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       contentType: fileType,
       path: customPath,
       metadata: {
-        originalName: originalName,
+        originalName: encodeURIComponent(originalName),
         uploadedAt: new Date().toISOString(),
       },
     });

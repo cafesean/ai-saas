@@ -42,18 +42,22 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-
-    const result = await axios.post(`${process.env.KNOWLEDGE_BASE_CHAT_URL}`, {
-      data: {
+    console.log("N8N_BASIC_AUTH_TOKEN", process.env.N8N_BASIC_AUTH_TOKEN);
+    const result = await axios.post(
+      `${process.env.KNOWLEDGE_BASE_CHAT_URL}`,
+      {
         query,
         user_id: userId,
         kb_id: kbId,
       },
-      headers: {
-        "Content-Type": "application/json",
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Basic " + process.env.N8N_BASIC_AUTH_TOKEN,
+        },
+        timeout: 5 * 60 * 1000,
       },
-      timeout: 5 * 60 * 1000,
-    });
+    );
     if (
       result.data.length === 0 ||
       (result.data.length > 0 && !result.data[0].response)
@@ -63,7 +67,7 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       );
     }
-    
+
     // Return successful upload information
     return NextResponse.json(
       {
