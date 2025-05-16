@@ -87,11 +87,67 @@ export const knowledge_base_documents = pgTable(
   ],
 );
 
+export const conversations = pgTable(
+  "conversations",
+  {
+    id: serial("id").notNull().primaryKey(),
+    uuid: uuid("uuid").unique().notNull().defaultRandom(),
+    name: varchar("name", { length: 200 }).notNull(),
+    description: text("description"),
+    kbId: uuid("kb_id")
+      .notNull()
+      .references(() => knowledge_bases.uuid, {
+        onDelete: "cascade",
+      }),
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("conversations_id_idx").on(table.id),
+    index("conversations_uuid_idx").on(table.uuid),
+  ],
+);
+
+export const conversation_messages = pgTable("conversation_messages", {
+  id: serial("id").notNull().primaryKey(),
+  uuid: uuid("uuid").unique().notNull().defaultRandom(),
+  conversationId: uuid("conversation_id")
+    .notNull()
+    .references(() => conversations.uuid, {
+      onDelete: "cascade",
+    }),
+  role: varchar("role", { length: 20 }).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+    mode: "date",
+  })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", {
+    withTimezone: true,
+    mode: "date",
+  })
+    .defaultNow()
+    .notNull(),
+});
+
 // Relations
 export const knowledgeBaseRelations = relations(
   knowledge_bases,
   ({ many }) => ({
     documents: many(knowledge_base_documents),
+    conversations: many(conversations),
   }),
 );
 
@@ -101,6 +157,30 @@ export const knowledgeBaseDocumentRelations = relations(
     knowledgeBase: one(knowledge_bases, {
       fields: [knowledge_base_documents.kb_id],
       references: [knowledge_bases.uuid],
+    }),
+  }),
+);
+
+export const knowledgeBaseConversationRelations = relations(
+  conversations,
+  ({ one }) => ({
+    knowledgeBase: one(knowledge_bases, {
+      fields: [conversations.kbId],
+      references: [knowledge_bases.uuid],
+    }),
+  }),
+);
+
+export const conversationRelations = relations(conversations, ({ many }) => ({
+  messages: many(conversation_messages),
+}));
+
+export const conversationMessageRelations = relations(
+  conversation_messages,
+  ({ one }) => ({
+    conversation: one(conversations, {
+      fields: [conversation_messages.conversationId],
+      references: [conversations.uuid],
     }),
   }),
 );
