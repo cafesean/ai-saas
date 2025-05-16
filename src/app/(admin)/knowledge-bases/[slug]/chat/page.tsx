@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import {
   Send,
@@ -51,6 +51,7 @@ import { AdminRoutes } from "@/constants/routes";
 import { api, useUtils } from "@/utils/trpc";
 import { Badge } from "@/components/ui/badge";
 import { KNOWLEDGE_BASE_API } from "@/constants/api";
+import FullScreenLoading from "@/components/ui/FullScreenLoading";
 
 // Knowledge base data
 const knowledgeBase = {
@@ -66,7 +67,7 @@ const initialConversation: {
   title: string;
   messages: any[];
 } = {
-  id: "new-chat",
+  id: "",
   title: "New Conversation",
   messages: [],
 };
@@ -97,8 +98,11 @@ const potentialSources = [
 ];
 
 export default function KnowledgeBaseChatPage() {
+  const searchParams = useSearchParams();
+  const cid = searchParams.get("c-id");
   const params = useParams();
   const slug = params.slug as string;
+  const utils = useUtils();
   const {
     data: knowledgeBaseItem,
     isLoading: isLoadingKnowledgeBase,
@@ -106,6 +110,34 @@ export default function KnowledgeBaseChatPage() {
   } = api.knowledgeBases.getKnowledgeBaseById.useQuery({
     uuid: slug,
   });
+  const createConversation =
+    api.knowledgeBases.createConversation.useMutation();
+  const createConversationMessage =
+    api.knowledgeBases.createConversationMessage.useMutation();
+  const {
+    data: conversationData,
+    isLoading: isLoadingConversation,
+  }: {
+    data: any;
+    isLoading: boolean;
+  } = api.knowledgeBases.getConversationById.useQuery(
+    {
+      uuid: cid || "",
+    },
+    {
+      enabled: !!cid,
+    },
+  );
+  const updateConversation =
+    api.knowledgeBases.updateConversationById.useMutation({
+      onSuccess: () => {
+        utils.knowledgeBases.getKnowledgeBaseById.invalidate({ uuid: slug });
+        toast.success("Conversation updated successfully");
+      },
+      onError: (error) => {
+        toast.error("Failed to update conversation");
+      },
+    });
   const [conversation, setConversation] = useState(initialConversation);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -115,6 +147,34 @@ export default function KnowledgeBaseChatPage() {
   const [chatTitle, setChatTitle] = useState("New Conversation");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Set conversation ID if not already set
+  useEffect(() => {
+    if (cid) {
+      setConversation((prev) => ({
+        ...prev,
+        id: cid,
+      }));
+    }
+  }, [cid]);
+
+  // Fetch conversation data if conversation ID is set
+  useEffect(() => {
+    if (!isLoadingConversation && conversationData) {
+      setConversation((prev) => ({
+        ...prev,
+        messages: conversationData.messages.map((message: any) => ({
+          id: message.uuid,
+          role: message.role,
+          content: message.content,
+          timestamp: message.createdAt,
+          sources: [],
+        })),
+        title: conversationData.name,
+        id: conversationData.uuid,
+      }));
+    }
+  }, [isLoadingConversation, conversationData]);
 
   // Scroll to bottom of messages
   useEffect(() => {
@@ -139,6 +199,30 @@ export default function KnowledgeBaseChatPage() {
       messages: [...prev.messages, userMessage],
     }));
 
+    // If conversation ID is not set, create a new conversation
+    let newConversation: any;
+    if (!conversation.id) {
+      newConversation = await createConversation.mutateAsync({
+        name: chatTitle,
+        kbId: knowledgeBaseItem?.uuid || "",
+      });
+      if (newConversation && newConversation.uuid) {
+        setConversation((prev) => ({
+          ...prev,
+          id: newConversation?.uuid || "",
+        }));
+      }
+    }
+
+    // Add user message to conversation
+    if (conversation.id || (newConversation && newConversation.uuid)) {
+      await createConversationMessage.mutateAsync({
+        conversationId: conversation.id || newConversation.uuid,
+        content: inputMessage,
+        role: "user",
+      });
+    }
+
     setInputMessage("");
     setIsLoading(true);
 
@@ -147,25 +231,77 @@ export default function KnowledgeBaseChatPage() {
         query: inputMessage,
         kbId: knowledgeBaseItem?.uuid,
         userId: process.env.NEXT_PUBLIC_MOCK_USER_ID,
+        conversationId: newConversation
+          ? newConversation?.uuid
+          : conversation.id,
+        role: "assistant",
+        stream: true,
       };
-      const askQuery = await axios.post(KNOWLEDGE_BASE_API.chat, {
-        data: {
-          ...payload,
-        },
-      });
-      if (askQuery.data.success) {
-        const aiResponse = {
-          id: `msg-${Date.now() + 1}`,
-          role: "assistant",
-          content: askQuery.data.data.text,
-          timestamp: new Date().toISOString(),
-          sources: [],
-        };
-        setConversation((prev) => ({
-          ...prev,
-          messages: [...prev.messages, aiResponse],
-        }));
-        setIsLoading(false);
+      if (payload.stream) {
+        const askQuery = await fetch(`${KNOWLEDGE_BASE_API.chat}`, {
+          method: `POST`,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...payload,
+          }),
+        });
+        const reader = askQuery.body?.getReader();
+        const decoder = new TextDecoder();
+        if (reader) {
+          setIsLoading(false);
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            setConversation((prev: any) => {
+              let lastMessage = prev.messages[prev.messages.length - 1];
+              let otherMessages = prev.messages;
+              if (lastMessage.role === "assistant") {
+                lastMessage = {
+                  id: `msg-${Date.now()}`,
+                  role: "assistant",
+                  content: lastMessage.content + chunk,
+                  timestamp: new Date().toISOString(),
+                  sources: [],
+                };
+                otherMessages = prev.messages.slice(
+                  0,
+                  prev.messages.length - 1,
+                );
+              } else {
+                lastMessage = {
+                  id: `msg-${Date.now()}`,
+                  role: "assistant",
+                  content: `${chunk}`,
+                  timestamp: new Date().toISOString(),
+                  sources: [],
+                };
+              }
+              return {
+                ...prev,
+                messages: [...otherMessages, lastMessage],
+              };
+            });
+          }
+        }
+      } else {
+        const askQuery = await axios.post(KNOWLEDGE_BASE_API.chat, payload);
+        if (askQuery.data.success) {
+          const aiResponse = {
+            id: `msg-${Date.now() + 1}`,
+            role: "assistant",
+            content: askQuery.data.data.text,
+            timestamp: new Date().toISOString(),
+            sources: [],
+          };
+          setConversation((prev) => ({
+            ...prev,
+            messages: [...prev.messages, aiResponse],
+          }));
+          setIsLoading(false);
+        }
       }
     } catch (error) {
       toast.error("Ask query failed.");
@@ -197,9 +333,31 @@ export default function KnowledgeBaseChatPage() {
     // }, 2000);
   };
 
-  const handleSaveConversation = () => {
+  const handleSaveConversation = async () => {
     // In a real app, save the conversation
     setIsSaveDialogOpen(false);
+    try {
+      console.log("conversation.id", conversation.id);
+      if (!conversation.id) {
+        const newConversation = await createConversation.mutateAsync({
+          name: chatTitle,
+          kbId: knowledgeBaseItem?.uuid || "",
+        });
+        if (newConversation && newConversation.uuid) {
+          setConversation((prev) => ({
+            ...prev,
+            id: newConversation?.uuid || "",
+          }));
+        }
+      } else {
+        await updateConversation.mutateAsync({
+          uuid: conversation.id,
+          name: chatTitle,
+        });
+      }
+    } catch (error) {
+      toast.error("Failed to save conversation");
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -237,7 +395,7 @@ export default function KnowledgeBaseChatPage() {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => setIsSaveDialogOpen(true)}>
                   <SquarePen className="mr-2 h-4 w-4" />
-                  Save Conversation
+                  {conversation.id ? "Edit" : "Save"} Conversation
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Download className="mr-2 h-4 w-4" />
@@ -252,11 +410,11 @@ export default function KnowledgeBaseChatPage() {
           </>
         }
       />
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex flex-1 flex-col">
+      <div className="flex flex-1">
+        <div className="flex flex-1 flex-col relative">
           {/* Messages area */}
-          <div className="flex-1 overflow-auto p-4">
-            <div className="mx-auto max-w-3xl space-y-6 pb-20">
+          <div className="overflow-auto p-4 h-[80vh]">
+            <div className="mx-auto max-w-3xl space-y-6 pb-28">
               {conversation.messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full py-16">
                   <div className="text-center space-y-3">
@@ -427,7 +585,7 @@ export default function KnowledgeBaseChatPage() {
           </div>
 
           {/* Input area */}
-          <div className="border-t bg-background px-4 py-3">
+          <div className="border-t bg-background px-4 py-3 absolute left-0 right-0 bottom-0 w-full">
             <div className="mx-auto flex max-w-3xl items-center gap-3">
               <SampleButton variant="outline" size="icon" className="shrink-0">
                 <Paperclip className="h-4 w-4" />
@@ -477,7 +635,9 @@ export default function KnowledgeBaseChatPage() {
       <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Save Conversation</DialogTitle>
+            <DialogTitle>
+              {conversation.id ? "Edit" : "Save"} Conversation
+            </DialogTitle>
             <DialogDescription>
               Save this conversation for future reference.
             </DialogDescription>
@@ -503,6 +663,7 @@ export default function KnowledgeBaseChatPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {updateConversation.isPending && <FullScreenLoading />}
     </div>
   );
 }
