@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 
+import { db } from "@/db/config";
+import schema from "@/db/schema";
+
 export async function POST(request: NextRequest) {
   if (request.method !== "POST") {
     return NextResponse.json(
@@ -12,9 +15,8 @@ export async function POST(request: NextRequest) {
     );
   }
   try {
-    const {
-      data: { query, userId, kbId },
-    } = await request.json();
+    const { query, userId, kbId, conversationId, role, stream } =
+      await request.json();
     if (!query) {
       return NextResponse.json(
         {
@@ -42,7 +44,27 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-    console.log("N8N_BASIC_AUTH_TOKEN", process.env.N8N_BASIC_AUTH_TOKEN);
+
+    if (!conversationId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Conversation ID is required",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!role) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Role is required",
+        },
+        { status: 400 },
+      );
+    }
+
     const result = await axios.post(
       `${process.env.KNOWLEDGE_BASE_CHAT_URL}`,
       {
@@ -67,15 +89,55 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       );
     }
-
-    // Return successful upload information
-    return NextResponse.json(
-      {
-        success: true,
-        data: result.data[0].response,
-      },
-      { status: 200 },
-    );
+    if (result.data[0].response.text) {
+      // Add conversation message to database
+      const newConversationMessage = await db
+        .insert(schema.conversation_messages)
+        .values({
+          conversationId,
+          role,
+          content: result.data[0].response.text,
+        })
+        .returning();
+    }
+    if (stream) {
+      const content = result.data[0].response.text;
+      const readableStream = new ReadableStream({
+        start(controller) {
+          let currentIndex = 0;
+          const chunkSize = 32;
+          const interval = setInterval(() => {
+            if (currentIndex < content.length) {
+              const chunk = content.slice(
+                currentIndex,
+                currentIndex + chunkSize,
+              );
+              controller.enqueue(new TextEncoder().encode(chunk));
+              currentIndex += chunkSize;
+            } else {
+              clearInterval(interval);
+              controller.close();
+            }
+          }, 100);
+        },
+      });
+      return new Response(readableStream, {
+        headers: {
+          "Content-Type": "text/event-stream", // 设置响应头为 EventStream
+          "Cache-Control": "no-cache", // 禁用缓存
+          Connection: "keep-alive", // 保持连接
+        },
+      });
+    } else {
+      // Return successful upload information
+      return NextResponse.json(
+        {
+          success: true,
+          data: result.data[0].response,
+        },
+        { status: 200 },
+      );
+    }
   } catch (error) {
     console.error("Ask query error:", error);
     return NextResponse.json(

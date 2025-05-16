@@ -79,6 +79,7 @@ import { S3_API, KNOWLEDGE_BASE_API } from "@/constants/api";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
 import { useModalState } from "@/framework/hooks/useModalState";
 import KnowledgeBaseSettings from "./components/KnowledgeBaseSettings";
+import ChatHistory from "./components/ChatHistory";
 
 // Sample data for a specific knowledge base
 const knowledgeBase = {
@@ -269,7 +270,7 @@ export default function KnowledgeBaseDetail() {
     }
     const lowerCaseQuery = searchQuery.toLowerCase();
     if (knowledgeBaseItem) {
-      return knowledgeBaseItem?.documents.filter((doc) =>
+      return knowledgeBaseItem?.documents.filter((doc: any) =>
         doc.name.toLowerCase().includes(lowerCaseQuery),
       );
     }
@@ -469,7 +470,7 @@ export default function KnowledgeBaseDetail() {
         // Get delete keys
         const documentsKeysToDelete = documentsToDelete.map((documentId) => {
           const document = knowledgeBaseItem?.documents.find(
-            (doc) => doc.uuid === documentId,
+            (doc: any) => doc.uuid === documentId,
           );
           return document?.path;
         });
@@ -533,7 +534,7 @@ export default function KnowledgeBaseDetail() {
 
   const handleClickChatWithKB = () => {
     const processingDocuments = knowledgeBaseItem?.documents.filter(
-      (doc) => doc.status === KnowledgeBaseDocumentStatus.processing,
+      (doc: any) => doc.status === KnowledgeBaseDocumentStatus.processing,
     );
     if (processingDocuments && processingDocuments?.length > 0) {
       openChatConfirm(knowledgeBaseItem);
@@ -891,7 +892,7 @@ export default function KnowledgeBaseDetail() {
                                 setSelectedDocuments([]);
                               } else {
                                 setSelectedDocuments(
-                                  filteredDocuments.map((doc) => doc.uuid),
+                                  filteredDocuments.map((doc: any) => doc.uuid),
                                 );
                               }
                             }}
@@ -905,7 +906,7 @@ export default function KnowledgeBaseDetail() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredDocuments.map((document) => (
+                      {filteredDocuments.map((document: any) => (
                         <TableRow key={document.id}>
                           <TableCell className="font-medium w-12">
                             <input
@@ -985,30 +986,10 @@ export default function KnowledgeBaseDetail() {
               </TabsContent>
 
               <TabsContent value="chat-history" className="space-y-6 pt-4">
-                <div className="grid gap-4">
-                  {chatHistory.map((chat) => (
-                    <Card key={chat.id}>
-                      <CardHeader>
-                        <CardTitle>{chat.title}</CardTitle>
-                        <CardDescription>
-                          {chat.messageCount} messages • {chat.date}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <SampleButton asChild variant="link">
-                          {/* Use resolved kbId */}
-                          <Link
-                            href={
-                              `/knowledge-bases/${slug}/chat/${chat.id}` as Route
-                            }
-                          >
-                            View Chat
-                          </Link>
-                        </SampleButton>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                <ChatHistory
+                  slug={knowledgeBaseItem?.uuid}
+                  chatHistory={knowledgeBaseItem?.conversations}
+                />
               </TabsContent>
 
               <TabsContent value="activity" className="space-y-6 pt-4">

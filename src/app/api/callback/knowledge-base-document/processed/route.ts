@@ -26,21 +26,22 @@ export async function POST(request: NextRequest, res: NextResponse) {
         },
         { status: 200 },
       );
-    }
-    if (document) {
-      // Update the document status to processed
-      await db
-        .update(schema.knowledge_base_documents)
-        .set({ status: KnowledgeBaseDocumentStatus.processed })
-        .where(eq(schema.knowledge_base_documents.uuid, payload.documentId));
-      return NextResponse.json({
-        success: true,
-        data: {
-          documentId: payload.documentId,
-        },
-      });
     } else {
-      throw new Error("Document not found");
+      if (document) {
+        // Update the document status to processed
+        await db
+          .update(schema.knowledge_base_documents)
+          .set({ status: KnowledgeBaseDocumentStatus.processed })
+          .where(eq(schema.knowledge_base_documents.uuid, payload.documentId));
+        return NextResponse.json({
+          success: true,
+          data: {
+            documentId: payload.documentId,
+          },
+        });
+      } else {
+        throw new Error("Document not found");
+      }
     }
   } catch (error) {
     console.log(error);
