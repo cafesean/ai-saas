@@ -47,8 +47,13 @@ import {
 import {
   knowledge_bases,
   knowledge_base_documents,
+  conversations,
+  conversation_messages,
   knowledgeBaseRelations,
   knowledgeBaseDocumentRelations,
+  knowledgeBaseConversationRelations,
+  conversationRelations,
+  conversationMessageRelations,
 } from "./knowledge_base";
 
 export {
@@ -94,8 +99,13 @@ export {
   decisionTableOutputResultsRelations,
   knowledge_bases,
   knowledge_base_documents,
+  conversations,
+  conversation_messages,
   knowledgeBaseRelations,
   knowledgeBaseDocumentRelations,
+  knowledgeBaseConversationRelations,
+  conversationRelations,
+  conversationMessageRelations,
 };
 
 export default {
@@ -143,4 +153,9 @@ export default {
   knowledge_base_documents,
   knowledgeBaseRelations,
   knowledgeBaseDocumentRelations,
+  conversations,
+  conversation_messages,
+  knowledgeBaseConversationRelations,
+  conversationRelations,
+  conversationMessageRelations,
 };

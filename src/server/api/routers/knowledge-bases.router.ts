@@ -1,4 +1,4 @@
-import { eq, and, desc, inArray } from "drizzle-orm";
+import { eq, and, desc, inArray, asc } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -34,7 +34,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
         orderBy: desc(knowledge_bases.updatedAt),
       });
 
-      const result = knowledgeBasesData.map((kb) => ({
+      const result = knowledgeBasesData.map((kb: any) => ({
         ...kb,
         documentCount: kb.documents.length,
         embeddingDimensions:
@@ -60,13 +60,44 @@ export const knowledgeBasesRouter = createTRPCRouter({
     )
     .query(async ({ input }: { input: { uuid: string } }) => {
       try {
-        const workflowData = await db.query.knowledge_bases.findFirst({
-          where: eq(schema.knowledge_bases.uuid, input.uuid),
-          with: {
-            documents: true,
-          },
-        });
-        return workflowData;
+        const originKnowledgeBase: any =
+          await db.query.knowledge_bases.findFirst({
+            where: eq(schema.knowledge_bases.uuid, input.uuid),
+            with: {
+              documents: true,
+              conversations: {
+                columns: {
+                  uuid: true,
+                  name: true,
+                  updatedAt: true,
+                },
+                orderBy: desc(schema.conversations.updatedAt),
+                with: {
+                  messages: {
+                    columns: {
+                      uuid: true,
+                      updatedAt: true,
+                    },
+                    orderBy: desc(schema.conversation_messages.createdAt),
+                  },
+                },
+              },
+            },
+          });
+        const knowledgeBase = {
+          ...originKnowledgeBase,
+          conversations: originKnowledgeBase?.conversations.map(
+            (conversation: any) => ({
+              ...conversation,
+              messageCount: conversation.messages.length,
+              lastUpdatedAt:
+                conversation.messages.length > 0
+                  ? conversation.messages[0].updatedAt
+                  : conversation.updatedAt,
+            }),
+          ),
+        };
+        return knowledgeBase;
       } catch (error) {
         console.error(error);
         throw new Error("Failed to fetch knowledge base");
@@ -282,6 +313,103 @@ export const knowledgeBasesRouter = createTRPCRouter({
       }
     }),
 
+  createConversation: publicProcedure
+    .input(
+      z.object({
+        name: z.string(),
+        description: z.string().optional(),
+        kbId: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const [newConversation] = await db
+          .insert(schema.conversations)
+          .values({
+            name: input.name,
+            description: input.description,
+            kbId: input.kbId,
+          })
+          .returning();
+        return newConversation;
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to add conversation to knowledge base");
+      }
+    }),
+
+  createConversationMessage: publicProcedure
+    .input(
+      z.object({
+        conversationId: z.string(),
+        role: z.string(),
+        content: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const newConversationMessage = await db
+          .insert(schema.conversation_messages)
+          .values({
+            conversationId: input.conversationId,
+            role: input.role,
+            content: input.content,
+          })
+          .returning();
+        return newConversationMessage;
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to add conversation message to knowledge base");
+      }
+    }),
+
+  getConversationById: publicProcedure
+    .input(
+      z.object({
+        uuid: z.string(),
+      }),
+    )
+    .query(async ({ input }) => {
+      try {
+        const conversation = await db.query.conversations.findFirst({
+          where: eq(schema.conversations.uuid, input.uuid),
+          with: {
+            messages: {
+              orderBy: asc(schema.conversation_messages.createdAt),
+            },
+          },
+        });
+        return conversation;
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to fetch conversation from knowledge base");
+      }
+    }),
+
+  updateConversationById: publicProcedure
+    .input(
+      z.object({
+        uuid: z.string(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const conversation = await db
+          .update(schema.conversations)
+          .set({
+            name: input.name,
+            description: input.description,
+          })
+          .where(eq(schema.conversations.uuid, input.uuid))
+          .returning();
+        return conversation;
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to update conversation from knowledge base");
+      }
+    }),
   /**
    * Get all vector databases
    */
