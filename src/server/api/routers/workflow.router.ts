@@ -16,10 +16,9 @@ import {
 import { NodeTypes } from "@/constants/nodes";
 import {
   n8nHTTPRequestNode,
-  n8nSetNode,
   n8nCodeNode,
   n8nWebhookNode,
-  n8nSetNodeDefaultAssignments,
+  n8nTwilioNode,
 } from "@/constants/n8n";
 import { DecisionDataTypes } from "@/constants/decisionTable";
 
@@ -505,7 +504,7 @@ const generateN8NNodesAndN8NConnections = async (
             ),
             sendQuery: true,
             queryParameters: {
-              parameters: queryParameters                               ,
+              parameters: queryParameters,
             },
             sendHeaders: true,
             headerParameters: {
@@ -566,6 +565,13 @@ const generateN8NNodesAndN8NConnections = async (
                   const decisionTableInput = decisionTableInputs.find(
                     (input: any) => input.uuid === condition.dt_input_id,
                   );
+                  if (
+                    decisionTableInput.dataType ===
+                      DecisionDataTypes[1]?.value &&
+                    condition.value === ""
+                  ) {
+                    return;
+                  }
                   conditions.push(
                     `data.${decisionTableInput.name}${getInputOperatorAndValue(
                       condition.condition,
@@ -605,7 +611,8 @@ const generateN8NNodesAndN8NConnections = async (
               "const data = $input.all()[0].json.body || $input.all()[0].json;\n";
             decisionTableJSCodeArray.push(nodeInputCode);
             // Default result
-            const defaultResult = "let matchedResult = null;";
+            const defaultResult =
+              'let matchedResult = { message: "No Match" };';
             decisionTableJSCodeArray.push(defaultResult);
             // Detect matched result
             const detectMatchedResult =
@@ -613,7 +620,7 @@ const generateN8NNodesAndN8NConnections = async (
             decisionTableJSCodeArray.push(detectMatchedResult);
             // Return matched result
             const returnMatchedResult =
-              'return [\n  {\n    json: {\n      decision: matchedResult || "No Match",\n    },\n  },\n];';
+              "return [\n  {\n    json: {\n     ...matchedResult,\n    },\n  },\n];";
             decisionTableJSCodeArray.push(returnMatchedResult);
             // Generate JS code
             const jsCode = decisionTableJSCodeArray.join("\n");
@@ -629,6 +636,34 @@ const generateN8NNodesAndN8NConnections = async (
               id: uuidv4(),
             });
           }
+        }
+        break;
+      case NodeTypes.whatsApp:
+        // Find trigger node name
+        const triggerNode = nodes.find(
+          (node: any) => node.type === NodeTypes.trigger,
+        );
+        if (triggerNode) {
+          // Get label of trigger node
+          const triggerNodeLabel = triggerNode.data.label;
+          n8nNodes.push({
+            ...n8nTwilioNode,
+            parameters: {
+              ...n8nTwilioNode.parameters,
+              from: `whatsapp:${node.data.from}`,
+              to: `=whatsapp:{{ $('${triggerNodeLabel}').item.json.body.to }}`,
+              message: `={{ ($input.all()[0].json.body && $input.all()[0].json.body["${node.data.msgFieldName}"]) || $input.all()[0].json["${node.data.msgFieldName}"] }}`,
+            },
+            position: [node.position.x, node.position.y],
+            name: node.data.label,
+            id: uuidv4(),
+            webhookId: uuidv4(),
+          });
+        } else {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Trigger node not found when create WhatsApp node.",
+          });
         }
         break;
       default:
@@ -722,7 +757,7 @@ const getInputOperatorAndValue = (
 const getOutputValue = (value: string, dateType?: string) => {
   switch (dateType) {
     case DecisionDataTypes[0]?.value:
-      return ` '${value}'`;
+      return ` '${value.replaceAll(/'/g, "\\'")}'`;
     default:
       return ` ${value}`;
   }

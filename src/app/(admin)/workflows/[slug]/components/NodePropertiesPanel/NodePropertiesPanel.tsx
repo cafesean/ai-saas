@@ -8,6 +8,7 @@ import { LogicNodePropertiesPanel } from "@/components/nodes/LogicNode";
 import { DatabaseNodePropertiesPanel } from "@/components/nodes/DatabaseNode";
 import { WebhookNodePropertiesPanel } from "@/components/nodes/WebhookNode";
 import { DecisionTableNodePropertiesPanel } from "@/components/nodes/DecisionTableNode";
+import { WhatsAppNodePropertiesPanel } from "@/components/nodes/WhatsAppNode";
 import { api } from "@/utils/trpc";
 import { ModelStatus } from "@/constants/general";
 
@@ -22,7 +23,6 @@ function NodePropertiesPanel({
   nodes,
   setNodes,
 }: NodePropertiesPanelProps) {
-  
   const activeModels = api.model.getByStatus.useQuery(ModelStatus.ACTIVE, {
     enabled: false,
   });
@@ -105,6 +105,13 @@ function NodePropertiesPanel({
           node={node}
           updateNodeData={updateNodeData}
           decisionTables={activeDecisionTables.data || []}
+        />
+      );
+    case NodeTypes.whatsApp:
+      return (
+        <WhatsAppNodePropertiesPanel
+          node={node}
+          updateNodeData={updateNodeData}
         />
       );
 

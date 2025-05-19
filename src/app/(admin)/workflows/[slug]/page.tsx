@@ -59,6 +59,7 @@ import { LogicNode } from "@/components/nodes/LogicNode";
 import { DatabaseNode } from "@/components/nodes/DatabaseNode";
 import { WebhookNode } from "@/components/nodes/WebhookNode";
 import { DecisionTableNode } from "@/components/nodes/DecisionTableNode";
+import { WhatsAppNode } from "@/components/nodes/WhatsAppNode";
 import { api, useUtils } from "@/utils/trpc";
 import Breadcrumbs from "@/components/breadcrambs";
 import { AdminRoutes } from "@/constants/routes";
@@ -97,11 +98,12 @@ const nodeTypes: NodeTypes = {
   database: DatabaseNode,
   webhook: WebhookNode,
   decisionTable: DecisionTableNode,
+  whatsApp: WhatsAppNode,
 };
 
 const getDefaultDataForNodeType = (type: string) => {
   switch (type) {
-    case "trigger":
+    case WorkflowNodeTypes.trigger:
       const uri = uuidv4();
       const triggerHost = `${process.env.NEXT_PUBLIC_AI_SAAS_ENDPOINT_BASE_URL}`;
       return {
@@ -111,7 +113,7 @@ const getDefaultDataForNodeType = (type: string) => {
         triggerHost: `${triggerHost}`,
         path: uri,
       };
-    case "aiModel":
+    case WorkflowNodeTypes.aiModel:
       return {
         label: "New AI Model",
         model: {
@@ -121,21 +123,27 @@ const getDefaultDataForNodeType = (type: string) => {
         temperature: 0.7,
         maxTokens: 1024,
       };
-    case "rules":
+    case WorkflowNodeTypes.rules:
       return { label: "New Rules", ruleCount: 0 };
-    case "logic":
+    case WorkflowNodeTypes.logic:
       return { label: "New Logic", type: "Branch" };
-    case "database":
+    case WorkflowNodeTypes.database:
       return { label: "New Database", operation: "Query" };
-    case "webhook":
+    case WorkflowNodeTypes.webhook:
       return { label: "New Webhook", endpoint: "https://", method: "POST" };
-    case "decisionTable":
+    case WorkflowNodeTypes.decisionTable:
       return {
         label: "New Decision Table",
         decisionTable: {
           name: "New Decision Table",
           uuid: "",
         },
+      };
+    case WorkflowNodeTypes.whatsApp:
+      return {
+        label: "New WhatsApp",
+        from: `${process.env.NEXT_PUBLIC_N8N_WHATSAPP_SENDER}`,
+        msgFieldName: "message",
       };
     default:
       return { label: "New Node" };

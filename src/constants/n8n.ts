@@ -152,3 +152,23 @@ export const n8nCodeNode = {
   id: "",
   name: "",
 };
+
+export const n8nTwilioNode = {
+  parameters: {
+    from: "",
+    to: "",
+    message: "",
+    options: {},
+  },
+  type: "n8n-nodes-base.twilio",
+  typeVersion: 1,
+  position: [],
+  id: "",
+  name: "",
+  credentials: {
+    twilioApi: {
+      id: process.env.N8N_TWILIO_CREDENTIALS_ID,
+      name: process.env.N8N_TWILIO_CREDENTIALS_NAME,
+    },
+  },
+};
