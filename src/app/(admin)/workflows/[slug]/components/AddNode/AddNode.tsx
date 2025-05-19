@@ -7,6 +7,7 @@ import {
   BrainCircuit,
   GitBranch,
   FileSpreadsheet,
+  MessageCircle,
 } from "lucide-react";
 
 import {
@@ -26,6 +27,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { NodeTypes as WorkflowNodeTypes } from "@/constants/nodes";
 
 const AddNode = ({
   isAddNodeDialogOpen,
@@ -54,7 +56,7 @@ const AddNode = ({
         <div className="grid grid-cols-4 gap-4 py-4">
           <Card
             className="cursor-pointer hover:border-primary transition-colors animate-scale"
-            onClick={() => addNode("trigger")}
+            onClick={() => addNode(WorkflowNodeTypes.trigger)}
           >
             <CardHeader className="pb-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -70,7 +72,7 @@ const AddNode = ({
           </Card>
           <Card
             className="cursor-pointer hover:border-primary transition-colors animate-scale"
-            onClick={() => addNode("aiModel")}
+            onClick={() => addNode(WorkflowNodeTypes.aiModel)}
           >
             <CardHeader className="pb-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600">
@@ -86,7 +88,7 @@ const AddNode = ({
           </Card>
           <Card
             className="cursor-pointer hover:border-primary transition-colors animate-scale"
-            onClick={() => addNode("rules")}
+            onClick={() => addNode(WorkflowNodeTypes.rules)}
           >
             <CardHeader className="pb-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-amber-600">
@@ -102,7 +104,7 @@ const AddNode = ({
           </Card>
           <Card
             className="cursor-pointer hover:border-primary transition-colors animate-scale"
-            onClick={() => addNode("logic")}
+            onClick={() => addNode(WorkflowNodeTypes.logic)}
           >
             <CardHeader className="pb-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-purple-600">
@@ -118,7 +120,7 @@ const AddNode = ({
           </Card>
           <Card
             className="cursor-pointer hover:border-primary transition-colors animate-scale"
-            onClick={() => addNode("database")}
+            onClick={() => addNode(WorkflowNodeTypes.database)}
           >
             <CardHeader className="pb-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-green-600">
@@ -134,7 +136,7 @@ const AddNode = ({
           </Card>
           <Card
             className="cursor-pointer hover:border-primary transition-colors animate-scale"
-            onClick={() => addNode("webhook")}
+            onClick={() => addNode(WorkflowNodeTypes.webhook)}
           >
             <CardHeader className="pb-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600">
@@ -148,7 +150,7 @@ const AddNode = ({
           </Card>
           <Card
             className="cursor-pointer hover:border-primary transition-colors animate-scale"
-            onClick={() => addNode("decisionTable")}
+            onClick={() => addNode(WorkflowNodeTypes.decisionTable)}
           >
             <CardHeader className="pb-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-100 text-teal-600">
@@ -160,6 +162,20 @@ const AddNode = ({
               <CardDescription>
                 Use decision tables for complex rules
               </CardDescription>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer hover:border-primary transition-colors animate-scale"
+            onClick={() => addNode(WorkflowNodeTypes.whatsApp)}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-600 text-white">
+                <MessageCircle className="h-4 w-4" />
+              </div>
+              <CardTitle className="text-base mt-2">WhatsApp</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>Use wahtsapp to send messages</CardDescription>
             </CardContent>
           </Card>
         </div>
