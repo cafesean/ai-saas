@@ -31,14 +31,14 @@ export const FlowNameTypes = {
 };
 
 export const WidgetTypes = {
-  chat: 'chat',
+  chat: "chat",
 };
 
 export const Widgets = {
   chat: {
-    name: 'Chat Widget',
+    name: "Chat Widget",
     type: WidgetTypes.chat,
-    scriptsPath: 'widgets_generation/chat/script.html'
+    scriptsPath: "widgets_generation/chat/script.html",
   },
 };
 
@@ -50,4 +50,5 @@ export const NodeTypes = {
   database: "database",
   webhook: "webhook",
   decisionTable: "decisionTable",
-}
+  whatsApp: "whatsApp",
+};
