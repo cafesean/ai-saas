@@ -52,3 +52,14 @@ export const NodeTypes = {
   decisionTable: "decisionTable",
   whatsApp: "whatsApp",
 };
+
+export const WhatsAppSendTypes = [
+  {
+    label: "Message",
+    value: "Message",
+  },
+  {
+    label: "Template",
+    value: "Template",
+  }
+];

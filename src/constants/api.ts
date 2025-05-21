@@ -36,3 +36,7 @@ export const KNOWLEDGE_BASE_API = {
   embeddingDocument: "/api/knowledge-base/embedding",
   chat: "/api/knowledge-base/chat",
 };
+
+export const TWILIO_API = {
+  getTemplates: "/api/twilio/template",
+}
