@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/sample-select";
 import { WhatsAppSendTypes } from "@/constants/nodes";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const WhatsAppNodePropertiesPanel = ({
   node,
@@ -135,16 +136,15 @@ export const WhatsAppNodePropertiesPanel = ({
                         className="space-y-2"
                       >
                         <Label htmlFor={variable.label}>{variable.label}</Label>
-                        <SampleInput
-                          id={variable.label}
-                          value={variable.value}
-                          onChange={(e) => {
+                        <Tabs
+                          value={`${variable.valueType || "Fixed"}`}
+                          onValueChange={(value) => {
                             const newVariables = node.data.contentVariables.map(
                               (v: any) => {
                                 if (v.label === variable.label) {
                                   return {
                                     ...v,
-                                    value: e.target.value,
+                                    valueType: value,
                                   };
                                 }
                                 return v;
@@ -152,7 +152,62 @@ export const WhatsAppNodePropertiesPanel = ({
                             );
                             updateNodeData("contentVariables", newVariables);
                           }}
-                        />
+                        >
+                          <TabsList className="grid w-full md:w-auto grid-cols-4 md:grid-cols-none md:flex">
+                            <TabsTrigger value="Fixed">Fixed</TabsTrigger>
+                            <TabsTrigger value="Expression">
+                              Expression
+                            </TabsTrigger>
+                          </TabsList>
+
+                          <TabsContent value="Fixed" className="space-y-6 pt-4">
+                            <SampleInput
+                              id={variable.label}
+                              value={variable.value}
+                              onChange={(e) => {
+                                const newVariables =
+                                  node.data.contentVariables.map((v: any) => {
+                                    if (v.label === variable.label) {
+                                      return {
+                                        ...v,
+                                        value: e.target.value,
+                                      };
+                                    }
+                                    return v;
+                                  });
+                                updateNodeData(
+                                  "contentVariables",
+                                  newVariables,
+                                );
+                              }}
+                            />
+                          </TabsContent>
+                          <TabsContent
+                            value="Expression"
+                            className="space-y-6 pt-4"
+                          >
+                            <SampleInput
+                              id={variable.label}
+                              value={variable.value}
+                              onChange={(e) => {
+                                const newVariables =
+                                  node.data.contentVariables.map((v: any) => {
+                                    if (v.label === variable.label) {
+                                      return {
+                                        ...v,
+                                        value: e.target.value,
+                                      };
+                                    }
+                                    return v;
+                                  });
+                                updateNodeData(
+                                  "contentVariables",
+                                  newVariables,
+                                );
+                              }}
+                            />
+                          </TabsContent>
+                        </Tabs>
                       </div>
                     ))}
                   </div>
