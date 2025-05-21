@@ -29,6 +29,7 @@ import {
   X,
   MoreHorizontal,
 } from "lucide-react";
+import axios from "axios";
 
 import { SampleButton } from "@/components/ui/sample-button";
 import { SampleInput } from "@/components/ui/sample-input";
@@ -86,8 +87,12 @@ import { WorkflowTestRunDialog } from "@/components/workflow-test-run-dialog";
 
 // Import the decision service for connection validation
 import { decisionService } from "@/lib/decision-service";
-import { NodeTypes as WorkflowNodeTypes } from "@/constants/nodes";
+import {
+  NodeTypes as WorkflowNodeTypes,
+  WhatsAppSendTypes,
+} from "@/constants/nodes";
 import { WorkflowView } from "@/framework/types/workflow";
+import { TWILIO_API } from "@/constants/api";
 
 // Define node types
 const nodeTypes: NodeTypes = {
@@ -143,7 +148,10 @@ const getDefaultDataForNodeType = (type: string) => {
       return {
         label: "New WhatsApp",
         from: `${process.env.NEXT_PUBLIC_N8N_WHATSAPP_SENDER}`,
+        sendType: WhatsAppSendTypes[0]?.value,
         msgFieldName: "message",
+        contentSid: "",
+        contentVariables: [],
       };
     default:
       return { label: "New Node" };
@@ -160,6 +168,7 @@ export default function WorkflowDetailPage() {
   const [isAddNodeDialogOpen, setIsAddNodeDialogOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isTestRunDialogOpen, setIsTestRunDialogOpen] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
   const {
     deleteConfirmOpen: changeStatusConfirmOpen,
     selectedItem: selectedWorkflow,
@@ -197,6 +206,24 @@ export default function WorkflowDetailPage() {
       toast.error(error.message);
     },
   });
+
+  useEffect(() => {
+    getTemplates();
+  }, []);
+
+  const getTemplates = async () => {
+    try {
+      const res = await axios.get(TWILIO_API.getTemplates, {
+        params: {
+          pageSize: 200,
+          page: 0,
+        },
+      });
+      setTemplates(res.data.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   useEffect(() => {
     if (workflow.data) {
@@ -521,6 +548,7 @@ export default function WorkflowDetailPage() {
                       nodeId={selectedNode}
                       nodes={nodes}
                       setNodes={setNodes}
+                      templates={templates}
                     />
                   </div>
                 </div>
@@ -715,6 +743,7 @@ export default function WorkflowDetailPage() {
                       ? "Pause Workflow"
                       : "Publish Workflow"}
                   </DialogTitle>
+                  <DialogDescription />
                 </DialogHeader>
                 <div className="modal-section">
                   <p className="modal-text">
