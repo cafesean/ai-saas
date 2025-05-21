@@ -655,7 +655,10 @@ const generateN8NNodesAndN8NConnections = async (
             name: "To",
             value: `=whatsapp:{{ $('${triggerNodeLabel}').item.json.body.to }}`,
           });
-          if (node.data.sendType === WhatsAppSendTypes[0]?.value || !node.data.sendType) {
+          if (
+            node.data.sendType === WhatsAppSendTypes[0]?.value ||
+            !node.data.sendType
+          ) {
             bodyParameters.push({
               name: "Body",
               value: `={{ ($input.all()[0].json.body && $input.all()[0].json.body["${node.data.msgFieldName}"]) || $input.all()[0].json["${node.data.msgFieldName}"] }}`,
@@ -667,6 +670,15 @@ const generateN8NNodesAndN8NConnections = async (
             });
             // Convert ContentVariables array to object string
             const contentVariables = node.data.contentVariables;
+            // Check if have valueType Expression in contentVariables
+            let haveExpression = false;
+            if (
+              contentVariables.some(
+                (variable: any) => variable.valueType === "Expression",
+              )
+            ) {
+              haveExpression = true;
+            }
             const contentVariablesObject = contentVariables.reduce(
               (acc: any, curr: any) => {
                 acc[curr.label] = curr.value;
@@ -677,10 +689,18 @@ const generateN8NNodesAndN8NConnections = async (
             const contentVariablesString = JSON.stringify(
               contentVariablesObject,
             );
-            bodyParameters.push({
-              name: "ContentVariables",
-              value: contentVariablesString,
-            })
+            // If haveExpression is true, add = ahead contentVariablesString
+            if (haveExpression) {
+              bodyParameters.push({
+                name: "ContentVariables",
+                value: `=${contentVariablesString}`,
+              });
+            } else {
+              bodyParameters.push({
+                name: "ContentVariables",
+                value: contentVariablesString,
+              });
+            }
           }
 
           n8nNodes.push({
