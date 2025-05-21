@@ -13,7 +13,7 @@ import {
   DecisionTableInputStringOperators,
   DecisionTableInputBooleanOperators,
 } from "@/constants/decisionTable";
-import { NodeTypes } from "@/constants/nodes";
+import { NodeTypes, WhatsAppSendTypes } from "@/constants/nodes";
 import {
   n8nHTTPRequestNode,
   n8nCodeNode,
@@ -646,18 +646,69 @@ const generateN8NNodesAndN8NConnections = async (
         if (triggerNode) {
           // Get label of trigger node
           const triggerNodeLabel = triggerNode.data.label;
+          const bodyParameters = [];
+          bodyParameters.push({
+            name: "From",
+            value: `whatsapp:${node.data.from}`,
+          });
+          bodyParameters.push({
+            name: "To",
+            value: `=whatsapp:{{ $('${triggerNodeLabel}').item.json.body.to }}`,
+          });
+          if (node.data.sendType === WhatsAppSendTypes[0]?.value || !node.data.sendType) {
+            bodyParameters.push({
+              name: "Body",
+              value: `={{ ($input.all()[0].json.body && $input.all()[0].json.body["${node.data.msgFieldName}"]) || $input.all()[0].json["${node.data.msgFieldName}"] }}`,
+            });
+          } else {
+            bodyParameters.push({
+              name: "ContentSid",
+              value: node.data.contentSid,
+            });
+            // Convert ContentVariables array to object string
+            const contentVariables = node.data.contentVariables;
+            const contentVariablesObject = contentVariables.reduce(
+              (acc: any, curr: any) => {
+                acc[curr.label] = curr.value;
+                return acc;
+              },
+              {},
+            );
+            const contentVariablesString = JSON.stringify(
+              contentVariablesObject,
+            );
+            bodyParameters.push({
+              name: "ContentVariables",
+              value: contentVariablesString,
+            })
+          }
+
           n8nNodes.push({
-            ...n8nTwilioNode,
+            ...n8nHTTPRequestNode,
             parameters: {
-              ...n8nTwilioNode.parameters,
-              from: `whatsapp:${node.data.from}`,
-              to: `=whatsapp:{{ $('${triggerNodeLabel}').item.json.body.to }}`,
-              message: `={{ ($input.all()[0].json.body && $input.all()[0].json.body["${node.data.msgFieldName}"]) || $input.all()[0].json["${node.data.msgFieldName}"] }}`,
+              ...n8nHTTPRequestNode.parameters,
+              method: "POST",
+              url: `=${process.env.TWILIO_SEND_API_URL?.replace(
+                "{TWILIO_ACCOUNT_SID}",
+                process.env.TWILIO_ACCOUNT_SID!,
+              )}`,
+              authentication: "predefinedCredentialType",
+              nodeCredentialType: "twilioApi",
+              sendBody: true,
+              contentType: "form-urlencoded",
+              bodyParameters: {
+                parameters: bodyParameters,
+              },
             },
             position: [node.position.x, node.position.y],
             name: node.data.label,
             id: uuidv4(),
-            webhookId: uuidv4(),
+            credentials: {
+              twilioApi: {
+                id: process.env.N8N_TWILIO_CREDENTIALS_ID,
+                name: process.env.N8N_TWILIO_CREDENTIALS_NAME,
+              },
+            },
           });
         } else {
           throw new TRPCError({

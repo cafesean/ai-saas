@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 
 import { NodeTypes } from "@/constants/nodes";
 import { TriggerNodePropertiesPanel } from "@/components/nodes/TriggerNode";
@@ -11,17 +12,20 @@ import { DecisionTableNodePropertiesPanel } from "@/components/nodes/DecisionTab
 import { WhatsAppNodePropertiesPanel } from "@/components/nodes/WhatsAppNode";
 import { api } from "@/utils/trpc";
 import { ModelStatus } from "@/constants/general";
+import { TWILIO_API } from "@/constants/api";
 
 interface NodePropertiesPanelProps {
   nodeId: string;
   nodes: any[];
   setNodes: any;
+  templates: any[];
 }
 
 function NodePropertiesPanel({
   nodeId,
   nodes,
   setNodes,
+  templates,
 }: NodePropertiesPanelProps) {
   const activeModels = api.model.getByStatus.useQuery(ModelStatus.ACTIVE, {
     enabled: false,
@@ -112,6 +116,7 @@ function NodePropertiesPanel({
         <WhatsAppNodePropertiesPanel
           node={node}
           updateNodeData={updateNodeData}
+          templates={templates}
         />
       );
 
