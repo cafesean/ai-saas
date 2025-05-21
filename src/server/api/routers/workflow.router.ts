@@ -682,7 +682,7 @@ const generateN8NNodesAndN8NConnections = async (
             const contentVariablesObject = contentVariables.reduce(
               (acc: any, curr: any) => {
                 if (curr.valueType === "Expression") {
-                  acc[curr.label] = curr.value.replaceAll(/"/, "'");
+                  acc[curr.label] = curr.value.replaceAll(/"/g, "'");
                 } else {
                   acc[curr.label] = curr.value;
                 }
