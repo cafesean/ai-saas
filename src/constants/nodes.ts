@@ -51,6 +51,8 @@ export const NodeTypes = {
   webhook: "webhook",
   decisionTable: "decisionTable",
   whatsApp: "whatsApp",
+  splitOut: "splitOut",
+  loop: "loop",
 };
 
 export const WhatsAppSendTypes = [
@@ -61,5 +63,5 @@ export const WhatsAppSendTypes = [
   {
     label: "Template",
     value: "Template",
-  }
+  },
 ];

@@ -18,7 +18,8 @@ import {
   n8nHTTPRequestNode,
   n8nCodeNode,
   n8nWebhookNode,
-  n8nTwilioNode,
+  n8nSplitOutNode,
+  n8nSplitInBatchesNode,
 } from "@/constants/n8n";
 import { DecisionDataTypes } from "@/constants/decisionTable";
 
@@ -47,6 +48,8 @@ const workflowUpdateSchema = z.object({
       source: z.string().min(1),
       target: z.string().min(1),
       animated: z.boolean().optional(),
+      sourceHandle: z.string().optional().nullable(),
+      targetHandle: z.string().optional().nullable(),
     }),
   ),
 });
@@ -275,6 +278,8 @@ export const workflowRouter = createTRPCRouter({
                 source: edge.source,
                 target: edge.target,
                 animated: edge.animated || false,
+                sourceHandle: edge.sourceHandle,
+                targetHandle: edge.targetHandle,
                 workflowId: workflow.uuid,
               })),
             );
@@ -741,6 +746,91 @@ const generateN8NNodesAndN8NConnections = async (
           });
         }
         break;
+      case NodeTypes.splitOut:
+        n8nNodes.push({
+          ...n8nSplitOutNode,
+          parameters: {
+            ...n8nSplitOutNode.parameters,
+            fieldToSplitOut: node.data.fieldToSplitOut,
+          },
+          position: [node.position.x, node.position.y],
+          name: node.data.label,
+          id: uuidv4(),
+        });
+        break;
+      case NodeTypes.logic:
+        switch (node.data.type) {
+          case "Loop":
+            n8nNodes.push({
+              ...n8nSplitInBatchesNode,
+              parameters: {
+                ...n8nSplitInBatchesNode.parameters,
+                batchSize: node.data.batchSize,
+              },
+              position: [node.position.x, node.position.y],
+              name: node.data.label,
+              id: uuidv4(),
+            });
+            break;
+          default:
+            break;
+        }
+        break;
+      case NodeTypes.webhook:
+        n8nNodes.push({
+          ...n8nHTTPRequestNode,
+          parameters: {
+            ...n8nHTTPRequestNode.parameters,
+            method: node.data.method,
+            url: node.data.endpoint,
+            sendQuery: node.data.parameters.length > 0,
+            queryParameters: {
+              parameters: node.data.parameters.map((item: any) => ({
+                name: item.name,
+                value:
+                  item.valueType === "Expression"
+                    ? `=${item.value.replaceAll(/"/g, "'")}`
+                    : item.value,
+              })),
+            },
+            sendHeaders: node.data.headers.length > 0,
+            headerParameters: {
+              parameters: node.data.headers.map((item: any) => ({
+                name: item.name,
+                value:
+                  item.valueType === "Expression"
+                    ? `=${item.value.replaceAll(/"/g, "'")}`
+                    : item.value,
+              })),
+            },
+            sendBody: node.data.body.length > 0,
+            bodyParameters: {
+              parameters: node.data.body.map((item: any) => ({
+                name: item.name,
+                value:
+                  item.valueType === "Expression"
+                    ? `=${item.value.replaceAll(/"/g, "'")}`
+                    : item.value,
+              })),
+            },
+          },
+          position: [node.position.x, node.position.y],
+          name: node.data.label,
+          id: uuidv4(),
+        });
+        break;
+      case NodeTypes.loop:
+        n8nNodes.push({
+          ...n8nSplitInBatchesNode,
+          parameters: {
+            ...n8nSplitInBatchesNode.parameters,
+            batchSize: node.data.batchSize,
+          },
+          position: [node.position.x, node.position.y],
+          name: node.data.label,
+          id: uuidv4(),
+        });
+        break;
       default:
         break;
     }
@@ -751,17 +841,40 @@ const generateN8NNodesAndN8NConnections = async (
     const targetNode = nodes.find((node) => node.id === edge.target);
     if (sourceNode && targetNode) {
       if (!n8nConnections[sourceNode.data.label]) {
-        n8nConnections[sourceNode.data.label] = {
-          main: [
-            [
-              {
-                node: targetNode.data.label,
-                type: "main",
-                index: 0,
-              },
+        if (
+          sourceNode.data.sourceHandle &&
+          sourceNode.data.sourceHandle.length > 0
+        ) {
+          const mainConnections = sourceNode.data.sourceHandle.map(
+            (handle: any) => {
+              if (handle.id === edge.sourceHandle) {
+                return [
+                  {
+                    node: targetNode.data.label,
+                    type: "main",
+                    index: 0,
+                  },
+                ];
+              }
+              return [];
+            },
+          );
+          n8nConnections[sourceNode.data.label] = {
+            main: mainConnections,
+          };
+        } else {
+          n8nConnections[sourceNode.data.label] = {
+            main: [
+              [
+                {
+                  node: targetNode.data.label,
+                  type: "main",
+                  index: 0,
+                },
+              ],
             ],
-          ],
-        };
+          };
+        }
       }
     }
   });
