@@ -172,3 +172,26 @@ export const n8nTwilioNode = {
     },
   },
 };
+
+export const n8nSplitOutNode = {
+  parameters: {
+    fieldToSplitOut: "",
+    options: {},
+  },
+  type: "n8n-nodes-base.splitOut",
+  typeVersion: 1,
+  position: [],
+  id: "",
+  name: "",
+};
+
+export const n8nSplitInBatchesNode = {
+  parameters: {
+    options: {},
+  },
+  type: "n8n-nodes-base.splitInBatches",
+  typeVersion: 3,
+  position: [],
+  id: "",
+  name: "",
+};

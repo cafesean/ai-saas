@@ -10,9 +10,10 @@ import { DatabaseNodePropertiesPanel } from "@/components/nodes/DatabaseNode";
 import { WebhookNodePropertiesPanel } from "@/components/nodes/WebhookNode";
 import { DecisionTableNodePropertiesPanel } from "@/components/nodes/DecisionTableNode";
 import { WhatsAppNodePropertiesPanel } from "@/components/nodes/WhatsAppNode";
+import { SplitOutNodePropertiesPanel } from "@/components/nodes/SplitOutNode";
+import { LoopNodePropertiesPanel } from "@/components/nodes/LoopNode";
 import { api } from "@/utils/trpc";
 import { ModelStatus } from "@/constants/general";
-import { TWILIO_API } from "@/constants/api";
 
 interface NodePropertiesPanelProps {
   nodeId: string;
@@ -118,6 +119,17 @@ function NodePropertiesPanel({
           updateNodeData={updateNodeData}
           templates={templates}
         />
+      );
+    case NodeTypes.splitOut:
+      return (
+        <SplitOutNodePropertiesPanel
+          node={node}
+          updateNodeData={updateNodeData}
+        />
+      );
+    case NodeTypes.loop:
+      return (
+        <LoopNodePropertiesPanel node={node} updateNodeData={updateNodeData} />
       );
 
     default:
