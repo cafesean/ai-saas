@@ -89,6 +89,8 @@ export const edges = pgTable(
       .references(() => workflows.uuid, { onDelete: "cascade" }),
     source: varchar("source", { length: 200 }).notNull(),
     target: varchar("target", { length: 200 }).notNull(),
+    sourceHandle: text("source_handle"),
+    targetHandle: text("target_handle"),
     animated: boolean("animated").default(false).notNull(),
     createdAt: timestamp("created_at", {
       withTimezone: true,

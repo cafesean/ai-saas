@@ -5,9 +5,10 @@ import {
   Webhook,
   FileCode,
   BrainCircuit,
-  GitBranch,
+  Recycle,
   FileSpreadsheet,
   MessageCircle,
+  Split,
 } from "lucide-react";
 
 import {
@@ -86,7 +87,7 @@ const AddNode = ({
               </CardDescription>
             </CardContent>
           </Card>
-          <Card
+          {/* <Card
             className="cursor-pointer hover:border-primary transition-colors animate-scale"
             onClick={() => addNode(WorkflowNodeTypes.rules)}
           >
@@ -101,21 +102,33 @@ const AddNode = ({
                 Define business rules and conditions
               </CardDescription>
             </CardContent>
-          </Card>
+          </Card> */}
           <Card
             className="cursor-pointer hover:border-primary transition-colors animate-scale"
-            onClick={() => addNode(WorkflowNodeTypes.logic)}
+            onClick={() => addNode(WorkflowNodeTypes.splitOut)}
           >
             <CardHeader className="pb-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-purple-600">
-                <GitBranch className="h-4 w-4" />
+                <Split className="h-4 w-4" />
               </div>
-              <CardTitle className="text-base mt-2">Logic</CardTitle>
+              <CardTitle className="text-base mt-2">Split Out</CardTitle>
             </CardHeader>
             <CardContent>
-              <CardDescription>
-                Control flow with branches and loops
-              </CardDescription>
+              <CardDescription>Separate a single data item.</CardDescription>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer hover:border-primary transition-colors animate-scale"
+            onClick={() => addNode(WorkflowNodeTypes.loop)}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600">
+                <Recycle className="h-4 w-4" />
+              </div>
+              <CardTitle className="text-base mt-2">Loop</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>Control flow with loops</CardDescription>
             </CardContent>
           </Card>
           <Card
