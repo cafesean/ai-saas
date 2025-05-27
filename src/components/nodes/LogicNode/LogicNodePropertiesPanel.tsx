@@ -84,6 +84,18 @@ export const LogicNodePropertiesPanel = ({
 
       {node.data.type === LogicTypes[1]?.value && (
         <div className="space-y-2">
+          <Label htmlFor="batch-size">Batch Size</Label>
+          <SampleInput
+            id="batch-size"
+            placeholder=""
+            value={node.data.batchSize}
+            onChange={(e) => updateNodeData("batchSize", e.target.value)}
+          />
+        </div>
+      )}
+
+      {/* {node.data.type === LogicTypes[1]?.value && (
+        <div className="space-y-2">
           <Label htmlFor="loop-type">Loop Type</Label>
           <Select defaultValue="forEach">
             <SelectTrigger id="loop-type">
@@ -100,7 +112,7 @@ export const LogicNodePropertiesPanel = ({
           </Label>
           <SampleInput id="loop-collection" placeholder="items" />
         </div>
-      )}
+      )} */}
 
       {node.data.type === LogicTypes[2]?.value && (
         <div className="space-y-2">

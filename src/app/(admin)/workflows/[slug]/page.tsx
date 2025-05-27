@@ -18,6 +18,7 @@ import ReactFlow, {
   type NodeChange,
   type EdgeChange,
   ReactFlowProvider,
+  Position,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import {
@@ -61,6 +62,8 @@ import { DatabaseNode } from "@/components/nodes/DatabaseNode";
 import { WebhookNode } from "@/components/nodes/WebhookNode";
 import { DecisionTableNode } from "@/components/nodes/DecisionTableNode";
 import { WhatsAppNode } from "@/components/nodes/WhatsAppNode";
+import { SplitOutNode } from "@/components/nodes/SplitOutNode";
+import { LoopNode } from "@/components/nodes/LoopNode";
 import { api, useUtils } from "@/utils/trpc";
 import Breadcrumbs from "@/components/breadcrambs";
 import { AdminRoutes } from "@/constants/routes";
@@ -104,6 +107,8 @@ const nodeTypes: NodeTypes = {
   webhook: WebhookNode,
   decisionTable: DecisionTableNode,
   whatsApp: WhatsAppNode,
+  splitOut: SplitOutNode,
+  loop: LoopNode,
 };
 
 const getDefaultDataForNodeType = (type: string) => {
@@ -131,11 +136,22 @@ const getDefaultDataForNodeType = (type: string) => {
     case WorkflowNodeTypes.rules:
       return { label: "New Rules", ruleCount: 0 };
     case WorkflowNodeTypes.logic:
-      return { label: "New Logic", type: "Branch" };
+      return {
+        label: "New Logic",
+        type: "Branch",
+        batchSize: 1,
+      };
     case WorkflowNodeTypes.database:
       return { label: "New Database", operation: "Query" };
     case WorkflowNodeTypes.webhook:
-      return { label: "New Webhook", endpoint: "https://", method: "POST" };
+      return {
+        label: "New Webhook",
+        endpoint: "https://",
+        method: "POST",
+        parameters: [],
+        headers: [],
+        body: [],
+      };
     case WorkflowNodeTypes.decisionTable:
       return {
         label: "New Decision Table",
@@ -152,6 +168,64 @@ const getDefaultDataForNodeType = (type: string) => {
         msgFieldName: "message",
         contentSid: "",
         contentVariables: [],
+      };
+    case WorkflowNodeTypes.splitOut:
+      return { label: "New Split Out", fieldToSplitOut: "" };
+    case WorkflowNodeTypes.loop:
+      return {
+        label: "New Loop",
+        batchSize: 1,
+        sourceHandle: [
+          {
+            id: uuidv4(),
+            type: "source",
+            position: Position.Right,
+            style: {
+              display: "flex",
+              position: "absolute",
+              right: "-4px",
+              top: "30%",
+            },
+            label: {
+              name: "done",
+              style: {
+                position: "absolute",
+                marginLeft: 10,
+                fontSize: "6px",
+                top: "-5px",
+                width: "50px",
+              },
+            },
+          },
+          {
+            id: uuidv4(),
+            type: "source",
+            position: Position.Right,
+            style: {
+              display: "flex",
+              position: "absolute",
+              right: "-4px",
+              top: "70%",
+            },
+            label: {
+              name: "loop",
+              style: {
+                position: "absolute",
+                marginLeft: 10,
+                fontSize: "6px",
+                top: "-5px",
+                width: "50px",
+              },
+            },
+          },
+        ],
+        targetHandle: [
+          {
+            id: uuidv4(),
+            type: "target",
+            position: Position.Left,
+          },
+        ],
       };
     default:
       return { label: "New Node" };
