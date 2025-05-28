@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 
 import { SampleInput } from "@/components/ui/sample-input";
+import { SampleCodeInput } from "@/components/ui/sample-code-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -97,12 +98,50 @@ export const WhatsAppNodePropertiesPanel = ({
       {node.data.sendType === WhatsAppSendTypes[0]?.value ||
       !node.data.sendType ? (
         <div className="space-y-2">
-          <Label htmlFor="whatsapp-message-field">Message Filed Name</Label>
-          <SampleInput
-            id="whatsapp-message-field"
-            value={node.data.msgFieldName}
-            onChange={(e) => updateNodeData("msgFieldName", e.target.value)}
-          />
+          <Label htmlFor="whatsapp-message-field">Body</Label>
+          <Tabs
+            value={`${node.data.body?.valueType || "Fixed"}`}
+            onValueChange={(value) => {
+              updateNodeData("body", {
+                ...node.data.body,
+                valueType: value,
+              });
+            }}
+          >
+            <TabsList className="grid w-full md:w-auto grid-cols-4 md:grid-cols-none md:flex h-8">
+              <TabsTrigger className="text-xs" value="Fixed">
+                Fixed
+              </TabsTrigger>
+              <TabsTrigger className="text-xs" value="Expression">
+                Expression
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="Fixed" className="space-y-6 pt-0 mt-0">
+              <SampleInput
+                id="whatsapp-message-field"
+                value={node.data.body?.value || ""}
+                onChange={(e) => {
+                  updateNodeData("body", {
+                    ...node.data.body,
+                    value: e.target.value,
+                  });
+                }}
+              />
+            </TabsContent>
+            <TabsContent value="Expression" className="space-y-6 pt-0 mt-0">
+              <SampleCodeInput
+                doc={node.data.body?.value || ""}
+                parent={document.body}
+                onChange={(value) => {
+                  updateNodeData("body", {
+                    ...node.data.body,
+                    value: value,
+                  });
+                }}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       ) : (
         <>
@@ -153,14 +192,19 @@ export const WhatsAppNodePropertiesPanel = ({
                             updateNodeData("contentVariables", newVariables);
                           }}
                         >
-                          <TabsList className="grid w-full md:w-auto grid-cols-4 md:grid-cols-none md:flex">
-                            <TabsTrigger value="Fixed">Fixed</TabsTrigger>
-                            <TabsTrigger value="Expression">
+                          <TabsList className="grid w-full md:w-auto grid-cols-4 md:grid-cols-none md:flex h-8">
+                            <TabsTrigger className="text-xs" value="Fixed">
+                              Fixed
+                            </TabsTrigger>
+                            <TabsTrigger className="text-xs" value="Expression">
                               Expression
                             </TabsTrigger>
                           </TabsList>
 
-                          <TabsContent value="Fixed" className="space-y-6 pt-4">
+                          <TabsContent
+                            value="Fixed"
+                            className="space-y-6 pt-0 mt-0"
+                          >
                             <SampleInput
                               id={variable.label}
                               value={variable.value}
@@ -184,18 +228,18 @@ export const WhatsAppNodePropertiesPanel = ({
                           </TabsContent>
                           <TabsContent
                             value="Expression"
-                            className="space-y-6 pt-4"
+                            className="space-y-6 pt-0 mt-0"
                           >
-                            <SampleInput
-                              id={variable.label}
-                              value={variable.value}
-                              onChange={(e) => {
+                            <SampleCodeInput
+                              doc={variable.value}
+                              parent={document.body}
+                              onChange={(value) => {
                                 const newVariables =
                                   node.data.contentVariables.map((v: any) => {
                                     if (v.label === variable.label) {
                                       return {
                                         ...v,
-                                        value: e.target.value,
+                                        value: value,
                                       };
                                     }
                                     return v;
