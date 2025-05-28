@@ -664,10 +664,17 @@ const generateN8NNodesAndN8NConnections = async (
             node.data.sendType === WhatsAppSendTypes[0]?.value ||
             !node.data.sendType
           ) {
-            bodyParameters.push({
-              name: "Body",
-              value: `={{ ($input.all()[0].json.body && $input.all()[0].json.body["${node.data.msgFieldName}"]) || $input.all()[0].json["${node.data.msgFieldName}"] }}`,
-            });
+            if (node.data.body && node.data.body.valueType === "Expression") {
+              bodyParameters.push({
+                name: "Body",
+                value: `=${node.data.body.value}`,
+              });
+            } else {
+              bodyParameters.push({
+                name: "Body",
+                value: `${node.data.body.value}`,
+              });
+            }
           } else {
             bodyParameters.push({
               name: "ContentSid",
