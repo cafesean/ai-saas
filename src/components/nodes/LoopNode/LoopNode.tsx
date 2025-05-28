@@ -43,7 +43,7 @@ export const LoopNode = ({ data, selected }: NodeProps) => {
           data.targetHandle.map((t: any, ti: number) => (
             <Handle
               id={t.id}
-              key={`target-${ti}`}
+              key={`targetHandle-${ti}`}
               type="target"
               position={t.position}
               className="!bg-primary !border-primary"
@@ -54,7 +54,7 @@ export const LoopNode = ({ data, selected }: NodeProps) => {
           data.sourceHandle.map((s: any, si: number) => {
             if (s.label) {
               return (
-                <div style={{ ...s.style }}>
+                <div style={{ ...s.style }} key={`sourceHandle-${si}`}>
                   <span style={{ ...s.label.style }}>{s.label.name}</span>
                   <Handle
                     id={s.id}

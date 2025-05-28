@@ -165,7 +165,10 @@ const getDefaultDataForNodeType = (type: string) => {
         label: "New WhatsApp",
         from: `${process.env.NEXT_PUBLIC_N8N_WHATSAPP_SENDER}`,
         sendType: WhatsAppSendTypes[0]?.value,
-        msgFieldName: "message",
+        body: {
+          value: "",
+          valueType: "Fixed",
+        },
         contentSid: "",
         contentVariables: [],
       };
