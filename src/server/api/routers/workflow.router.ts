@@ -22,6 +22,7 @@ import {
   n8nSplitInBatchesNode,
 } from "@/constants/n8n";
 import { DecisionDataTypes } from "@/constants/decisionTable";
+import { ModelTypes, ThirdPartyModels } from "@/constants/model";
 
 const workflowCreateSchema = z.object({
   name: z.string().min(1),
@@ -482,57 +483,91 @@ const generateN8NNodesAndN8NConnections = async (
         break;
       case NodeTypes.aiModel:
         // Find model
-        const modelUUID = node.data.model.uuid;
-        const model = await tx.query.models.findFirst({
-          where: eq(schema.models.uuid, modelUUID),
-        });
-        const queryParameters = [];
-        if (model.fileKey) {
-          queryParameters.push({
-            name: "model_path",
-            value: `${model.fileKey}`,
+        if (node.data.type === ModelTypes[0]?.value) {
+          const modelUUID = node.data.model.uuid;
+          const model = await tx.query.models.findFirst({
+            where: eq(schema.models.uuid, modelUUID),
           });
-        }
-        if (model.metadataFileKey) {
-          queryParameters.push({
-            name: "metadata_path",
-            value: `${model.metadataFileKey}`,
+          const queryParameters = [];
+          if (model.fileKey) {
+            queryParameters.push({
+              name: "model_path",
+              value: `${model.fileKey}`,
+            });
+          }
+          if (model.metadataFileKey) {
+            queryParameters.push({
+              name: "metadata_path",
+              value: `${model.metadataFileKey}`,
+            });
+          }
+          n8nNodes.push({
+            ...n8nHTTPRequestNode,
+            parameters: {
+              ...n8nHTTPRequestNode.parameters,
+              url: process.env.MODEL_SERVICE_URL?.replace(
+                "{model_uuid}",
+                modelUUID,
+              ),
+              sendQuery: true,
+              queryParameters: {
+                parameters: queryParameters,
+              },
+              sendHeaders: true,
+              headerParameters: {
+                parameters: [
+                  {
+                    name: process.env.MODEL_SERVICE_ACCESS_ID_KEY,
+                    value: process.env.MODEL_SERVICE_ACCESS_ID_VALUE,
+                  },
+                  {
+                    name: process.env.MODEL_SERVICE_SECRET_KEY,
+                    value: process.env.MODEL_SERVICE_SECRET_VALUE,
+                  },
+                ],
+              },
+              sendBody: true,
+              specifyBody: "json",
+              jsonBody:
+                "={{  $input.all()[0].json.body || $input.all()[0].json }}",
+            },
+            position: [node.position.x, node.position.y],
+            name: node.data.label,
+            id: uuidv4(),
           });
+        } else {
+          const modelUUID = node.data.model.uuid;
+          const model = ThirdPartyModels.find((m) => m.uuid === modelUUID);
+          if (model) {
+            n8nNodes.push({
+              ...n8nHTTPRequestNode,
+              parameters: {
+                ...n8nHTTPRequestNode.parameters,
+                url: model.url,
+                sendHeaders: true,
+                headerParameters: {
+                  parameters: [
+                    {
+                      name: model.auth.name,
+                      value: model.auth.value,
+                    },
+                  ],
+                },
+                sendBody: true,
+                specifyBody: "json",
+                jsonBody: `={ "model": "${model.value}", "messages": [ { "role": "system", "content": "${node.data.systemPrompt.value}" }, { "role": "user", "content": "${node.data.userPrompt.value}" } ] }`,
+              },
+              position: [node.position.x, node.position.y],
+              name: node.data.label,
+              id: uuidv4(),
+            });
+          } else {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Model not found",
+            });
+          }
         }
-        n8nNodes.push({
-          ...n8nHTTPRequestNode,
-          parameters: {
-            ...n8nHTTPRequestNode.parameters,
-            url: process.env.MODEL_SERVICE_URL?.replace(
-              "{model_uuid}",
-              modelUUID,
-            ),
-            sendQuery: true,
-            queryParameters: {
-              parameters: queryParameters,
-            },
-            sendHeaders: true,
-            headerParameters: {
-              parameters: [
-                {
-                  name: process.env.MODEL_SERVICE_ACCESS_ID_KEY,
-                  value: process.env.MODEL_SERVICE_ACCESS_ID_VALUE,
-                },
-                {
-                  name: process.env.MODEL_SERVICE_SECRET_KEY,
-                  value: process.env.MODEL_SERVICE_SECRET_VALUE,
-                },
-              ],
-            },
-            sendBody: true,
-            specifyBody: "json",
-            jsonBody:
-              "={{  $input.all()[0].json.body || $input.all()[0].json }}",
-          },
-          position: [node.position.x, node.position.y],
-          name: node.data.label,
-          id: uuidv4(),
-        });
         break;
       case NodeTypes.decisionTable:
         const decisionTableUUID = node.data.decisionTable.uuid;
@@ -784,7 +819,7 @@ const generateN8NNodesAndN8NConnections = async (
         }
         break;
       case NodeTypes.webhook:
-        n8nNodes.push({
+        const insertNode: any = {
           ...n8nHTTPRequestNode,
           parameters: {
             ...n8nHTTPRequestNode.parameters,
@@ -810,21 +845,29 @@ const generateN8NNodesAndN8NConnections = async (
                     : item.value,
               })),
             },
-            sendBody: node.data.body.length > 0,
-            bodyParameters: {
-              parameters: node.data.body.map((item: any) => ({
-                name: item.name,
-                value:
-                  item.valueType === "Expression"
-                    ? `=${item.value.replaceAll(/"/g, "'")}`
-                    : item.value,
-              })),
-            },
+            sendBody:
+              node.data.body.length > 0 || node.data.specifyBodyValue.value,
           },
           position: [node.position.x, node.position.y],
           name: node.data.label,
           id: uuidv4(),
-        });
+        };
+        if (node.data.specifyBody === "json") {
+          insertNode.parameters["specifyBody"] = "json";
+          insertNode.parameters["jsonBody"] =
+            node.data.specifyBodyValue.valueType === "Expression"
+              ? `=${node.data.specifyBodyValue.value}`
+              : node.data.specifyBodyValue.value;
+        } else {
+          insertNode.parameters["bodyParameters"] = {
+            parameters: node.data.body.map((item: any) => ({
+              name: item.name,
+              value:
+                item.valueType === "Expression" ? `=${item.value}` : item.value,
+            })),
+          };
+        }
+        n8nNodes.push(insertNode);
         break;
       case NodeTypes.loop:
         n8nNodes.push({
