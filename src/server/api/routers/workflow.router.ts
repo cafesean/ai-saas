@@ -846,7 +846,7 @@ const generateN8NNodesAndN8NConnections = async (
               })),
             },
             sendBody:
-              node.data.body.length > 0 || node.data.specifyBodyValue.value,
+              node.data.body.length > 0 || !!node.data.specifyBodyValue.value,
           },
           position: [node.position.x, node.position.y],
           name: node.data.label,
