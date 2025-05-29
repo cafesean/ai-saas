@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/sample-select";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Accordion,
   AccordionContent,
@@ -20,6 +21,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SampleCodeInput } from "@/components/ui/sample-code-input";
+import { ModelTypes, ThirdPartyModels } from "@/constants/model";
 
 export const AIModelNodePropertiesPanel = ({
   node,
@@ -41,35 +45,185 @@ export const AIModelNodePropertiesPanel = ({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="model-name">Model</Label>
+        <Label htmlFor="model-type">Type</Label>
         <Select
-          value={node.data.model?.uuid}
-          onValueChange={(value) => {
-            if (value) {
-              const selectedModel = models.find(
-                (model) => model.uuid === value,
-              );
-              if (selectedModel) {
-                updateNodeData("model", {
-                  name: selectedModel.name,
-                  uuid: value,
-                });
-              }
-            }
-          }}
+          value={node.data.type || "Owned"}
+          onValueChange={(value) => updateNodeData("type", value)}
         >
-          <SelectTrigger id="model-name">
-            <SelectValue placeholder="Select AI model" />
+          <SelectTrigger id="model-type">
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {models.map((model) => (
-              <SelectItem key={model.uuid} value={model.uuid}>
-                {model.name}
+            {ModelTypes.map((type) => (
+              <SelectItem key={type.value} value={type.value}>
+                {type.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
+      {node.data.type === ModelTypes[0]?.value ? (
+        <div className="space-y-2">
+          <Label htmlFor="model-name">Model</Label>
+          <Select
+            value={node.data.model?.uuid}
+            onValueChange={(value) => {
+              if (value) {
+                const selectedModel = models.find(
+                  (model) => model.uuid === value,
+                );
+                if (selectedModel) {
+                  updateNodeData("model", {
+                    name: selectedModel.name,
+                    uuid: value,
+                  });
+                }
+              }
+            }}
+          >
+            <SelectTrigger id="model-name">
+              <SelectValue placeholder="Select AI model" />
+            </SelectTrigger>
+            <SelectContent>
+              {models.map((model) => (
+                <SelectItem key={model.uuid} value={model.uuid}>
+                  {model.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <Label htmlFor="model-name">Model</Label>
+          <Select
+            value={node.data.model?.uuid}
+            onValueChange={(value) => {
+              if (value) {
+                const selectedModel = ThirdPartyModels.find(
+                  (model) => model.uuid === value,
+                );
+                if (selectedModel) {
+                  updateNodeData("model", {
+                    name: selectedModel.name,
+                    uuid: value,
+                  });
+                }
+              }
+            }}
+          >
+            <SelectTrigger id="model-name">
+              <SelectValue placeholder="Select AI model" />
+            </SelectTrigger>
+            <SelectContent>
+              {ThirdPartyModels.map((model) => (
+                <SelectItem key={model.uuid} value={model.uuid}>
+                  {model.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {node.data.type === ModelTypes[1]?.value && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="system-prompt">System Prompt</Label>
+            <Tabs
+              value={`${node.data.systemPrompt?.valueType || "Fixed"}`}
+              onValueChange={(value) => {
+                if (value) {
+                  updateNodeData("systemPrompt", {
+                    ...node.data.systemPrompt,
+                    valueType: value,
+                  });
+                }
+              }}
+            >
+              <TabsList className="grid w-full md:w-auto grid-cols-4 md:grid-cols-none md:flex p-1 h-8">
+                <TabsTrigger className="text-xs p-1" value="Fixed">
+                  Fixed
+                </TabsTrigger>
+                <TabsTrigger className="text-xs p-1" value="Expression">
+                  Expression
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="Fixed" className="space-y-2 pt-0 mt-0">
+                <Textarea
+                  onChange={(e) =>
+                    updateNodeData("systemPrompt", {
+                      ...node.data.systemPrompt,
+                      value: e.target.value,
+                    })
+                  }
+                  value={node.data.systemPrompt?.value || ""}
+                />
+              </TabsContent>
+              <TabsContent value="Expression" className="space-y-2 pt-0 mt-0">
+                <SampleCodeInput
+                  doc={node.data.systemPrompt?.value || ""}
+                  parent={document.body}
+                  onChange={(value) => {
+                    updateNodeData("systemPrompt", {
+                      ...node.data.systemPrompt,
+                      value: value,
+                    });
+                  }}
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="user-prompt">User Prompt</Label>
+            <Tabs
+              value={`${node.data.userPrompt?.valueType || "Fixed"}`}
+              onValueChange={(value) => {
+                if (value) {
+                  updateNodeData("userPrompt", {
+                    ...node.data.userPrompt,
+                    valueType: value,
+                  });
+                }
+              }}
+            >
+              <TabsList className="grid w-full md:w-auto grid-cols-4 md:grid-cols-none md:flex p-1 h-8">
+                <TabsTrigger className="text-xs p-1" value="Fixed">
+                  Fixed
+                </TabsTrigger>
+                <TabsTrigger className="text-xs p-1" value="Expression">
+                  Expression
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="Fixed" className="space-y-2 pt-0 mt-0">
+                <Textarea
+                  onChange={(e) =>
+                    updateNodeData("userPrompt", {
+                      ...node.data.userPrompt,
+                      value: e.target.value,
+                    })
+                  }
+                  value={node.data.userPrompt?.value || ""}
+                />
+              </TabsContent>
+              <TabsContent value="Expression" className="space-y-2 pt-0 mt-0">
+                <SampleCodeInput
+                  doc={node.data.userPrompt?.value || ""}
+                  parent={document.body}
+                  onChange={(value) => {
+                    updateNodeData("userPrompt", {
+                      ...node.data.userPrompt,
+                      value: value,
+                    });
+                  }}
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
+        </>
+      )}
 
       {/* <div className="space-y-2">
         <Label>Input Mapping</Label>

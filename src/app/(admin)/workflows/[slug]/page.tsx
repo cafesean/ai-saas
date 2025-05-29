@@ -87,6 +87,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useModalState } from "@/framework/hooks/useModalState";
 import { WorkflowTestRunDialog } from "@/components/workflow-test-run-dialog";
+import { ModelTypes } from "@/constants/model";
 
 // Import the decision service for connection validation
 import { decisionService } from "@/lib/decision-service";
@@ -126,6 +127,7 @@ const getDefaultDataForNodeType = (type: string) => {
     case WorkflowNodeTypes.aiModel:
       return {
         label: "New AI Model",
+        type: ModelTypes[0]?.value,
         model: {
           name: "Select Model",
           uuid: "",
@@ -151,6 +153,11 @@ const getDefaultDataForNodeType = (type: string) => {
         parameters: [],
         headers: [],
         body: [],
+        specifyBody: "Use fields",
+        specifyBodyValue: {
+          value: "",
+          valueType: "Fixed",
+        },
       };
     case WorkflowNodeTypes.decisionTable:
       return {
