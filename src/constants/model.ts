@@ -41,3 +41,28 @@ export enum ModelInputType {
   upload = "upload",
   path = "path",
 }
+
+export const ModelTypes = [
+  {
+    label: "Owned",
+    value: "Owned",
+  },
+  {
+    label: "Third Party",
+    value: "Third Party",
+  },
+];
+
+export const ThirdPartyModels = [
+  {
+    uuid: "third-party-model-1",
+    name: "Google Gemini 2.0 Flash",
+    value: "gemini-2.0-flash",
+    free: true,
+    url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    auth: {
+      name: "Authorization",
+      value: `Bearer ${process.env.GOOGLE_GEMINI_API_KEY}`,
+    },
+  },
+];

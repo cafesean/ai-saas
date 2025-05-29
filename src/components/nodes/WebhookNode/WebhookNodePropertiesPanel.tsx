@@ -1,5 +1,6 @@
 import { Plus, Trash } from "lucide-react";
 import { SampleInput } from "@/components/ui/sample-input";
+import { SampleCodeInput } from "@/components/ui/sample-code-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -26,6 +27,11 @@ const HttpMethods = [
   { value: "PATCH", label: "PATCH" },
   { value: "HEAD", label: "HEAD" },
   { value: "OPTIONS", label: "OPTIONS" },
+];
+
+const SpecifyBodyTypes = [
+  { value: "Use fields", label: "Use fields" },
+  { value: "json", label: "JSON" },
 ];
 
 export const WebhookNodePropertiesPanel = ({
@@ -183,16 +189,16 @@ export const WebhookNodePropertiesPanel = ({
                     value="Expression"
                     className="space-y-2 pt-0 mt-0"
                   >
-                    <SampleInput
-                      id={`param-value-${i}`}
-                      value={param.value}
-                      onChange={(e) => {
+                    <SampleCodeInput
+                      doc={param.value}
+                      parent={document.body}
+                      onChange={(value) => {
                         const newParameters = node.data.parameters.map(
                           (p: any, pi: number) => {
                             if (i === pi) {
                               return {
                                 ...p,
-                                value: e.target.value,
+                                value: value,
                               };
                             }
                             return p;
@@ -319,16 +325,16 @@ export const WebhookNodePropertiesPanel = ({
                     value="Expression"
                     className="space-y-2 pt-0 mt-0"
                   >
-                    <SampleInput
-                      id={`header-value-${i}`}
-                      value={header.value}
-                      onChange={(e) => {
+                    <SampleCodeInput
+                      doc={header.value}
+                      parent={document.body}
+                      onChange={(value) => {
                         const newHeaders = node.data.headers.map(
                           (h: any, hi: number) => {
                             if (i === hi) {
                               return {
                                 ...h,
-                                value: e.target.value,
+                                value: value,
                               };
                             }
                             return h;
@@ -365,116 +371,187 @@ export const WebhookNodePropertiesPanel = ({
             <Plus className="h-4 w-4" />
           </SampleButton>
         </div>
-        {node.data.body.map((body: any, i: number) => (
-          <div key={`param-${i}`} className="ml-4 flex flex-row">
-            <div>
-              <SampleButton
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  updateNodeData("body", [
-                    ...node.data.body.slice(0, i),
-                    ...node.data.body.slice(i + 1),
-                  ]);
-                }}
-              >
-                <Trash className="h-4 w-4" />
-              </SampleButton>
-            </div>
-            <div className="space-y-2">
-              <div className="space-y-0">
-                <Label htmlFor={`body-name-${i}`}>Name</Label>
-                <SampleInput
-                  id={`body-name-${i}`}
-                  value={body.name}
-                  onChange={(e) => {
-                    const newBody = node.data.body.map((b: any, bi: number) => {
-                      if (i === bi) {
-                        return {
-                          ...b,
-                          name: e.target.value,
-                        };
-                      }
-                      return b;
-                    });
-                    updateNodeData("body", newBody);
-                  }}
-                />
-              </div>
-              <div className="space-y-0">
-                <Label htmlFor={`body-value-${i}`}>Value</Label>
-                <Tabs
-                  value={`${body.valueType || "Fixed"}`}
-                  onValueChange={(value) => {
-                    const newBody = node.data.body.map((b: any, bi: number) => {
-                      if (i === bi) {
-                        return {
-                          ...b,
-                          valueType: value,
-                        };
-                      }
-                      return b;
-                    });
-                    updateNodeData("body", newBody);
+        <div className="space-y-2">
+          <Label htmlFor="webhook-method">Specify Body</Label>
+          <Select
+            value={node.data.specifyBody || SpecifyBodyTypes[0]?.value}
+            onValueChange={(value) => updateNodeData("specifyBody", value)}
+          >
+            <SelectTrigger id="webhook-specifyBody">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SpecifyBodyTypes.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {node.data.specifyBody === SpecifyBodyTypes[0]?.value ||
+        !node.data.specifyBody ? (
+          node.data.body.map((body: any, i: number) => (
+            <div key={`param-${i}`} className="ml-4 flex flex-row">
+              <div>
+                <SampleButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    updateNodeData("body", [
+                      ...node.data.body.slice(0, i),
+                      ...node.data.body.slice(i + 1),
+                    ]);
                   }}
                 >
-                  <TabsList className="grid w-full md:w-auto grid-cols-4 md:grid-cols-none md:flex p-1 h-8">
-                    <TabsTrigger className="text-xs p-1" value="Fixed">
-                      Fixed
-                    </TabsTrigger>
-                    <TabsTrigger className="text-xs p-1" value="Expression">
-                      Expression
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="Fixed" className="space-y-2 pt-0 mt-0">
-                    <SampleInput
-                      id={`body-value-${i}`}
-                      value={body.value}
-                      onChange={(e) => {
-                        const newBody = node.data.body.map(
-                          (b: any, bi: number) => {
-                            if (i === bi) {
-                              return {
-                                ...b,
-                                value: e.target.value,
-                              };
-                            }
-                            return b;
-                          },
-                        );
-                        updateNodeData("body", newBody);
-                      }}
-                    />
-                  </TabsContent>
-                  <TabsContent
-                    value="Expression"
-                    className="space-y-2 pt-0 mt-0"
+                  <Trash className="h-4 w-4" />
+                </SampleButton>
+              </div>
+              <div className="space-y-2">
+                <div className="space-y-0">
+                  <Label htmlFor={`body-name-${i}`}>Name</Label>
+                  <SampleInput
+                    id={`body-name-${i}`}
+                    value={body.name}
+                    onChange={(e) => {
+                      const newBody = node.data.body.map(
+                        (b: any, bi: number) => {
+                          if (i === bi) {
+                            return {
+                              ...b,
+                              name: e.target.value,
+                            };
+                          }
+                          return b;
+                        },
+                      );
+                      updateNodeData("body", newBody);
+                    }}
+                  />
+                </div>
+                <div className="space-y-0">
+                  <Label htmlFor={`body-value-${i}`}>Value</Label>
+                  <Tabs
+                    value={`${body.valueType || "Fixed"}`}
+                    onValueChange={(value) => {
+                      const newBody = node.data.body.map(
+                        (b: any, bi: number) => {
+                          if (i === bi) {
+                            return {
+                              ...b,
+                              valueType: value,
+                            };
+                          }
+                          return b;
+                        },
+                      );
+                      updateNodeData("body", newBody);
+                    }}
                   >
-                    <SampleInput
-                      id={`body-value-${i}`}
-                      value={body.value}
-                      onChange={(e) => {
-                        const newBody = node.data.body.map(
-                          (b: any, bi: number) => {
-                            if (i === bi) {
-                              return {
-                                ...b,
-                                value: e.target.value,
-                              };
-                            }
-                            return b;
-                          },
-                        );
-                        updateNodeData("body", newBody);
-                      }}
-                    />
-                  </TabsContent>
-                </Tabs>
+                    <TabsList className="grid w-full md:w-auto grid-cols-4 md:grid-cols-none md:flex p-1 h-8">
+                      <TabsTrigger className="text-xs p-1" value="Fixed">
+                        Fixed
+                      </TabsTrigger>
+                      <TabsTrigger className="text-xs p-1" value="Expression">
+                        Expression
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="Fixed" className="space-y-2 pt-0 mt-0">
+                      <SampleInput
+                        id={`body-value-${i}`}
+                        value={body.value}
+                        onChange={(e) => {
+                          const newBody = node.data.body.map(
+                            (b: any, bi: number) => {
+                              if (i === bi) {
+                                return {
+                                  ...b,
+                                  value: e.target.value,
+                                };
+                              }
+                              return b;
+                            },
+                          );
+                          updateNodeData("body", newBody);
+                        }}
+                      />
+                    </TabsContent>
+                    <TabsContent
+                      value="Expression"
+                      className="space-y-2 pt-0 mt-0"
+                    >
+                      <SampleCodeInput
+                        doc={body.value}
+                        parent={document.body}
+                        onChange={(value) => {
+                          const newBody = node.data.body.map(
+                            (b: any, bi: number) => {
+                              if (i === bi) {
+                                return {
+                                  ...b,
+                                  value: value,
+                                };
+                              }
+                              return b;
+                            },
+                          );
+                          updateNodeData("body", newBody);
+                        }}
+                      />
+                    </TabsContent>
+                  </Tabs>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <Tabs
+            value={`${node.data.specifyBodyValue?.valueType || "Fixed"}`}
+            onValueChange={(value) => {
+              if (value) {
+                updateNodeData("specifyBodyValue", {
+                  ...node.data.specifyBodyValue,
+                  valueType: value,
+                });
+              }
+            }}
+          >
+            <TabsList className="grid w-full md:w-auto grid-cols-4 md:grid-cols-none md:flex p-1 h-8">
+              <TabsTrigger className="text-xs p-1" value="Fixed">
+                Fixed
+              </TabsTrigger>
+              <TabsTrigger className="text-xs p-1" value="Expression">
+                Expression
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="Fixed" className="space-y-2 pt-0 mt-0">
+              <SampleCodeInput
+                doc={node.data.specifyBodyValue?.value || ""}
+                parent={document.body}
+                onChange={(value) => {
+                  updateNodeData("specifyBodyValue", {
+                    ...node.data.specifyBodyValue,
+                    value: value,
+                  });
+                }}
+              />
+            </TabsContent>
+            <TabsContent value="Expression" className="space-y-2 pt-0 mt-0">
+              <SampleCodeInput
+                doc={node.data.specifyBodyValue?.value || ""}
+                parent={document.body}
+                onChange={(value) => {
+                  updateNodeData("specifyBodyValue", {
+                    ...node.data.specifyBodyValue,
+                    value: value,
+                  });
+                }}
+              />
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
 
       <Accordion type="single" collapsible className="w-full">
