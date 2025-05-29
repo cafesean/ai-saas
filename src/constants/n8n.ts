@@ -1,5 +1,3 @@
-import { param } from "drizzle-orm";
-
 export const n8nWebhookNode = {
   type: "n8n-nodes-base.webhook",
   typeVersion: 2,
