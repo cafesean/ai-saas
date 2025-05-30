@@ -49,6 +49,24 @@ export const knowledgeBasesRouter = createTRPCRouter({
       };
     }),
 
+  getKnowledgeBaseByStatus: publicProcedure
+    .input(
+      z.object({
+        status: z.string(),
+      }),
+    )
+    .query(async ({ input }: { input: { status: string } }) => {
+      try {
+        const knowledgeBasesData = await db.query.knowledge_bases.findMany({
+          where: eq(schema.knowledge_bases.status, input.status),
+        });
+        return knowledgeBasesData;
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to fetch knowledge bases");
+      }
+    }),
+
   /**
    * Get a single knowledge base by ID
    */
