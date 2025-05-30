@@ -53,6 +53,7 @@ export const NodeTypes = {
   whatsApp: "whatsApp",
   splitOut: "splitOut",
   loop: "loop",
+  rag: "rag",
 };
 
 export const WhatsAppSendTypes = [

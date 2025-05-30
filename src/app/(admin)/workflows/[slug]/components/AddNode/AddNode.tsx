@@ -9,6 +9,7 @@ import {
   FileSpreadsheet,
   MessageCircle,
   Split,
+  TextSearch,
 } from "lucide-react";
 
 import {
@@ -59,7 +60,7 @@ const AddNode = ({
             className="cursor-pointer hover:border-primary transition-colors animate-scale"
             onClick={() => addNode(WorkflowNodeTypes.trigger)}
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 flex flex-row space-x-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Zap className="h-4 w-4" />
               </div>
@@ -75,7 +76,7 @@ const AddNode = ({
             className="cursor-pointer hover:border-primary transition-colors animate-scale"
             onClick={() => addNode(WorkflowNodeTypes.aiModel)}
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 flex flex-row space-x-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600">
                 <BrainCircuit className="h-4 w-4" />
               </div>
@@ -107,7 +108,7 @@ const AddNode = ({
             className="cursor-pointer hover:border-primary transition-colors animate-scale"
             onClick={() => addNode(WorkflowNodeTypes.splitOut)}
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 flex flex-row space-x-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-purple-600">
                 <Split className="h-4 w-4" />
               </div>
@@ -121,7 +122,7 @@ const AddNode = ({
             className="cursor-pointer hover:border-primary transition-colors animate-scale"
             onClick={() => addNode(WorkflowNodeTypes.loop)}
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 flex flex-row space-x-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600">
                 <Recycle className="h-4 w-4" />
               </div>
@@ -135,7 +136,7 @@ const AddNode = ({
             className="cursor-pointer hover:border-primary transition-colors animate-scale"
             onClick={() => addNode(WorkflowNodeTypes.database)}
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 flex flex-row space-x-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-green-600">
                 <Database className="h-4 w-4" />
               </div>
@@ -151,7 +152,7 @@ const AddNode = ({
             className="cursor-pointer hover:border-primary transition-colors animate-scale"
             onClick={() => addNode(WorkflowNodeTypes.webhook)}
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 flex flex-row space-x-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600">
                 <Webhook className="h-4 w-4" />
               </div>
@@ -165,7 +166,7 @@ const AddNode = ({
             className="cursor-pointer hover:border-primary transition-colors animate-scale"
             onClick={() => addNode(WorkflowNodeTypes.decisionTable)}
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 flex flex-row space-x-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-100 text-teal-600">
                 <FileSpreadsheet className="h-4 w-4" />
               </div>
@@ -181,7 +182,7 @@ const AddNode = ({
             className="cursor-pointer hover:border-primary transition-colors animate-scale"
             onClick={() => addNode(WorkflowNodeTypes.whatsApp)}
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 flex flex-row space-x-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-600 text-white">
                 <MessageCircle className="h-4 w-4" />
               </div>
@@ -189,6 +190,20 @@ const AddNode = ({
             </CardHeader>
             <CardContent>
               <CardDescription>Use wahtsapp to send messages</CardDescription>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer hover:border-primary transition-colors animate-scale"
+            onClick={() => addNode(WorkflowNodeTypes.rag)}
+          >
+            <CardHeader className="pb-2 flex flex-row space-x-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white">
+                <TextSearch className="h-4 w-4" />
+              </div>
+              <CardTitle className="text-base mt-2">RAG</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>Enhance your search with RAG</CardDescription>
             </CardContent>
           </Card>
         </div>

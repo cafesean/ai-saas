@@ -337,7 +337,6 @@ export default function KnowledgeBaseChatPage() {
     // In a real app, save the conversation
     setIsSaveDialogOpen(false);
     try {
-      console.log("conversation.id", conversation.id);
       if (!conversation.id) {
         const newConversation = await createConversation.mutateAsync({
           name: chatTitle,
