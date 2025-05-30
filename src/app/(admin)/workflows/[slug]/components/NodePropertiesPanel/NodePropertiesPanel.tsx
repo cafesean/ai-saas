@@ -12,6 +12,7 @@ import { DecisionTableNodePropertiesPanel } from "@/components/nodes/DecisionTab
 import { WhatsAppNodePropertiesPanel } from "@/components/nodes/WhatsAppNode";
 import { SplitOutNodePropertiesPanel } from "@/components/nodes/SplitOutNode";
 import { LoopNodePropertiesPanel } from "@/components/nodes/LoopNode";
+import { RAGNodePropertiesPanel } from "@/components/nodes/RAGNode";
 import { api } from "@/utils/trpc";
 import { ModelStatus } from "@/constants/general";
 
@@ -20,6 +21,7 @@ interface NodePropertiesPanelProps {
   nodes: any[];
   setNodes: any;
   templates: any[];
+  knowledgeBases?: any[];
 }
 
 function NodePropertiesPanel({
@@ -27,6 +29,7 @@ function NodePropertiesPanel({
   nodes,
   setNodes,
   templates,
+  knowledgeBases,
 }: NodePropertiesPanelProps) {
   const activeModels = api.model.getByStatus.useQuery(ModelStatus.ACTIVE, {
     enabled: false,
@@ -130,6 +133,14 @@ function NodePropertiesPanel({
     case NodeTypes.loop:
       return (
         <LoopNodePropertiesPanel node={node} updateNodeData={updateNodeData} />
+      );
+    case NodeTypes.rag:
+      return (
+        <RAGNodePropertiesPanel
+          node={node}
+          updateNodeData={updateNodeData}
+          knowledgeBases={knowledgeBases || []}
+        />
       );
 
     default:

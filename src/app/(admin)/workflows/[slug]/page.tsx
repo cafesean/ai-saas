@@ -64,6 +64,7 @@ import { DecisionTableNode } from "@/components/nodes/DecisionTableNode";
 import { WhatsAppNode } from "@/components/nodes/WhatsAppNode";
 import { SplitOutNode } from "@/components/nodes/SplitOutNode";
 import { LoopNode } from "@/components/nodes/LoopNode";
+import { RAGNode } from "@/components/nodes/RAGNode";
 import { api, useUtils } from "@/utils/trpc";
 import Breadcrumbs from "@/components/breadcrambs";
 import { AdminRoutes } from "@/constants/routes";
@@ -88,6 +89,7 @@ import {
 import { useModalState } from "@/framework/hooks/useModalState";
 import { WorkflowTestRunDialog } from "@/components/workflow-test-run-dialog";
 import { ModelTypes } from "@/constants/model";
+import { KnowledgeBaseStatus } from "@/constants/knowledgeBase";
 
 // Import the decision service for connection validation
 import { decisionService } from "@/lib/decision-service";
@@ -110,6 +112,7 @@ const nodeTypes: NodeTypes = {
   whatsApp: WhatsAppNode,
   splitOut: SplitOutNode,
   loop: LoopNode,
+  rag: RAGNode,
 };
 
 const getDefaultDataForNodeType = (type: string) => {
@@ -237,6 +240,32 @@ const getDefaultDataForNodeType = (type: string) => {
           },
         ],
       };
+    case WorkflowNodeTypes.rag:
+      return {
+        label: "New RAG",
+        kb: {
+          name: "Select Knowledge Base",
+          uuid: "",
+        },
+        question: {
+          value: "",
+          valueType: "Fixed",
+        },
+        sourceHandle: [
+          {
+            id: uuidv4(),
+            type: "source",
+            position: Position.Right,
+          },
+        ],
+        targetHandle: [
+          {
+            id: uuidv4(),
+            type: "target",
+            position: Position.Left,
+          },
+        ],
+      };
     default:
       return { label: "New Node" };
   }
@@ -263,6 +292,9 @@ export default function WorkflowDetailPage() {
   // tRPC hooks
   const utils = useUtils();
   const workflow = api.workflow.getByUUID.useQuery({ uuid: slug });
+  const knowledgeBases = api.knowledgeBases.getKnowledgeBaseByStatus.useQuery({
+    status: KnowledgeBaseStatus.ready,
+  });
   const updateWorkflowSettings = api.workflow.updateSettings.useMutation({
     onSuccess: () => {
       utils.workflow.getByUUID.invalidate({ uuid: slug });
@@ -633,6 +665,7 @@ export default function WorkflowDetailPage() {
                       nodes={nodes}
                       setNodes={setNodes}
                       templates={templates}
+                      knowledgeBases={knowledgeBases.data || []}
                     />
                   </div>
                 </div>
