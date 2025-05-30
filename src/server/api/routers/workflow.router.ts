@@ -881,6 +881,47 @@ const generateN8NNodesAndN8NConnections = async (
           id: uuidv4(),
         });
         break;
+      case NodeTypes.rag:
+        n8nNodes.push({
+          ...n8nHTTPRequestNode,
+          parameters: {
+            ...n8nHTTPRequestNode.parameters,
+            method: "POST",
+            url: `${process.env.KNOWLEDGE_BASE_CHAT_URL}`,
+            sendHeaders: true,
+            headerParameters: {
+              parameters: [
+                {
+                  name: "Authorization",
+                  value: `Basic ${process.env.N8N_BASIC_AUTH_TOKEN}`,
+                },
+              ],
+            },
+            sendBody: true,
+            bodyParameters: {
+              parameters: [
+                {
+                  name: "query",
+                  value:
+                    node.data.question.valueType === "Expression"
+                      ? `=${node.data.question.value}`
+                      : node.data.question.value,
+                },
+                {
+                  name: "user_id",
+                  value: `${process.env.NEXT_PUBLIC_MOCK_USER_ID}`,
+                },
+                {
+                  name: "kb_id",
+                  value: `${node.data.kb.uuid}`,
+                },
+              ],
+            },
+          },
+          position: [node.position.x, node.position.y],
+          name: node.data.label,
+          id: uuidv4(),
+        });
       default:
         break;
     }
