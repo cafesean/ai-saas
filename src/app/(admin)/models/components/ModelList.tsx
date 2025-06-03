@@ -77,10 +77,10 @@ function ModelsListComponent({ models, viewMode, onDelete }: ModelsListProps) {
             </TableHeader>
             <TableBody>
               {models.map((model) => (
-                <TableRow key={model.id}>
+                <TableRow key={model.uuid}>
                   <TableCell className="font-medium">
                     <Link
-                      href={`/models/${model.id}`}
+                      href={`/models/${model.uuid}`}
                       className="hover:underline"
                     >
                       {model.name}
