@@ -84,55 +84,55 @@ export function AllKPIsDialog({
               <MetricCard
                 title="K-S Score"
                 value={model.metrics[0]?.ks || "0.0%"}
-                trend={2.3}
+                trend={0.0}
                 description="Measures separation between positive and negative distributions"
               />
               <MetricCard
                 title="AUC-ROC"
-                value={model.metrics[0]?.aucRoc || "0.0"}
-                trend={0.01}
+                value={model.metrics[0]?.auroc || "0.0"}
+                trend={0.0}
                 description="Area under the ROC curve"
               />
               <MetricCard
                 title="Accuracy"
                 value={model?.metrics[0]?.accuracy || "0.0%"}
-                trend={0.8}
+                trend={0.0}
                 description="Proportion of correct predictions"
               />
               <MetricCard
                 title="Gini Coefficient"
                 value={model.metrics[0]?.gini || "0.0"}
-                trend={0.03}
+                trend={0.0}
                 description="Measure of statistical dispersion"
               />
               <MetricCard
                 title="Precision"
-                value="0.895"
-                trend={1.2}
+                value={model.metrics[0]?.precision || "0.0"}
+                trend={0.0}
                 description="Ratio of true positives to all positive predictions"
               />
               <MetricCard
                 title="Recall"
-                value="0.923"
-                trend={-0.5}
+                value={model.metrics[0]?.recall || "0.0"}
+                trend={0.0}
                 description="Ratio of true positives to all actual positives"
               />
               <MetricCard
                 title="F1 Score"
-                value="0.908"
-                trend={0.3}
+                value={model.metrics[0]?.f1 || "0.0"}
+                trend={0.0}
                 description="Harmonic mean of precision and recall"
               />
               <MetricCard
                 title="Brier Score"
-                value="0.042"
-                trend={-0.008}
+                value={model.metrics[0]?.brier_score || "0.0"}
+                trend={0.0}
                 description="Measure of accuracy of probabilistic predictions"
               />
               <MetricCard
                 title="Log Loss"
-                value="0.235"
-                trend={-0.015}
+                value={model.metrics[0]?.log_loss || "0.0"}
+                trend={0.0}
                 description="Cross-entropy loss for classification"
               />
             </div>

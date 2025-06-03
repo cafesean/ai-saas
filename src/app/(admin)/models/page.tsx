@@ -177,26 +177,23 @@ const ModelsPage = () => {
         });
         if (allSuccess) {
           let framework = "PyTorch";
-          let metrics = metadata?.performance_metrics || null;
+          let metrics = metadata?.metrics || null;
           let modelType = metadata?.model_type || "Classification";
-          let features = metadata?.feature_names || [];
-          let featureTypes = metadata?.feature_types || null;
-          let featuresImportants = metadata?.feature_importance || null;
+          let features = metadata?.features || [];
           let outputs = metadata?.outputs || null;
-          if (features && featureTypes) {
-            features = formatFeatures(
-              features,
-              featureTypes,
-              featuresImportants,
-            );
-          }
+          let inference = metadata?.inference || null;
           if (metrics) {
             metrics = {
               ...metrics,
-              ks: `${metrics.ks}`,
-              accuracy: `${metrics.accuracy}`,
-              auroc: `${metrics.auroc}`,
-              gini: `${metrics.gini}`,
+              ks: `${metrics.summary.KS || 0 }`,
+              accuracy: `${metrics.summary.ACCURACY || 0}`,
+              auroc: `${metrics.summary.AUROC || 0}`,
+              gini: `${metrics.summary.GINI || 0}`,
+              precision: `${metrics.summary.PRECISION || 0}`,
+              recall: `${metrics.summary.RECALL || 0}`,
+              f1: `${metrics.summary.F1 || 0}`,
+              brier_score: `${metrics.summary.BRIER_SCORE || 0}`,
+              log_loss: `${metrics.summary.LOG_LOSS || 0}`,
               ksChart: metrics.ks_chart,
               accuracyChart: metrics.accuracy_chart,
               aurocChart: metrics.auroc_chart,
@@ -208,6 +205,11 @@ const ModelsPage = () => {
             if (outputs) {
               metrics.outputs = {
                 outputs,
+              };
+            }
+            if (inference) {
+              metrics.inference = {
+                inference,
               };
             }
           }

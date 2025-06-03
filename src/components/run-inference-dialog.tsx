@@ -42,6 +42,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { mapFeatureType } from "@/lib/model-service";
+import { capitalizeFirstLetterLowercase } from "@/utils/func";
 
 const instance = axios.create();
 
@@ -54,6 +55,7 @@ interface Feature {
   range?: string;
   defaultValue?: string;
   options?: string[];
+  placeholder?: string;
 }
 
 interface RunInferenceDialogProps {
@@ -63,12 +65,19 @@ interface RunInferenceDialogProps {
 }
 
 const formatFeatures = (model: any) => {
-  const features = model.metrics[0]?.features?.features?.map(
-    (feature: any) => ({
-      name: feature.name,
-      type: mapFeatureType(feature.type),
-      description: "",
-      required: false,
+  const examplePayload =
+    model.metrics[0]?.inference?.inference?.example_payload;
+  const features = model.metrics[0]?.inference.inference?.input_schema?.map(
+    (input: any) => ({
+      name: input.name,
+      type: mapFeatureType(input.type),
+      placeholder: `${
+        examplePayload && examplePayload[input.name]
+          ? ` Example: ${examplePayload[input.name]}`
+          : ""
+      }`,
+      description: input.description,
+      required: input.required || false,
       range: "",
       defaultValue: "0",
     }),
@@ -129,15 +138,27 @@ export function RunInferenceDialog({
     };
     const inferenceResponse = await instance(option);
     if (!inferenceResponse?.data?.data?.error) {
+      // Only show the feature contributions if the feature in formValues
+      // is in the feature_contributions
+      const featureContributions =
+        inferenceResponse?.data?.data.feature_contributions[0];
+      const featureContributionsKeys = Object.keys(featureContributions);
+      const formValuesKeys = Object.keys(formValues);
+      const featureContributionsToShow = featureContributionsKeys.filter(
+        (key) => formValuesKeys.includes(key),
+      );
+      const featureContributionsToShowValues = featureContributionsToShow.map(
+        (key) => ({
+          name: key,
+          value: parseFloat(featureContributions[key]),
+        }),
+      );
       setResult({
         prediction: inferenceResponse?.data?.data.prob,
         probability:
           Math.round(inferenceResponse?.data?.data.probability * 100) / 100,
         timestamp: new Date().toISOString(),
-        features: Object.entries(formValues).map(([key, value]) => ({
-          name: key,
-          value,
-        })),
+        featureContributionsToShowValues,
       });
     } else {
       toast.error(inferenceResponse?.data?.data?.error);
@@ -227,34 +248,38 @@ export function RunInferenceDialog({
             ) : result ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-muted/30 p-4 rounded-md">
-                    <div className="text-sm text-muted-foreground">
-                      Prediction
-                    </div>
-                    <div className="text-2xl font-bold mt-1">
-                      {result.prediction}
-                    </div>
-                  </div>
-                  <div className="bg-muted/30 p-4 rounded-md">
-                    <div className="text-sm text-muted-foreground">
-                      Probability
-                    </div>
-                    <div className="text-2xl font-bold mt-1">
-                      {result.probability}
-                    </div>
-                  </div>
+                  {model.metrics[0]?.inference?.inference?.outputs?.map(
+                    (output: any, oi: number) => (
+                      <div
+                        key={`${output.name}-${oi}`}
+                        className="bg-muted/30 p-4 rounded-md"
+                      >
+                        <div className="text-sm text-muted-foreground">
+                          {capitalizeFirstLetterLowercase(output.name)}
+                        </div>
+                        <div className="text-2xl font-bold mt-1">
+                          {result[output.name]}
+                        </div>
+                      </div>
+                    ),
+                  )}
                 </div>
                 <div className="rounded-md border p-4">
                   <h4 className="text-sm font-medium mb-2">
                     Feature Contributions
                   </h4>
                   <div className="space-y-2">
-                    {result.features.map((feature: any, index: number) => (
-                      <div key={index} className="flex justify-between text-sm">
-                        <span>{feature.name}</span>
-                        <span className="font-medium">{feature.value}</span>
-                      </div>
-                    ))}
+                    {result.featureContributionsToShowValues.map(
+                      (feature: any, index: number) => (
+                        <div
+                          key={index}
+                          className="flex justify-between text-sm"
+                        >
+                          <span>{feature.name}</span>
+                          <span className="font-medium">{feature.value}</span>
+                        </div>
+                      ),
+                    )}
                   </div>
                 </div>
               </div>
@@ -311,7 +336,7 @@ function renderInputForFeature(
           type="text"
           value={value}
           onChange={(e) => onChange(feature.name, e.target.value, feature.type)}
-          placeholder={feature.description}
+          placeholder={feature.placeholder}
           required={feature.required}
         />
       );
@@ -374,7 +399,7 @@ function renderInputForFeature(
           type="text"
           value={value}
           onChange={(e) => onChange(feature.name, e.target.value, feature.type)}
-          placeholder={feature.description}
+          placeholder={feature.placeholder}
           required={feature.required}
         />
       );
