@@ -112,7 +112,7 @@ const ModelsPage = () => {
     files: File[];
     importType: string;
   }) => {
-    if (!name || !version || !files || files.length === 0) {
+    if (!name || !files || files.length === 0) {
       toast.error("Please fill all required fields and upload files.");
       return;
     } else if (files.length > 2) {

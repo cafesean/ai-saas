@@ -103,7 +103,7 @@ export function RunInferenceDialog({
     if (validateValueByDataType(value, type)) {
       switch (type) {
         case "number":
-          setFormValues((prev) => ({ ...prev, [name]: parseFloat(value) }));
+          setFormValues((prev) => ({ ...prev, [name]: value }));
           break;
         default:
           setFormValues((prev) => ({ ...prev, [name]: value }));
@@ -114,6 +114,12 @@ export function RunInferenceDialog({
 
   const handleSubmit = async () => {
     setIsLoading(true);
+    // Based on type of feature to convert str to float
+    for (const feature of features) {
+      if (feature.type === "number" && formValues[feature.name]) {
+        formValues[feature.name] = parseFloat(formValues[feature.name]);
+      }
+    }
     const option = {
       url: `/api/inference/${model.uuid}`,
       method: "POST",
@@ -125,7 +131,8 @@ export function RunInferenceDialog({
     if (!inferenceResponse?.data?.data?.error) {
       setResult({
         prediction: inferenceResponse?.data?.data.prob,
-        probability: Math.round(inferenceResponse?.data?.data.probability * 100) / 100,
+        probability:
+          Math.round(inferenceResponse?.data?.data.probability * 100) / 100,
         timestamp: new Date().toISOString(),
         features: Object.entries(formValues).map(([key, value]) => ({
           name: key,
