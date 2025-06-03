@@ -86,7 +86,7 @@ function ModelsListComponent({ models, viewMode, onDelete }: ModelsListProps) {
                       {model.name}
                     </Link>
                     <div className="text-sm text-muted-foreground">
-                      v{model.metrics[0].version}
+                      v{model.metrics[0]?.version}
                     </div>
                   </TableCell>
                   <TableCell>
