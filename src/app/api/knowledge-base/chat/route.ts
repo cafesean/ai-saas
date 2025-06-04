@@ -138,11 +138,26 @@ export async function POST(request: NextRequest) {
         { status: 200 },
       );
     }
-  } catch (error) {
-    console.error("Ask query error:", error);
-    return NextResponse.json(
-      { success: false, error: "Ask query failed" },
-      { status: 500 },
-    );
+  } catch (error: any) {
+    console.log(error);
+    if (
+      error &&
+      error?.response.data &&
+      error?.response.data.message.includes("Error in workflow")
+    ) {
+      return NextResponse.json(
+        {
+          error: {
+            message: `N8N: ${error?.response.data.message}`,
+          },
+        },
+        { status: 400 },
+      );
+    } else {
+      return NextResponse.json(
+        { error: error?.response.data },
+        { status: 400 },
+      );
+    }
   }
 }
