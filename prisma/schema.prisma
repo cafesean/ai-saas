@@ -7,204 +7,423 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model role {
-  id            Int             @id @default(autoincrement())
-  name          String
-  description   String
-  role_code     String
-  created_at    DateTime        @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime?       @updatedAt @db.Timestamptz(6)
-  uuid          String?         @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  levels        level_role[]
-  pricing_roles pricing_roles[]
-  role_policy   role_policy[]
+model condition_groups {
+  id               Int          @id @default(autoincrement())
+  uuid             String       @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rule_flow_id     Int
+  parent_group_id  Int?
+  type             String?      @db.VarChar(200)
+  logical_operator String
+  created_at       DateTime     @default(now()) @db.Timestamp(6)
+  updated_at       DateTime     @default(now()) @db.Timestamp(6)
+  rule_flows       rule_flows   @relation(fields: [rule_flow_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "condition_groups_rule_flow_id_rule_flows_id_fk")
+  conditions       conditions[]
 
-  @@map("roles")
+  @@index([id])
+  @@index([uuid])
 }
 
-model level {
-  id            Int             @id @default(autoincrement())
-  name          String
-  description   String
-  code          String
-  created_at    DateTime        @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime?       @updatedAt @db.Timestamptz(6)
-  uuid          String?         @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  rates         level_rate[]
-  roles         level_role[]
-  pricing_roles pricing_roles[]
+model conditions {
+  id                 Int              @id @default(autoincrement())
+  uuid               String           @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  condition_group_id Int
+  field              String
+  operator           String
+  value              String
+  type               String?          @db.VarChar(200)
+  data_type          String
+  created_at         DateTime         @default(now()) @db.Timestamp(6)
+  updated_at         DateTime         @default(now()) @db.Timestamp(6)
+  condition_groups   condition_groups @relation(fields: [condition_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "conditions_condition_group_id_condition_groups_id_fk")
 
-  @@map("levels")
+  @@index([id], map: "condition_id_idx")
+  @@index([uuid], map: "condition_uuid_idx")
 }
 
-model level_role {
-  level_id   Int      @map("level_id")
-  role_id    Int      @map("role_id")
-  created_at DateTime @default(now())
-  level      level    @relation(fields: [level_id], references: [id], onDelete: Cascade)
-  role       role     @relation(fields: [role_id], references: [id], onDelete: Cascade)
-
-  @@id([level_id, role_id])
-  @@map("level_roles")
+model conversation_messages {
+  id              Int           @id @default(autoincrement())
+  uuid            String        @unique(map: "conversation_messages_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversation_id String        @db.Uuid
+  role            String        @db.VarChar(20)
+  content         String
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime      @default(now()) @db.Timestamptz(6)
+  conversations   conversations @relation(fields: [conversation_id], references: [uuid], onDelete: Cascade, onUpdate: NoAction, map: "conversation_messages_conversation_id_conversations_uuid_fk")
 }
 
-model ratecard {
-  id             Int          @id @default(autoincrement())
-  name           String
-  description    String
-  effective_date DateTime
-  expire_date    DateTime?
-  created_at     DateTime     @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime?    @updatedAt @db.Timestamptz(6)
-  uuid           String?      @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  level_rates    level_rate[]
-  pricings       pricings[]
+model conversations {
+  id                    Int                     @id @default(autoincrement())
+  uuid                  String                  @unique(map: "conversations_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                  String                  @db.VarChar(200)
+  description           String?
+  kb_id                 String                  @db.Uuid
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime                @default(now()) @db.Timestamptz(6)
+  conversation_messages conversation_messages[]
+  knowledge_bases       knowledge_bases         @relation(fields: [kb_id], references: [uuid], onDelete: Cascade, onUpdate: NoAction, map: "conversations_kb_id_knowledge_bases_uuid_fk")
 
-  @@map("ratecards")
+  @@index([id])
+  @@index([uuid])
 }
 
-model level_rate {
-  id           Int       @id @default(autoincrement())
-  monthly_rate Decimal   @db.Decimal(10, 2)
-  level_id     Int
-  ratecard_id  Int       @map("ratecard_id")
-  created_at   DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at   DateTime? @updatedAt @db.Timestamptz(6)
-  uuid         String?   @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  level        level     @relation(fields: [level_id], references: [id], onDelete: Cascade)
-  ratecard     ratecard  @relation(fields: [ratecard_id], references: [id], onDelete: Cascade)
+model decision_table_input_conditions {
+  id                    Int                   @id @default(autoincrement())
+  uuid                  String                @unique(map: "decision_table_input_conditions_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dt_row_id             String                @db.Uuid
+  dt_input_id           String                @db.Uuid
+  condition             String?
+  value                 String?
+  created_at            DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime              @default(now()) @db.Timestamptz(6)
+  decision_table_inputs decision_table_inputs @relation(fields: [dt_input_id], references: [uuid], onDelete: Cascade, onUpdate: NoAction, map: "dt_input_condition_dt_input_id_fkey")
+  decision_table_rows   decision_table_rows   @relation(fields: [dt_row_id], references: [uuid], onDelete: Cascade, onUpdate: NoAction, map: "dt_input_condition_dt_row_id_fkey")
 
-  @@map("level_rates")
+  @@index([id], map: "dt_input_condition_id_idx")
+  @@index([uuid], map: "dt_input_condition_uuid_idx")
 }
 
-model org {
-  id                Int        @id @default(autoincrement())
-  created_at        DateTime?  @default(now()) @db.Timestamptz(6)
-  name              String?
-  country_id        Int?
-  type              Int?       @db.SmallInt
-  logo_url          String?
-  slug              String?
-  uuid              String?    @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  updated_at        DateTime?  @updatedAt @db.Timestamptz(6)
-  status            Int?       @db.SmallInt
-  tier_id           Int        @default(1)
-  category_id       Int?
-  plan_id           Int?
-  verified_at       DateTime?
-  business_address  String?
-  business_licenses String[]
-  linkedin_url      String?
-  website           String?
-  org_user          org_user[]
+model decision_table_inputs {
+  id                              Int                               @id @default(autoincrement())
+  uuid                            String                            @unique(map: "decision_table_inputs_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dt_id                           String                            @db.Uuid
+  name                            String                            @db.VarChar
+  description                     String?
+  dataType                        String?                           @db.VarChar(100)
+  created_at                      DateTime                          @default(now()) @db.Timestamptz(6)
+  updated_at                      DateTime                          @default(now()) @db.Timestamptz(6)
+  decision_table_input_conditions decision_table_input_conditions[]
+  decision_tables                 decision_tables                   @relation(fields: [dt_id], references: [uuid], onDelete: Cascade, onUpdate: NoAction, map: "decision_table_inputs_dt_id_decision_tables_uuid_fk")
+
+  @@index([id], map: "dt_input_id_idx")
+  @@index([uuid], map: "dt_input_uuid_idx")
 }
 
-model org_user {
-  org_id    Int
-  user_uuid String? @db.Uuid
-  role      String
-  user_id   Int
-  org       org     @relation(fields: [org_id], references: [id])
-  user      user    @relation(fields: [user_id], references: [id])
+model decision_table_output_results {
+  id                     Int                    @id @default(autoincrement())
+  uuid                   String                 @unique(map: "decision_table_output_results_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dt_row_id              String                 @db.Uuid
+  dt_output_id           String                 @db.Uuid
+  result                 String?
+  created_at             DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime               @default(now()) @db.Timestamptz(6)
+  decision_table_outputs decision_table_outputs @relation(fields: [dt_output_id], references: [uuid], onDelete: Cascade, onUpdate: NoAction, map: "dt_output_result_dt_output_id_fkey")
+  decision_table_rows    decision_table_rows    @relation(fields: [dt_row_id], references: [uuid], onDelete: Cascade, onUpdate: NoAction, map: "dt_output_result_dt_row_id_fkey")
 
-  @@id([org_id, user_id])
+  @@index([id], map: "dt_output_result_id_idx")
+  @@index([uuid], map: "dt_output_result_uuid_idx")
 }
 
-model role_policy {
-  id         Int       @id @default(autoincrement())
-  role_id    Int
-  name       String
-  can_create Boolean   @default(false)
-  can_read   Boolean   @default(false)
-  can_update Boolean   @default(false)
-  can_delete Boolean   @default(false)
-  created_at DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at DateTime? @updatedAt @db.Timestamptz(6)
-  metadata   Json?
-  role       role      @relation(fields: [role_id], references: [id])
+model decision_table_outputs {
+  id                            Int                             @id @default(autoincrement())
+  uuid                          String                          @unique(map: "decision_table_outputs_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dt_id                         String                          @db.Uuid
+  name                          String                          @db.VarChar
+  description                   String?
+  dataType                      String?                         @db.VarChar(100)
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(6)
+  updated_at                    DateTime                        @default(now()) @db.Timestamptz(6)
+  decision_table_output_results decision_table_output_results[]
+  decision_tables               decision_tables                 @relation(fields: [dt_id], references: [uuid], onDelete: Cascade, onUpdate: NoAction, map: "decision_table_outputs_dt_id_decision_tables_uuid_fk")
+
+  @@index([id], map: "dt_output_id_idx")
+  @@index([uuid], map: "dt_output_uuid_idx")
 }
 
-model user {
-  created_at    DateTime?  @default(now()) @db.Timestamptz(6)
-  status        Int?       @db.SmallInt
-  wallets       String[]
-  wallet_type   Int?
-  attributes    Json?
-  tokens        Json?
-  xp            Json?
-  profile       Json?
-  role_id       Int[]
-  org_id        Int[]
-  updated_at    DateTime?  @updatedAt @db.Timestamptz(6)
-  referred_by   String?
-  is_registered Boolean?
-  name          String?
-  email         Json?      @db.Json
-  password      String?
-  phone         Json?      @db.Json
-  avatar        String?
-  username      String?
-  uuid          String?    @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  id            Int        @id @default(autoincrement())
-  first_name    String?
-  last_name     String?
-  org_user      org_user[]
+model decision_table_rows {
+  id                              Int                               @id @default(autoincrement())
+  uuid                            String                            @unique(map: "decision_table_rows_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dt_id                           String                            @db.Uuid
+  order                           Int
+  created_at                      DateTime                          @default(now()) @db.Timestamptz(6)
+  updated_at                      DateTime                          @default(now()) @db.Timestamptz(6)
+  decision_table_input_conditions decision_table_input_conditions[]
+  decision_table_output_results   decision_table_output_results[]
+  decision_tables                 decision_tables                   @relation(fields: [dt_id], references: [uuid], onDelete: Cascade, onUpdate: NoAction, map: "decision_table_rows_dt_id_decision_tables_uuid_fk")
+
+  @@index([id], map: "dt_row_id_idx")
+  @@index([uuid], map: "dt_row_uuid_idx")
 }
 
-model group {
-  id          Int            @id(map: "groups_pkey") @default(autoincrement())
-  name        String
-  created_at  DateTime?      @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime?      @updatedAt @db.Timestamptz(6)
-  policy_ops  Json?          @db.Json
-  policy_org  Json?          @db.Json
-  role_policy group_policy[]
+model decision_tables {
+  id                     Int                      @id @default(autoincrement())
+  uuid                   String                   @unique(map: "decision_tables_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                   String                   @db.VarChar
+  description            String?
+  status                 String                   @default("active") @db.VarChar(100)
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  decision_table_inputs  decision_table_inputs[]
+  decision_table_outputs decision_table_outputs[]
+  decision_table_rows    decision_table_rows[]
+
+  @@index([id], map: "dt_id_idx")
+  @@index([uuid], map: "dt_uuid_idx")
 }
 
-model group_policy {
-  id         Int       @id @default(autoincrement())
-  group_id   Int
-  name       String
-  can_create Boolean   @default(false)
-  can_read   Boolean   @default(false)
-  can_update Boolean   @default(false)
-  can_delete Boolean   @default(false)
-  created_at DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at DateTime? @updatedAt @db.Timestamptz(6)
-  metadata   Json?
-  group      group     @relation(fields: [group_id], references: [id])
+model edges {
+  id            Int       @id @default(autoincrement())
+  uuid          String    @unique(map: "edges_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  source        String    @db.VarChar(200)
+  target        String    @db.VarChar(200)
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime  @default(now()) @db.Timestamptz(6)
+  workflow_id   String    @db.Uuid
+  animated      Boolean   @default(false)
+  source_handle String?
+  target_handle String?
+  workflows     workflows @relation(fields: [workflow_id], references: [uuid], onDelete: Cascade, onUpdate: NoAction, map: "edges_workflow_id_workflows_uuid_fk")
+
+  @@index([id], map: "edge_id_idx")
+  @@index([uuid], map: "edge_uuid_idx")
 }
 
-model pricing_roles {
+model endpoints {
+  id            Int       @id @default(autoincrement())
+  uuid          String    @unique(map: "endpoints_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workflow_id   String    @db.Uuid
+  uri           String
+  method        String    @default("POST") @db.VarChar(100)
+  payload       Json?     @db.Json
+  status        String    @default("active") @db.VarChar(100)
+  flow_uri      String
+  flow_method   String    @default("POST") @db.VarChar(100)
+  client_id     String
+  client_secret String
+  created_at    DateTime  @default(now()) @db.Timestamp(6)
+  updated_at    DateTime  @default(now()) @db.Timestamp(6)
+  workflows     workflows @relation(fields: [workflow_id], references: [uuid], onDelete: Cascade, onUpdate: NoAction, map: "endpoints_workflow_id_workflows_uuid_fk")
+
+  @@index([id], map: "endpoint_id_idx")
+  @@index([uuid], map: "endpoint_uuid_idx")
+}
+
+model inferences {
+  id         Int      @id @default(autoincrement())
+  uuid       String   @unique(map: "inferences_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  model_id   Int
+  input      Json?    @db.Json
+  output     Json?    @db.Json
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  models     models   @relation(fields: [model_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "inferences_model_id_models_id_fk")
+}
+
+model knowledge_base_documents {
+  id              Int             @id @default(autoincrement())
+  uuid            String          @unique(map: "knowledge_base_documents_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  kb_id           String          @db.Uuid
+  name            String          @db.VarChar(200)
+  status          String          @default("Processing") @db.VarChar(100)
+  size            BigInt
+  path            String
+  chunkSize       String?         @default("1000") @db.VarChar(100)
+  chunk_overlap   String?         @default("200") @db.VarChar(100)
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime        @default(now()) @db.Timestamptz(6)
+  knowledge_bases knowledge_bases @relation(fields: [kb_id], references: [uuid], onDelete: Cascade, onUpdate: NoAction, map: "knowledge_base_documents_kb_id_knowledge_bases_uuid_fk")
+
+  @@index([id], map: "kb_document_id_idx")
+  @@index([uuid], map: "kb_document_uuid_idx")
+}
+
+model knowledge_bases {
+  id                       Int                        @id @default(autoincrement())
+  uuid                     String                     @unique(map: "knowledge_bases_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                     String                     @db.VarChar(200)
+  description              String?
+  vector_db                String                     @db.VarChar(300)
+  embedding_model          String                     @db.VarChar(300)
+  status                   String                     @default("Draft") @db.VarChar(100)
+  created_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  conversations            conversations[]
+  knowledge_base_documents knowledge_base_documents[]
+
+  @@index([id], map: "knowledge_base_id_idx")
+  @@index([uuid], map: "knowledge_base_uuid_idx")
+}
+
+model model_metrics {
   id             Int      @id @default(autoincrement())
-  uuid           String?  @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  pricing_id     Int
-  role_id        Int
-  level_id       Int
-  quantity       Int
-  base_price     Decimal  @db.Decimal(10, 2)
-  override_price Decimal? @db.Decimal(10, 2)
-  discount_rate  Decimal? @db.Decimal(5, 2)
-  multiplier     Decimal  @db.Decimal(5, 2)
-  final_price    Decimal  @db.Decimal(10, 2)
-  levels         level    @relation(fields: [level_id], references: [id])
-  pricings       pricings @relation(fields: [pricing_id], references: [id])
-  roles          role     @relation(fields: [role_id], references: [id])
+  uuid           String   @unique(map: "model_metrics_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  model_id       Int
+  ks             String?  @db.VarChar(100)
+  auroc          String?  @db.VarChar(100)
+  gini           String?  @db.VarChar(100)
+  accuracy       String?  @db.VarChar(100)
+  ks_chart       String?
+  auroc_chart    String?
+  gini_chart     String?
+  accuracy_chart String?
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime @default(now()) @db.Timestamptz(6)
+  version        String   @db.VarChar(100)
+  features       Json?    @db.Json
+  outputs        Json?    @db.Json
+  models         models   @relation(fields: [model_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "model_metrics_model_id_models_id_fk")
 }
 
-model pricings {
-  id                Int             @id @default(autoincrement())
-  uuid              String?         @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  code              String          @unique
-  description       String
-  customer_id       String
-  created_by        String
-  created_at        DateTime        @default(now()) @db.Timestamptz(6)
-  updated_at        DateTime?       @db.Timestamptz(6)
-  ratecard_id       Int
-  total_amount      Decimal         @db.Decimal(10, 2)
-  resource_count    Int
-  overall_discounts Json?           @db.Json
-  pricing_roles     pricing_roles[]
-  ratecards         ratecard        @relation(fields: [ratecard_id], references: [id])
+model models {
+  id                 Int             @id @default(autoincrement())
+  uuid               String          @unique(map: "models_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String          @db.VarChar(200)
+  description        String?
+  file_name          String          @db.VarChar(200)
+  file_key           String          @db.VarChar(200)
+  metadata_file_name String?         @db.VarChar(200)
+  metadata_file_key  String?         @db.VarChar(200)
+  define_inputs      Json?           @db.Json
+  status             String          @default("inactive") @db.VarChar(100)
+  created_at         DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime        @default(now()) @db.Timestamptz(6)
+  type               String?         @db.VarChar(100)
+  framework          String?         @db.VarChar(100)
+  inferences         inferences[]
+  model_metrics      model_metrics[]
+
+  @@index([id], map: "model_id_idx")
+  @@index([uuid], map: "model_uuid_idx")
+}
+
+model node_types {
+  id          String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type        String   @unique(map: "node_type_idx") @db.VarChar(256)
+  category    String   @db.VarChar(256)
+  description String?  @db.VarChar(1024)
+  created_at  DateTime @default(now()) @db.Timestamp(6)
+  updated_at  DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([category], map: "node_type_category_idx")
+  @@index([id], map: "node_type_id_idx")
+  @@index([id], map: "node_type_uuid_idx")
+}
+
+model nodes {
+  id          Int       @id @default(autoincrement())
+  uuid        String    @unique(map: "nodes_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type        String?   @db.VarChar(200)
+  position    Json?     @db.Json
+  data        Json?     @db.Json
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime  @default(now()) @db.Timestamptz(6)
+  workflow_id String    @db.Uuid
+  workflows   workflows @relation(fields: [workflow_id], references: [uuid], onDelete: Cascade, onUpdate: NoAction, map: "nodes_workflow_id_workflows_uuid_fk")
+
+  @@index([id], map: "node_id_idx")
+  @@index([uuid], map: "node_uuid_idx")
+}
+
+model rule_flow_actions {
+  id           Int        @id @default(autoincrement())
+  uuid         String     @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rule_flow_id Int
+  type         String
+  content      String
+  created_at   DateTime   @default(now()) @db.Timestamp(6)
+  updated_at   DateTime   @default(now()) @db.Timestamp(6)
+  rule_flows   rule_flows @relation(fields: [rule_flow_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "rule_flow_actions_rule_flow_id_rule_flows_id_fk")
+
+  @@index([id], map: "rule_flow_action_id_idx")
+  @@index([uuid], map: "rule_flow_action_uuid_idx")
+}
+
+model rule_flows {
+  id                Int                 @id @default(autoincrement())
+  uuid              String              @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rule_id           Int
+  type              String?             @db.VarChar(200)
+  created_at        DateTime            @default(now()) @db.Timestamp(6)
+  updated_at        DateTime            @default(now()) @db.Timestamp(6)
+  condition_groups  condition_groups[]
+  rule_flow_actions rule_flow_actions[]
+  rules             rules               @relation(fields: [rule_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "rule_flows_rule_id_rules_id_fk")
+
+  @@index([id], map: "rule_flow_id_idx")
+  @@index([uuid], map: "rule_flow_uuid_idx")
+}
+
+model rules {
+  id          Int          @id @default(autoincrement())
+  uuid        String       @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String       @db.VarChar
+  description String?
+  status      String       @default("active") @db.VarChar(100)
+  created_at  DateTime     @default(now()) @db.Timestamp(6)
+  updated_at  DateTime     @default(now()) @db.Timestamp(6)
+  rule_flows  rule_flows[]
+
+  @@index([id], map: "rule_id_idx")
+  @@index([uuid], map: "rule_uuid_idx")
+}
+
+model templates {
+  id            Int      @id @default(autoincrement())
+  uuid          String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String   @db.VarChar(200)
+  description   String?
+  flow_id       String   @db.VarChar(256)
+  provider      String?  @db.VarChar(256)
+  version_id    String?  @db.VarChar(256)
+  instance_id   String?  @db.VarChar(256)
+  user_inputs   Json?    @db.Json
+  workflow_json Json?    @db.Json
+  status        String   @default("active") @db.VarChar(100)
+  created_at    DateTime @default(now()) @db.Timestamp(6)
+  updated_at    DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([id], map: "template_id_idx")
+  @@index([uuid], map: "template_uuid_idx")
+}
+
+model widgets {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @db.VarChar
+  type        String   @db.VarChar(100)
+  workflow_id String   @unique(map: "widgets_workflow_id_unique") @db.Uuid
+  status      String   @default("active") @db.VarChar(100)
+  code        String
+  created_at  DateTime @default(now()) @db.Timestamp(6)
+  updated_at  DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([id], map: "widget_id_idx")
+  @@index([uuid], map: "widget_uuid_idx")
+}
+
+model workflow_run_history {
+  id          Int       @id @default(autoincrement())
+  uuid        String    @unique(map: "workflow_run_history_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workflow_id String    @db.Uuid
+  path        String?   @db.VarChar(200)
+  method      String?   @db.VarChar(100)
+  payload     Json?     @db.Json
+  response    Json?     @db.Json
+  status      String    @default("running") @db.VarChar(100)
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime  @default(now()) @db.Timestamptz(6)
+  workflows   workflows @relation(fields: [workflow_id], references: [uuid], onDelete: Cascade, onUpdate: NoAction, map: "workflow_run_history_workflow_id_workflows_uuid_fk")
+
+  @@index([id])
+  @@index([uuid])
+}
+
+model workflows {
+  id                   Int                    @id @default(autoincrement())
+  uuid                 String                 @unique(map: "workflows_uuid_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String                 @db.VarChar(200)
+  description          String?
+  user_inputs          Json?                  @db.Json
+  workflow_json        Json?                  @db.Json
+  flow_id              String?                @db.VarChar(200)
+  status               String                 @default("Draft") @db.VarChar(100)
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime               @default(now()) @db.Timestamptz(6)
+  type                 String?                @db.VarChar(100)
+  edges                edges[]
+  endpoints            endpoints[]
+  nodes                nodes[]
+  workflow_run_history workflow_run_history[]
+
+  @@index([id], map: "workflow_id_idx")
+  @@index([uuid], map: "workflow_uuid_idx")
 }
