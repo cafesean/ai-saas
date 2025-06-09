@@ -12,7 +12,7 @@ This is part of Epic SAAS-1 (Enhanced Model Detail & Inference Capabilities) - s
 ## Requirements from Epic
 - Enhanced feature importance display using `feature_analysis.global_importance`
 - Show feature coefficients, absolute coefficients, and impact direction
-- Improved visualization components for feature analysis
+- Improved visualization components   for feature analysis
 - Leverage the enhanced metadata structure from SAAS-11/SAAS-12/SAAS-13
 
 ## Dependencies

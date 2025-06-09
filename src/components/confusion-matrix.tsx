@@ -1,8 +1,6 @@
 "use client";
 
-import React from "react";
-
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SampleButton } from "@/components/ui/sample-button";
@@ -14,19 +12,21 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+interface ConfusionMatrixData {
+  raw: number[][];
+  normalized?: number[][];
+  labels: string[];
+}
+
 interface ConfusionMatrixProps {
-  matrix: {
-    raw: number[][];
-    normalized?: number[][];
-    labels: string[];
-  };
+  matrix: ConfusionMatrixData;
 }
 
 export function ConfusionMatrix({ matrix }: ConfusionMatrixProps) {
   const [view, setView] = useState<"raw" | "normalized">("raw");
 
-  // If no matrix is provided, use a default one for demonstration
-  const defaultMatrix = {
+  // Enhanced fallback with better error handling
+  const defaultMatrix: ConfusionMatrixData = {
     raw: [
       [85, 15],
       [10, 90],
@@ -39,38 +39,47 @@ export function ConfusionMatrix({ matrix }: ConfusionMatrixProps) {
   };
 
   const data = matrix || defaultMatrix;
+  
+  // Validate matrix data
+  if (!data.raw || !Array.isArray(data.raw) || data.raw.length === 0) {
+    console.warn("Invalid confusion matrix data provided, using fallback");
+    Object.assign(data, defaultMatrix);
+  }
+  
   const currentMatrix = view === "raw" ? data.raw : data.normalized || data.raw;
 
-  // Calculate totals
+  // Calculate totals with error handling
   const rowTotals = currentMatrix.map((row) =>
-    row.reduce((sum, cell) => sum + cell, 0),
+    Array.isArray(row) ? row.reduce((sum, cell) => sum + (cell || 0), 0) : 0,
   );
-  const colTotals = currentMatrix[0]!.map((_, colIndex) =>
-    currentMatrix.reduce((sum, row) => sum + row[colIndex]!, 0),
-  );
+  const colTotals = currentMatrix[0]?.length ? currentMatrix[0].map((_, colIndex) =>
+    currentMatrix.reduce((sum, row) => sum + (row[colIndex] || 0), 0),
+  ) : [];
   const total = rowTotals.reduce((sum, val) => sum + val, 0);
 
-  // Calculate metrics
-  const truePositives = currentMatrix[1]![1];
-  const falsePositives = currentMatrix[0]![1];
-  const trueNegatives = currentMatrix[0]![0];
-  const falseNegatives = currentMatrix[1]![0];
+  // Calculate metrics with safe array access
+  const truePositives = currentMatrix[1]?.[1] || 0;
+  const falsePositives = currentMatrix[0]?.[1] || 0;
+  const trueNegatives = currentMatrix[0]?.[0] || 0;
+  const falseNegatives = currentMatrix[1]?.[0] || 0;
 
-  const accuracy = (truePositives! + trueNegatives!) / total;
-  const precision = truePositives! / (truePositives! + falsePositives!) || 0;
-  const recall = truePositives! / (truePositives! + falseNegatives!) || 0;
-  const f1Score = (2 * (precision * recall)) / (precision + recall) || 0;
+  const accuracy = total > 0 ? (truePositives + trueNegatives) / total : 0;
+  const precision = (truePositives + falsePositives) > 0 ? truePositives / (truePositives + falsePositives) : 0;
+  const recall = (truePositives + falseNegatives) > 0 ? truePositives / (truePositives + falseNegatives) : 0;
+  const f1Score = (precision + recall) > 0 ? (2 * (precision * recall)) / (precision + recall) : 0;
 
-  // Color scale for cells
+  // Enhanced color scale for cells
   const getColor = (value: number, isNormalized: boolean) => {
+    const safeValue = value || 0;
+    
     if (isNormalized) {
       // For normalized values (0-1)
-      const intensity = Math.min(0.9, Math.max(0.1, value)) * 100;
+      const intensity = Math.min(0.9, Math.max(0.1, safeValue)) * 100;
       return `rgba(59, 130, 246, ${intensity / 100})`;
     } else {
       // For raw counts
-      const maxValue = Math.max(...data.raw.flat());
-      const intensity = Math.min(0.9, Math.max(0.1, value / maxValue)) * 100;
+      const maxValue = Math.max(...data.raw.flat().filter(v => typeof v === 'number'));
+      const intensity = maxValue > 0 ? Math.min(0.9, Math.max(0.1, safeValue / maxValue)) * 100 : 10;
       return `rgba(59, 130, 246, ${intensity / 100})`;
     }
   };
@@ -97,7 +106,9 @@ export function ConfusionMatrix({ matrix }: ConfusionMatrixProps) {
 
       <div className="overflow-x-auto">
         <div className="min-w-[500px]">
-          <div className="grid grid-cols-[auto,repeat(2,1fr),auto] gap-1">
+          <div className={`grid gap-1`} style={{
+            gridTemplateColumns: `auto repeat(${data.labels.length}, 1fr) auto`
+          }}>
             {/* Header row */}
             <div className="flex items-center justify-center p-2 font-medium bg-muted/30">
               Actual ↓ / Predicted →
@@ -116,11 +127,11 @@ export function ConfusionMatrix({ matrix }: ConfusionMatrixProps) {
 
             {/* Data rows */}
             {data.labels.map((label, rowIndex) => (
-              <React.Fragment key={rowIndex}>
+              <Fragment key={rowIndex}>
                 <div className="flex items-center justify-center p-2 font-medium bg-muted/30">
                   {label}
                 </div>
-                {currentMatrix[rowIndex]!.map((value, colIndex) => (
+                {currentMatrix[rowIndex]?.map((value, colIndex) => (
                   <div
                     key={`cell-${rowIndex}-${colIndex}`}
                     className="flex items-center justify-center p-4 font-medium border"
@@ -134,13 +145,13 @@ export function ConfusionMatrix({ matrix }: ConfusionMatrixProps) {
                   >
                     {view === "normalized"
                       ? (value * 100).toFixed(1) + "%"
-                      : value}
+                      : value?.toLocaleString() || 0}
                   </div>
-                ))}
+                )) || []}
                 <div className="flex items-center justify-center p-2 font-medium bg-muted/30">
-                  {view === "normalized" ? "100%" : rowTotals[rowIndex]}
+                  {view === "normalized" ? "100%" : rowTotals[rowIndex]?.toLocaleString() || 0}
                 </div>
-              </React.Fragment>
+              </Fragment>
             ))}
 
             {/* Totals row */}
@@ -152,11 +163,11 @@ export function ConfusionMatrix({ matrix }: ConfusionMatrixProps) {
                 key={`total-${i}`}
                 className="flex items-center justify-center p-2 font-medium bg-muted/30"
               >
-                {view === "normalized" ? "100%" : colTotal}
+                {view === "normalized" ? "100%" : colTotal?.toLocaleString() || 0}
               </div>
             ))}
             <div className="flex items-center justify-center p-2 font-medium bg-muted/30">
-              {view === "normalized" ? "100%" : total}
+              {view === "normalized" ? "100%" : total?.toLocaleString() || 0}
             </div>
           </div>
         </div>
