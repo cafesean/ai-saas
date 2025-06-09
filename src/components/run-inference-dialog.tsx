@@ -143,7 +143,7 @@ export function RunInferenceDialog({
       // Only show the feature contributions if the feature in formValues
       // is in the feature_contributions
       const featureContributions =
-        inferenceResponse?.data?.data.feature_contributions[0];
+        inferenceResponse?.data?.data.feature_contributions[0].values;
       const featureContributionsKeys = Object.keys(featureContributions);
       const formValuesKeys = Object.keys(formValues);
       const featureContributionsToShow = featureContributionsKeys.filter(
@@ -250,7 +250,7 @@ export function RunInferenceDialog({
             ) : result ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  {model.metrics[0]?.inference?.inference?.outputs?.map(
+                  {model.metrics[0]?.inference?.inference?.output_schema?.map(
                     (output: any, oi: number) => (
                       <div
                         key={`${output.name}-${oi}`}
@@ -278,7 +278,9 @@ export function RunInferenceDialog({
                           className="flex justify-between text-sm"
                         >
                           <span>{feature.name}</span>
-                          <span className="font-medium">{feature.value}</span>
+                          <span className="font-medium">
+                            {Math.round(feature.value * 10000) / 10000}
+                          </span>
                         </div>
                       ),
                     )}
