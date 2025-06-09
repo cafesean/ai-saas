@@ -56,6 +56,7 @@ interface Feature {
   defaultValue?: string;
   options?: string[];
   placeholder?: string;
+  allowedValues?: string[];
 }
 
 interface RunInferenceDialogProps {
@@ -80,6 +81,7 @@ const formatFeatures = (model: any) => {
       required: input.required || false,
       range: "",
       defaultValue: "0",
+      allowedValues: input.allowed_values,
     }),
   );
   return features;
@@ -371,6 +373,39 @@ function renderInputForFeature(
           </SelectContent>
         </Select>
       );
+    case "string":
+      if (feature.allowedValues) {
+        return (
+          <Select
+            value={value}
+            onValueChange={(val) => onChange(feature.name, val, feature.type)}
+          >
+            <SelectTrigger id={feature.name}>
+              <SelectValue placeholder={`Select ${feature.name}`} />
+            </SelectTrigger>
+            <SelectContent>
+              {feature.allowedValues?.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      } else {
+        return (
+          <Input
+            id={feature.name}
+            type="text"
+            value={value}
+            onChange={(e) =>
+              onChange(feature.name, e.target.value, feature.type)
+            }
+            placeholder={feature.placeholder}
+            required={feature.required}
+          />
+        );
+      }
     case "range":
       const [min, max] = (feature.range || "0,100").split(",").map(Number);
       return (
