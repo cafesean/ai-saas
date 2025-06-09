@@ -1,0 +1,249 @@
+# NextJS Project Structure Standards
+
+You are an expert in organizing NextJS applications. Follow these standards for consistent, maintainable project structures.
+
+## Root Directory Structure
+```
+project-root/
+├── .cursor/            # Cursor IDE configuration
+├── .next/             # Next.js build output
+├── node_modules/      # Dependencies
+├── public/            # Static assets
+├── src/              # Source code
+│   ├── app/          # Next.js app router pages
+│   ├── components/   # React components
+│   ├── hooks/        # Custom React hooks
+│   ├── lib/          # Utility functions
+│   ├── store/        # State management
+│   ├── types/        # TypeScript definitions
+│   └── schemas/      # Validation schemas
+├── .env              # Environment variables
+├── .gitignore       # Git ignore rules
+├── package.json     # Project configuration
+├── tsconfig.json    # TypeScript configuration
+└── README.md        # Project documentation
+```
+
+## App Directory Structure
+```
+src/app/
+├── layout.tsx       # Root layout
+├── page.tsx         # Home page
+├── globals.css      # Global styles
+└── [feature]/      # Feature directories
+    ├── page.tsx    # Feature page
+    ├── layout.tsx  # Feature layout
+    └── loading.tsx # Loading UI
+```
+
+## Components Directory Structure
+```
+src/components/
+├── ui/             # Base UI components
+│   ├── Button.tsx
+│   ├── Input.tsx
+│   ├── Select.tsx
+│   └── table/      # Complex component directories
+│       ├── Table.tsx
+│       ├── DataTable.tsx
+│       └── columnHelper.utils.ts
+└── [feature]/     # Feature-specific components
+    ├── FeatureForm.tsx
+    └── FeatureList.tsx
+```
+
+## Hooks Directory Structure
+```
+src/hooks/
+├── useTableColumns.ts    # Table-related hooks
+├── useTableSort.ts
+├── useTableSearch.ts
+├── useTablePagination.ts
+├── useFormValidation.ts  # Form-related hooks
+└── useModalState.ts      # UI state hooks
+```
+
+## Types Directory Structure
+```
+src/types/
+├── index.ts           # Main type exports
+├── table.types.ts     # Feature-specific types
+└── [feature].type.ts # Feature-specific types
+```
+
+## Naming Conventions
+
+### Files and Directories
+- Use kebab-case for directories: `user-profile/`
+- Use PascalCase for components: `UserProfile.tsx`
+- Use camelCase for utilities and helpers: `dateUtils.ts`
+- Use camelCase for hooks: `useProductSearch.ts`
+- Use camelCase for routers with .router.ts suffix: `productCatalog.router.ts`
+- Use camelCase for stores with .store.ts suffix : `auth.store.ts`
+
+### Components
+- Use PascalCase for component files: `UserProfileCard.tsx`
+- Group related components: `user-profile/`
+- Include index files for exports
+
+### Types
+- Use dot notation for type files: `userProfile.types.ts`
+- Export from central location
+- Keep types close to usage
+
+## Code Organization
+
+### Component Structure
+```typescript
+// src/components/user-profile/UserProfile.component.tsx
+import { type FC } from 'react'
+import { useUserData } from '@/hooks/useUserData.hook'
+import { UserProfileProps } from '@/types/userProfile.types'
+
+// Types
+interface ComponentProps {
+  // ...
+}
+
+// Component
+export const Component: FC<ComponentProps> = ({ prop }) => {
+  // Hooks
+  const { data } = useHook()
+
+  // Handlers
+  const handleEvent = () => {
+    // ...
+  }
+
+  // Render
+  return (
+    // JSX
+  )
+}
+```
+
+### Hook Structure
+```typescript
+// src/hooks/useUserProfile.hook.ts
+import { useState, useCallback } from 'react'
+import { UserProfile } from '@/types/userProfile.types'
+
+// Types
+interface HookProps {
+  // ...
+}
+
+// Hook
+export function useHook(props: HookProps) {
+  // State
+  const [state, setState] = useState()
+
+  // Callbacks
+  const handleChange = useCallback(() => {
+    // ...
+  }, [])
+
+  // Return
+  return {
+    state,
+    handleChange,
+  }
+}
+```
+
+## State Management
+
+### Store Structure
+```typescript
+// src/store/user.store.ts
+import { create } from 'zustand'
+import { UserProfile } from '@/types/userProfile.types'
+
+interface Store {
+  // State
+  data: UserProfile[]
+  
+  // Actions
+  addData: (item: UserProfile) => void
+  updateData: (id: string, item: UserProfile) => void
+  deleteData: (id: string) => void
+}
+
+export const useStore = create<Store>((set) => ({
+  // Implementation
+}))
+```
+
+## API Integration
+
+### API Structure
+```typescript
+// src/lib/api.ts
+export const api = {
+  getData: async () => {
+    // Implementation
+  },
+  updateData: async (id: string, data: any) => {
+    // Implementation
+  },
+}
+```
+
+## Testing Organization
+```
+__tests__/
+├── components/
+│   └── UserProfile.test.tsx
+├── hooks/
+│   └── useUserProfile.hook.test.ts
+└── utils/
+    └── dateUtils.test.ts
+```
+
+## Best Practices
+
+### 1. File Organization
+- Group related files together
+- Keep files focused and small
+- Use index files for exports
+- Maintain consistent structure
+
+### 2. Code Organization
+- Clear separation of concerns
+- Consistent component structure
+- Organized imports
+- Type definitions close to usage
+
+### 3. State Management
+- Centralized store
+- Feature-based organization
+- Clear action patterns
+- Type safety
+
+### 4. Performance
+- Code splitting
+- Lazy loading
+- Memoization
+- Bundle optimization
+
+### 5. Maintainability
+- Clear documentation
+- Consistent patterns
+- Modular design
+- Type safety
+
+## Implementation Steps
+1. Set up base directory structure
+2. Create UI component library
+3. Implement feature directories
+4. Add state management
+5. Set up API integration
+6. Add testing structure
+7. Document patterns
+
+## Documentation
+- README.md for each major directory
+- Component documentation
+- API documentation
+- Type documentation
+- Setup instructions 
