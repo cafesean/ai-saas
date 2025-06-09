@@ -35,6 +35,7 @@ import { ModelInfoCard } from "@/components/model-info-card";
 import { RunInferenceDialog } from "@/components/run-inference-dialog";
 import { ModelInputSchemaViewer } from "@/components/model-input-schema-viewer";
 import { ModelOutputSchemaViewer } from "@/components/model-output-schema-viewer";
+import { ChartGrid } from "@/components/charts/dynamic-chart";
 import {
   capitalizeFirstLetterLowercase,
   toPercent,
@@ -275,29 +276,47 @@ const ModelDetail = () => {
                   </TabsContent>
 
                   <TabsContent value="performance" className="space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Performance Metrics</CardTitle>
-                        <CardDescription>
-                          Detailed model performance analysis
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="h-[300px] flex items-center justify-center">
-                        <div className="flex flex-col items-center">
-                          <BarChart3 className="h-16 w-16 text-muted-foreground mb-4" />
-                          <p className="text-muted-foreground">
-                            Detailed performance metrics visualization
-                          </p>
-                          <SampleButton
-                            variant="outline"
+                    {/* Dynamic Charts Section */}
+                    {model?.metrics[0]?.charts_data && model.metrics[0].charts_data.length > 0 ? (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Performance Charts</CardTitle>
+                          <CardDescription>
+                            Comprehensive model performance visualization
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <ChartGrid 
+                            charts={model.metrics[0].charts_data}
                             className="mt-4"
-                            onClick={() => setShowAllKPIs(true)}
-                          >
-                            View All Metrics
-                          </SampleButton>
-                        </div>
-                      </CardContent>
-                    </Card>
+                          />
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Performance Metrics</CardTitle>
+                          <CardDescription>
+                            Detailed model performance analysis
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="h-[300px] flex items-center justify-center">
+                          <div className="flex flex-col items-center">
+                            <BarChart3 className="h-16 w-16 text-muted-foreground mb-4" />
+                            <p className="text-muted-foreground">
+                              No performance charts available
+                            </p>
+                            <SampleButton
+                              variant="outline"
+                              className="mt-4"
+                              onClick={() => setShowAllKPIs(true)}
+                            >
+                              View All Metrics
+                            </SampleButton>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
 
                     <Card>
                       <CardHeader>
