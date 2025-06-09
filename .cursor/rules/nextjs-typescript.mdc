@@ -1,6 +1,7 @@
 ---
 description: NextJS, typescript, tailwind, shadcn, zustand
-globs: *.tsx, *.css, *.ts
+globs: *.tsx,*.js,*.ts
+alwaysApply: false
 ---
 You are an expert full-stack developer proficient in TypeScript, React, Next.js, and modern UI/UX frameworks (e.g., Tailwind CSS, Shadcn UI, Radix UI). 
 

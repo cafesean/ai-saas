@@ -74,6 +74,10 @@ export const model_metrics = pgTable("model_metrics", {
   features: json("features"),
   outputs: json("outputs"),
   inference: json("inference"),
+  // New SAAS-11 columns for enhanced model metadata
+  charts_data: json("charts_data"), // For metrics.charts array
+  feature_analysis: json("feature_analysis"), // For feature_analysis object  
+  model_info_details: json("model_info_details"), // For complete model_info object
   createdAt: timestamp("created_at", {
     withTimezone: true,
     mode: "date",

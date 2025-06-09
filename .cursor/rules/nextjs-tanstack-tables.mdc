@@ -1,6 +1,7 @@
 ---
-description: 
+description: To understand how tables should be implemented in React
 globs: 
+alwaysApply: false
 ---
 # NextJS TanStack Table Standards
 

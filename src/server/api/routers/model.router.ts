@@ -45,6 +45,10 @@ const modelSchema = z.object({
       features: z.record(z.any()).optional(),
       outputs: z.record(z.any()).optional(),
       inference: z.record(z.any()).optional(),
+      // New SAAS-11 fields for enhanced model metadata
+      charts_data: z.array(z.any()).optional(), // For metrics.charts array
+      feature_analysis: z.record(z.any()).optional(), // For feature_analysis object
+      model_info_details: z.record(z.any()).optional(), // For complete model_info object
     })
     .nullable(),
 });
@@ -140,6 +144,10 @@ export const modelRouter = createTRPCRouter({
               features: input.metrics.features,
               outputs: input.metrics.outputs,
               inference: input.metrics.inference,
+              // New SAAS-11 fields for enhanced model metadata
+              charts_data: input.metrics.charts_data,
+              feature_analysis: input.metrics.feature_analysis,
+              model_info_details: input.metrics.model_info_details,
             })
             .returning();
         }
@@ -196,6 +204,13 @@ export const modelRouter = createTRPCRouter({
                   f1: input.metrics.f1,
                   brier_score: input.metrics.brier_score,
                   log_loss: input.metrics.log_loss,
+                  features: input.metrics.features,
+                  outputs: input.metrics.outputs,
+                  inference: input.metrics.inference,
+                  // New SAAS-11 fields for enhanced model metadata
+                  charts_data: input.metrics.charts_data,
+                  feature_analysis: input.metrics.feature_analysis,
+                  model_info_details: input.metrics.model_info_details,
                 })
                 .returning();
             } else {
@@ -219,6 +234,12 @@ export const modelRouter = createTRPCRouter({
                   giniChart: input.metrics.giniChart,
                   accuracyChart: input.metrics.accuracyChart,
                   features: input.metrics.features,
+                  outputs: input.metrics.outputs,
+                  inference: input.metrics.inference,
+                  // New SAAS-11 fields for enhanced model metadata
+                  charts_data: input.metrics.charts_data,
+                  feature_analysis: input.metrics.feature_analysis,
+                  model_info_details: input.metrics.model_info_details,
                 })
                 .returning();
             }

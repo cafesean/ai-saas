@@ -9,8 +9,10 @@ ALTER COLUMN "updated_at" DROP NOT NULL,
 ALTER COLUMN "updated_at" SET DATA TYPE TIMESTAMPTZ(6);
 
 -- AlterTable
-ALTER TABLE "ratecards" RENAME CONSTRAINT "ratecards_pkey" TO "rate_cards_pkey",
-ALTER COLUMN "created_at" SET DATA TYPE TIMESTAMPTZ(6),
+ALTER TABLE "ratecards" RENAME CONSTRAINT "ratecards_pkey" TO "rate_cards_pkey";
+
+-- AlterTable  
+ALTER TABLE "ratecards" ALTER COLUMN "created_at" SET DATA TYPE TIMESTAMPTZ(6),
 ALTER COLUMN "updated_at" DROP NOT NULL,
 ALTER COLUMN "updated_at" SET DATA TYPE TIMESTAMPTZ(6);
 
@@ -28,7 +30,7 @@ CREATE TABLE "org" (
     "type" SMALLINT,
     "logo_url" TEXT,
     "slug" TEXT,
-    "uuid" UUID DEFAULT uuid_generate_v4(),
+    "uuid" UUID DEFAULT gen_random_uuid(),
     "updated_at" TIMESTAMPTZ(6),
     "status" SMALLINT,
     "tier_id" INTEGER NOT NULL DEFAULT 1,
@@ -90,7 +92,7 @@ CREATE TABLE "user" (
     "phone" JSON,
     "avatar" TEXT,
     "username" TEXT,
-    "uuid" UUID NOT NULL DEFAULT uuid_generate_v4(),
+    "uuid" UUID NOT NULL DEFAULT gen_random_uuid(),
     "id" SERIAL NOT NULL,
     "first_name" TEXT,
     "last_name" TEXT,
