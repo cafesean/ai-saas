@@ -31,6 +31,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AdminRoutes } from "@/constants/routes";
 import { ConfusionMatrix } from "@/components/confusion-matrix";
 import { ModelFeaturesViewer } from "@/components/model-features-viewer";
+import { ModelInfoCard } from "@/components/model-info-card";
 import { RunInferenceDialog } from "@/components/run-inference-dialog";
 import {
   capitalizeFirstLetterLowercase,
@@ -148,6 +149,13 @@ const ModelDetail = () => {
                   </TabsList>
 
                   <TabsContent value="overview" className="space-y-6">
+                    {/* Enhanced Model Information Card */}
+                    <ModelInfoCard 
+                      modelInfo={model?.metrics[0]?.model_info_details}
+                      className="mb-6"
+                    />
+
+                    {/* Quick Stats Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <Card>
                         <CardHeader>
@@ -218,9 +226,14 @@ const ModelDetail = () => {
                           <FeatureImportanceDetail
                             feature={{
                               name:
+                                model?.metrics[0]?.feature_analysis?.global_importance?.[0]
+                                  ?.feature || 
                                 model?.metrics[0]?.features?.features?.[0]
                                   ?.name || "Feature",
-                              importance: model?.metrics[0]?.features
+                              importance: model?.metrics[0]?.feature_analysis?.global_importance?.[0]
+                                ?.abs_coefficient
+                                ? (model?.metrics[0]?.feature_analysis?.global_importance?.[0]?.abs_coefficient * 100)
+                                : model?.metrics[0]?.features
                                 ?.features?.[0]?.importance
                                 ? model?.metrics[0]?.features?.features?.[0]?.importance.toFixed(
                                     2,
@@ -228,7 +241,10 @@ const ModelDetail = () => {
                                 : 0,
                               description: "",
                               impact:
-                                model?.metrics[0]?.features?.features[0]
+                                model?.metrics[0]?.feature_analysis?.global_importance?.[0]
+                                  ?.coefficient > 0
+                                  ? "positive"
+                                  : model?.metrics[0]?.features?.features[0]
                                   ?.importance > 0
                                   ? "positive"
                                   : "negative",
@@ -246,17 +262,27 @@ const ModelDetail = () => {
                         </CardHeader>
                         <CardContent>
                           <ConfusionMatrix
-                            matrix={{
-                              raw: [
-                                [85, 15],
-                                [10, 90],
-                              ],
-                              normalized: [
-                                [0.85, 0.15],
-                                [0.1, 0.9],
-                              ],
-                              labels: ["Negative", "Positive"],
-                            }}
+                            matrix={(() => {
+                              const confusionChart = model?.metrics[0]?.charts_data?.find(
+                                (chart: any) => chart.name === "Confusion Matrix"
+                              );
+                              
+                              if (confusionChart) {
+                                return {
+                                  raw: confusionChart.matrix,
+                                  labels: confusionChart.labels,
+                                };
+                              }
+                              
+                              // Fallback data
+                              return {
+                                raw: [
+                                  [85, 15],
+                                  [10, 90],
+                                ],
+                                labels: ["Negative", "Positive"],
+                              };
+                            })()}
                           />
                         </CardContent>
                       </Card>
@@ -373,12 +399,24 @@ const ModelDetail = () => {
                           <h3>Overview</h3>
                           <p>
                             This model is designed to perform{" "}
-                            {model?.type || "classification"} tasks using a{" "}
-                            {model?.framework || "PyTorch"} framework. It was
-                            trained on a proprietary dataset with{" "}
-                            {model?.features?.length || 0} key features.
+                            {model?.metrics[0]?.model_info_details?.type || model?.type || "classification"} tasks using a{" "}
+                            {model?.metrics[0]?.model_info_details?.framework || model?.framework || "PyTorch"} framework. It was
+                            trained on a dataset with{" "}
+                            {model?.metrics[0]?.model_info_details?.training_rows || model?.features?.length || 0} training examples and{" "}
+                            {model?.metrics[0]?.model_info_details?.feature_count || 0} key features.
                           </p>
-                          {model?.metrics[0]?.features?.features && (
+                          {model?.metrics[0]?.model_info_details && (
+                            <div className="mt-4">
+                              <h4>Model Details</h4>
+                              <ul>
+                                <li><strong>Version:</strong> {model?.metrics[0]?.model_info_details?.version || "1.0.0"}</li>
+                                <li><strong>Training Date:</strong> {model?.metrics[0]?.model_info_details?.training_date || "N/A"}</li>
+                                <li><strong>Test Rows:</strong> {model?.metrics[0]?.model_info_details?.test_rows || "N/A"}</li>
+                                <li><strong>Target Variable:</strong> {model?.metrics[0]?.model_info_details?.target_variable || "N/A"}</li>
+                              </ul>
+                            </div>
+                          )}
+                          {(model?.defineInputs || model?.metrics[0]?.features?.features) && (
                             <>
                               <h3>Input Format</h3>
                               <p>
@@ -387,7 +425,13 @@ const ModelDetail = () => {
                               </p>
                               <pre>{`{
   ${
-    model?.metrics[0]?.features?.features
+    model?.defineInputs
+      ? Object.entries(model.defineInputs)
+          .map(([key, value]: [string, any]) => 
+            `"${key}": <${value?.type || "value"}> ${value?.required ? "(required)" : "(optional)"}`
+          )
+          .join(",\n  ")
+      : model?.metrics[0]?.features?.features
       ?.map((f: any) => `"${f.name}": <${f.type || "value"}>`)
       .join(",\n  ") || '"feature": <value>'
   }
@@ -395,18 +439,27 @@ const ModelDetail = () => {
                             </>
                           )}
 
-                          {model?.metrics[0]?.outputs?.outputs && (
+                          {model?.metrics[0]?.outputs && (
                             <>
                               <h3>Output Format</h3>
                               <p>
                                 The model returns predictions in the following
                                 format:
                               </p>
+                              {model?.metrics[0]?.outputs?.score_type && (
+                                <div className="mb-2">
+                                  <p><strong>Score Type:</strong> {model?.metrics[0]?.outputs?.score_type}</p>
+                                  <p><strong>Range:</strong> {model?.metrics[0]?.outputs?.range || "0-1"}</p>
+                                  {model?.metrics[0]?.outputs?.thresholds && (
+                                    <p><strong>Thresholds:</strong> {JSON.stringify(model?.metrics[0]?.outputs?.thresholds)}</p>
+                                  )}
+                                </div>
+                              )}
                               <pre>{`{
   ${
     model?.metrics[0]?.outputs?.outputs
       ?.map((f: any) => `"${f.name}": <${f.type || "value"}>`)
-      .join(",\n  ") || '"feature": <value>'
+      .join(",\n  ") || '"prediction": <score>, "confidence": <value>'
   }
 }`}</pre>
                             </>

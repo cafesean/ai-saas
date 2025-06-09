@@ -1,6 +1,7 @@
 ---
-description: 
+description: To understand UI/UX standards and patterns
 globs: 
+alwaysApply: false
 ---
 # SaaS UI/UX Standards and Patterns
 
