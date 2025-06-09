@@ -34,10 +34,7 @@ export async function POST(
     }
     if (model) {
       const inferenceOptions = {
-        baseURL: process.env.INFERENCE_URL?.replace(
-          "{model_uuid}",
-          modelId,
-        ),
+        baseURL: process.env.INFERENCE_URL?.replace("{model_uuid}", modelId),
         headers: {
           "Content-Type": "application/json",
           [`${process.env.MODEL_SERVICE_ACCESS_ID_KEY}`]: `${process.env.MODEL_SERVICE_ACCESS_ID_VALUE}`,
@@ -68,8 +65,26 @@ export async function POST(
     } else {
       throw new Error("Model not found");
     }
-  } catch (error) {
+  } catch (error: any) {
     console.log(error);
-    return NextResponse.json({ error }, { status: 400 });
+    if (
+      error &&
+      error?.response.data &&
+      error?.response.data.message.includes("Error in workflow")
+    ) {
+      return NextResponse.json(
+        {
+          error: {
+            message: `N8N: ${error?.response.data.message}`,
+          },
+        },
+        { status: 400 },
+      );
+    } else {
+      return NextResponse.json(
+        { error: error?.response.data },
+        { status: 400 },
+      );
+    }
   }
 }

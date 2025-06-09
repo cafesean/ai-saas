@@ -33,12 +33,18 @@ const modelSchema = z.object({
       auroc: z.string().optional(),
       gini: z.string().optional(),
       accuracy: z.string().optional(),
+      precision: z.string().optional(),
+      recall: z.string().optional(),
+      f1: z.string().optional(),
+      brier_score: z.string().optional(),
+      log_loss: z.string().optional(),
       ksChart: z.string().optional(),
       aurocChart: z.string().optional(),
       giniChart: z.string().optional(),
       accuracyChart: z.string().optional(),
       features: z.record(z.any()).optional(),
       outputs: z.record(z.any()).optional(),
+      inference: z.record(z.any()).optional(),
     })
     .nullable(),
 });
@@ -126,8 +132,14 @@ export const modelRouter = createTRPCRouter({
               aurocChart: input.metrics.aurocChart,
               giniChart: input.metrics.giniChart,
               accuracyChart: input.metrics.accuracyChart,
+              precision: input.metrics.precision,
+              recall: input.metrics.recall,
+              f1: input.metrics.f1,
+              brier_score: input.metrics.brier_score,
+              log_loss: input.metrics.log_loss,
               features: input.metrics.features,
               outputs: input.metrics.outputs,
+              inference: input.metrics.inference,
             })
             .returning();
         }
@@ -179,6 +191,11 @@ export const modelRouter = createTRPCRouter({
                   aurocChart: input.metrics.aurocChart,
                   giniChart: input.metrics.giniChart,
                   accuracyChart: input.metrics.accuracyChart,
+                  precision: input.metrics.precision,
+                  recall: input.metrics.recall,
+                  f1: input.metrics.f1,
+                  brier_score: input.metrics.brier_score,
+                  log_loss: input.metrics.log_loss,
                 })
                 .returning();
             } else {
@@ -192,6 +209,11 @@ export const modelRouter = createTRPCRouter({
                   auroc: input.metrics.auroc,
                   gini: input.metrics.gini,
                   accuracy: input.metrics.accuracy,
+                  precision: input.metrics.precision,
+                  recall: input.metrics.recall,
+                  f1: input.metrics.f1,
+                  brier_score: input.metrics.brier_score,
+                  log_loss: input.metrics.log_loss,
                   ksChart: input.metrics.ksChart,
                   aurocChart: input.metrics.aurocChart,
                   giniChart: input.metrics.giniChart,

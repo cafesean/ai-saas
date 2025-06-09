@@ -77,16 +77,16 @@ function ModelsListComponent({ models, viewMode, onDelete }: ModelsListProps) {
             </TableHeader>
             <TableBody>
               {models.map((model) => (
-                <TableRow key={model.id}>
+                <TableRow key={model.uuid}>
                   <TableCell className="font-medium">
                     <Link
-                      href={`/models/${model.id}`}
+                      href={`/models/${model.uuid}`}
                       className="hover:underline"
                     >
                       {model.name}
                     </Link>
                     <div className="text-sm text-muted-foreground">
-                      v{model.metrics[0].version}
+                      v{model.metrics[0]?.version}
                     </div>
                   </TableCell>
                   <TableCell>
