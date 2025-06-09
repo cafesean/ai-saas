@@ -224,31 +224,8 @@ const ModelDetail = () => {
                         </CardHeader>
                         <CardContent>
                           <FeatureImportanceDetail
-                            feature={{
-                              name:
-                                model?.metrics[0]?.feature_analysis?.global_importance?.[0]
-                                  ?.feature || 
-                                model?.metrics[0]?.features?.features?.[0]
-                                  ?.name || "Feature",
-                              importance: model?.metrics[0]?.feature_analysis?.global_importance?.[0]
-                                ?.abs_coefficient
-                                ? (model?.metrics[0]?.feature_analysis?.global_importance?.[0]?.abs_coefficient * 100)
-                                : model?.metrics[0]?.features
-                                ?.features?.[0]?.importance
-                                ? model?.metrics[0]?.features?.features?.[0]?.importance.toFixed(
-                                    2,
-                                  ) * 100
-                                : 0,
-                              description: "",
-                              impact:
-                                model?.metrics[0]?.feature_analysis?.global_importance?.[0]
-                                  ?.coefficient > 0
-                                  ? "positive"
-                                  : model?.metrics[0]?.features?.features[0]
-                                  ?.importance > 0
-                                  ? "positive"
-                                  : "negative",
-                            }}
+                            features={model?.metrics[0]?.feature_analysis?.global_importance || []}
+                            maxFeatures={8}
                           />
                         </CardContent>
                       </Card>

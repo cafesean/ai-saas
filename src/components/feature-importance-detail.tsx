@@ -6,111 +6,165 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
-import { Info } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Info, TrendingUp, TrendingDown, Minus } from "lucide-react";
+
+interface FeatureImportance {
+  feature: string;
+  coefficient: number;
+  abs_coefficient: number;
+}
 
 interface FeatureImportanceDetailProps {
-  feature: {
-    name: string;
-    importance: number;
-    description?: string;
-    impact?: "positive" | "negative" | "neutral";
-    examples?: { value: string; effect: string }[];
-    correlations?: { feature: string; value: number }[];
-  };
+  features: FeatureImportance[];
+  maxFeatures?: number;
 }
 
 export function FeatureImportanceDetail({
-  feature,
+  features = [],
+  maxFeatures = 10,
 }: FeatureImportanceDetailProps) {
+  // Sort by absolute coefficient and take top features
+  const sortedFeatures = features
+    .sort((a, b) => b.abs_coefficient - a.abs_coefficient)
+    .slice(0, maxFeatures);
+
+  // Find max abs_coefficient for normalization
+  const maxAbsCoeff = Math.max(...sortedFeatures.map(f => f.abs_coefficient));
+
+  const getImpactIcon = (coefficient: number) => {
+    if (coefficient > 0.01) return <TrendingUp className="h-3 w-3" />;
+    if (coefficient < -0.01) return <TrendingDown className="h-3 w-3" />;
+    return <Minus className="h-3 w-3" />;
+  };
+
+  const getImpactColor = (coefficient: number) => {
+    if (coefficient > 0.01) return "text-green-600 bg-green-50";
+    if (coefficient < -0.01) return "text-red-600 bg-red-50";
+    return "text-gray-600 bg-gray-50";
+  };
+
+  const getImpactLabel = (coefficient: number) => {
+    if (coefficient > 0.01) return "Positive";
+    if (coefficient < -0.01) return "Negative";
+    return "Neutral";
+  };
+
+  if (sortedFeatures.length === 0) {
+    return (
+      <div className="text-center py-6 text-muted-foreground">
+        No feature importance data available
+      </div>
+    );
+  }
+
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <div className="space-y-1 cursor-pointer group">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center">
-              <span>{feature.name}</span>
-              <Info className="ml-1 h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />
-            </div>
-            <span className="font-medium">{feature.importance}%</span>
-          </div>
-          <Progress value={feature.importance} className="h-2" />
-        </div>
-      </PopoverTrigger>
-      <PopoverContent className="w-80 p-4" align="start">
-        <div className="space-y-4">
-          <div>
-            <h4 className="font-medium">{feature.name}</h4>
-            <p className="text-sm text-muted-foreground mt-1">
-              {feature.description || "No description available."}
-            </p>
-          </div>
+    <div className="space-y-3">
+      {sortedFeatures.map((feature, index) => {
+        const normalizedImportance = maxAbsCoeff > 0 
+          ? (feature.abs_coefficient / maxAbsCoeff) * 100 
+          : 0;
 
-          <div>
-            <h5 className="text-sm font-medium mb-1">Impact on Model</h5>
-            <div
-              className={`text-sm px-2 py-1 rounded-md inline-block ${
-                feature.impact === "positive"
-                  ? "bg-green-100 text-green-800"
-                  : feature.impact === "negative"
-                  ? "bg-red-100 text-red-800"
-                  : "bg-blue-100 text-blue-800"
-              }`}
-            >
-              {feature.impact === "positive"
-                ? "Positive Impact"
-                : feature.impact === "negative"
-                ? "Negative Impact"
-                : "Neutral Impact"}
-            </div>
-          </div>
-
-          {feature.examples && feature.examples.length > 0 && (
-            <div>
-              <h5 className="text-sm font-medium mb-1">Example Values</h5>
-              <div className="space-y-1">
-                {feature.examples.map((example, index) => (
-                  <div key={index} className="text-sm grid grid-cols-2 gap-2">
-                    <div className="font-mono bg-muted px-1 rounded">
-                      {example.value}
-                    </div>
-                    <div>{example.effect}</div>
+        return (
+          <Popover key={feature.feature}>
+            <PopoverTrigger asChild>
+              <div className="space-y-2 cursor-pointer group p-3 rounded-lg border border-transparent hover:border-border hover:bg-muted/30 transition-colors">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs font-mono">
+                      #{index + 1}
+                    </Badge>
+                    <span className="font-medium">{feature.feature}</span>
+                    <Info className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {feature.correlations && feature.correlations.length > 0 && (
-            <div>
-              <h5 className="text-sm font-medium mb-1">Correlations</h5>
-              <div className="space-y-1">
-                {feature.correlations.map((correlation: any, index) => (
-                  <div key={index} className="text-sm flex justify-between">
-                    <span>{correlation.feature}</span>
-                    <span
-                      className={
-                        correlation.value > 0
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }
+                  <div className="flex items-center gap-2">
+                    <Badge 
+                      variant="outline" 
+                      className={`text-xs ${getImpactColor(feature.coefficient)}`}
                     >
-                      {correlation.value > 0 ? "+" : ""}
-                      {correlation.value.toFixed(2)}
+                      {getImpactIcon(feature.coefficient)}
+                      <span className="ml-1">{getImpactLabel(feature.coefficient)}</span>
+                    </Badge>
+                    <span className="font-medium text-xs">
+                      {normalizedImportance.toFixed(1)}%
                     </span>
                   </div>
-                ))}
+                </div>
+                <Progress value={normalizedImportance} className="h-2" />
               </div>
-            </div>
-          )}
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-4" align="start">
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h4 className="font-medium">{feature.feature}</h4>
+                    <Badge variant="outline" className="text-xs">
+                      Rank #{index + 1}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    This feature has a {getImpactLabel(feature.coefficient).toLowerCase()} impact on model predictions.
+                  </p>
+                </div>
 
-          <div className="pt-2 border-t">
-            <p className="text-xs text-muted-foreground">
-              Feature importance is calculated using SHAP values and represents
-              the average impact on model output.
-            </p>
-          </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h5 className="text-sm font-medium mb-1">Coefficient</h5>
+                    <div className="text-sm font-mono bg-muted px-2 py-1 rounded">
+                      {feature.coefficient.toFixed(4)}
+                    </div>
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-medium mb-1">Absolute Value</h5>
+                    <div className="text-sm font-mono bg-muted px-2 py-1 rounded">
+                      {feature.abs_coefficient.toFixed(4)}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h5 className="text-sm font-medium mb-1">Impact Direction</h5>
+                  <div className={`text-sm px-2 py-1 rounded-md inline-flex items-center gap-1 ${getImpactColor(feature.coefficient)}`}>
+                    {getImpactIcon(feature.coefficient)}
+                    <span>
+                      {feature.coefficient > 0.01
+                        ? "Increases prediction likelihood"
+                        : feature.coefficient < -0.01
+                        ? "Decreases prediction likelihood"
+                        : "Minimal impact on predictions"}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <h5 className="text-sm font-medium mb-1">Relative Importance</h5>
+                  <div className="text-sm">
+                    <Progress value={normalizedImportance} className="h-2 mb-1" />
+                    <span className="text-muted-foreground">
+                      {normalizedImportance.toFixed(1)}% of the most important feature
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    Coefficients represent the linear relationship between this feature and the model output. 
+                    Ranking is based on absolute coefficient values.
+                  </p>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        );
+      })}
+      
+      {features.length > maxFeatures && (
+        <div className="text-center pt-2">
+          <p className="text-sm text-muted-foreground">
+            Showing top {maxFeatures} of {features.length} features
+          </p>
         </div>
-      </PopoverContent>
-    </Popover>
+      )}
+    </div>
   );
 }
