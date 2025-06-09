@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toPercent } from "@/utils/func";
+import { ConfusionMatrix } from "@/components/confusion-matrix";
 interface AllKPIsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -83,7 +84,7 @@ export function AllKPIsDialog({
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <MetricCard
                 title="K-S Score"
-                value={model.metrics[0]?.ks || "0.0%"}
+                value={model.metrics[0]?.ks || "0.0"}
                 trend={0.0}
                 description="Measures separation between positive and negative distributions"
               />
@@ -95,7 +96,7 @@ export function AllKPIsDialog({
               />
               <MetricCard
                 title="Accuracy"
-                value={model?.metrics[0]?.accuracy || "0.0%"}
+                value={model?.metrics[0]?.accuracy || "0.0"}
                 trend={0.0}
                 description="Proportion of correct predictions"
               />
@@ -119,7 +120,7 @@ export function AllKPIsDialog({
               />
               <MetricCard
                 title="F1 Score"
-                value={model.metrics[0]?.f1 || "0.0"}
+                value={model.metrics[0]?.f1Score || model.metrics[0]?.f1 || "0.0"}
                 trend={0.0}
                 description="Harmonic mean of precision and recall"
               />
@@ -137,16 +138,31 @@ export function AllKPIsDialog({
               />
             </div>
 
-            <div className="mt-6 border rounded-md p-4">
+            <div className="mt-6">
               <h3 className="text-sm font-medium mb-2">Confusion Matrix</h3>
-              <div className="h-64 w-full bg-muted/50 rounded-md flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  <div className="mb-2">Confusion Matrix Visualization</div>
-                  <div className="text-xs">
-                    Showing true vs predicted values
-                  </div>
-                </div>
-              </div>
+              <ConfusionMatrix
+                matrix={(() => {
+                  const confusionChart = model?.metrics[0]?.charts_data?.find(
+                    (chart: any) => chart.name === "Confusion Matrix"
+                  );
+                  
+                  if (confusionChart) {
+                    return {
+                      raw: confusionChart.matrix,
+                      labels: confusionChart.labels,
+                    };
+                  }
+                  
+                  // Fallback data
+                  return {
+                    raw: [
+                      [85, 15],
+                      [10, 90],
+                    ],
+                    labels: ["Negative", "Positive"],
+                  };
+                })()}
+              />
             </div>
           </TabsContent>
 
@@ -299,6 +315,27 @@ function MetricCard({
 }: MetricCardProps) {
   const isTrendPositive = trendInverted ? trend < 0 : trend > 0;
 
+  // Format the value appropriately
+  const formatValue = (val: string) => {
+    // If it already contains % or other units, return as is
+    if (val.includes('%') || val.includes('$') || val.includes('ms') || val.includes('req/s') || val.includes('GB') || val.includes('hrs')) {
+      return val;
+    }
+    
+    // Try to parse as number for percentage conversion
+    const numValue = parseFloat(val);
+    if (!isNaN(numValue)) {
+      // If value is between 0 and 1, treat as percentage
+      if (numValue <= 1.0) {
+        return toPercent(numValue, 2);
+      }
+      // Otherwise format with appropriate decimal places
+      return numValue.toFixed(3);
+    }
+    
+    return val;
+  };
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -307,7 +344,7 @@ function MetricCard({
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">
-          {toPercent(parseFloat(value), 2)}
+          {formatValue(value)}
         </div>
         <div
           className={`text-xs flex items-center mt-1 ${
