@@ -33,6 +33,8 @@ import { ConfusionMatrix } from "@/components/confusion-matrix";
 import { ModelFeaturesViewer } from "@/components/model-features-viewer";
 import { ModelInfoCard } from "@/components/model-info-card";
 import { RunInferenceDialog } from "@/components/run-inference-dialog";
+import { ModelInputSchemaViewer } from "@/components/model-input-schema-viewer";
+import { ModelOutputSchemaViewer } from "@/components/model-output-schema-viewer";
 import {
   capitalizeFirstLetterLowercase,
   toPercent,
@@ -265,21 +267,11 @@ const ModelDetail = () => {
                       </Card>
                     </div>
 
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Model Features</CardTitle>
-                        <CardDescription>
-                          Input features and their descriptions
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <ModelFeaturesViewer
-                          features={model?.metrics[0]?.features || []}
-                          globalImportance={model?.metrics[0]?.feature_analysis?.global_importance || []}
-                          modelName={model?.name}
-                        />
-                      </CardContent>
-                    </Card>
+                    <ModelFeaturesViewer
+                      features={model?.metrics[0]?.features?.features || []}
+                      globalImportance={model?.metrics[0]?.feature_analysis?.global_importance || []}
+                      modelName={model?.name}
+                    />
                   </TabsContent>
 
                   <TabsContent value="performance" className="space-y-6">
@@ -365,9 +357,10 @@ const ModelDetail = () => {
                   </TabsContent>
 
                   <TabsContent value="documentation" className="space-y-6">
+                    {/* Model Overview Card */}
                     <Card>
                       <CardHeader>
-                        <CardTitle>Model Documentation</CardTitle>
+                        <CardTitle>Model Overview</CardTitle>
                         <CardDescription>
                           Usage guidelines and technical specifications
                         </CardDescription>
@@ -394,65 +387,28 @@ const ModelDetail = () => {
                               </ul>
                             </div>
                           )}
-                          {(model?.defineInputs || model?.metrics[0]?.features?.features) && (
-                            <>
-                              <h3>Input Format</h3>
-                              <p>
-                                The model accepts input data in JSON format with
-                                the following structure:
-                              </p>
-                              <pre>{`{
-  ${
-    model?.defineInputs
-      ? Object.entries(model.defineInputs)
-          .map(([key, value]: [string, any]) => 
-            `"${key}": <${value?.type || "value"}> ${value?.required ? "(required)" : "(optional)"}`
-          )
-          .join(",\n  ")
-      : model?.metrics[0]?.features?.features
-      ?.map((f: any) => `"${f.name}": <${f.type || "value"}>`)
-      .join(",\n  ") || '"feature": <value>'
-  }
-}`}</pre>
-                            </>
-                          )}
-
-                          {model?.metrics[0]?.outputs && (
-                            <>
-                              <h3>Output Format</h3>
-                              <p>
-                                The model returns predictions in the following
-                                format:
-                              </p>
-                              {model?.metrics[0]?.outputs?.score_type && (
-                                <div className="mb-2">
-                                  <p><strong>Score Type:</strong> {model?.metrics[0]?.outputs?.score_type}</p>
-                                  <p><strong>Range:</strong> {model?.metrics[0]?.outputs?.range || "0-1"}</p>
-                                  {model?.metrics[0]?.outputs?.thresholds && (
-                                    <p><strong>Thresholds:</strong> {JSON.stringify(model?.metrics[0]?.outputs?.thresholds)}</p>
-                                  )}
-                                </div>
-                              )}
-                              <pre>{`{
-  ${
-    model?.metrics[0]?.outputs?.outputs
-      ?.map((f: any) => `"${f.name}": <${f.type || "value"}>`)
-      .join(",\n  ") || '"prediction": <score>, "confidence": <value>'
-  }
-}`}</pre>
-                            </>
-                          )}
 
                           <h3>Training Methodology</h3>
                           <p>
                             This model was trained using supervised learning
-                            techniques on a dataset of 10,000 examples. It uses
-                            optimization algorithms to minimize cross-entropy
-                            loss.
+                            techniques. It uses optimization algorithms to minimize cross-entropy
+                            loss and achieve optimal performance on the target dataset.
                           </p>
                         </div>
                       </CardContent>
                     </Card>
+
+                    {/* Input Schema Component */}
+                    <ModelInputSchemaViewer
+                      inputSchema={model?.metrics[0]?.inference?.input_schema}
+                      modelName={model?.name}
+                    />
+
+                    {/* Output Schema Component */}
+                    <ModelOutputSchemaViewer
+                      outputSchema={model?.metrics[0]?.inference?.output}
+                      modelName={model?.name}
+                    />
                   </TabsContent>
                 </Tabs>
               </div>
