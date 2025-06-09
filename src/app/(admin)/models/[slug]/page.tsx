@@ -274,7 +274,8 @@ const ModelDetail = () => {
                       </CardHeader>
                       <CardContent>
                         <ModelFeaturesViewer
-                          features={model?.metrics[0]?.features?.features || []}
+                          features={model?.metrics[0]?.features || []}
+                          globalImportance={model?.metrics[0]?.feature_analysis?.global_importance || []}
                           modelName={model?.name}
                         />
                       </CardContent>

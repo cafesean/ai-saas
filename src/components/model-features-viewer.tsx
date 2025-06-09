@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, SortAsc, SortDesc, Filter, Download } from "lucide-react";
+import { Search, SortAsc, SortDesc, Filter, Download, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -30,61 +30,114 @@ import { Label } from "@/components/ui/label";
 import { toPercent } from "@/utils/func";
 import { mapFeatureType } from "@/lib/model-service";
 
-interface Feature {
+// Enhanced interface for new metadata structure
+interface EnhancedFeature {
   name: string;
-  type: string;
+  type: string; // original_type from metadata (e.g., 'int64', 'object', 'datetime64[ns]')
   description?: string;
-  importance?: number;
-  required?: boolean;
-  format?: string;
-  range?: string;
-  defaultValue?: string;
-  tags?: string[];
+  encoding: string; // encoding method (e.g., 'woe', 'onehot', 'scaling')
+  coefficient?: number; // from global_importance
+  abs_coefficient?: number; // from global_importance
+  importance_rank?: number; // calculated rank based on abs_coefficient
+}
+
+interface GlobalImportance {
+  feature: string;
+  coefficient: number;
+  abs_coefficient: number;
 }
 
 interface ModelFeaturesViewerProps {
-  features: Feature[];
-  modelName: string;
+  features: Array<{
+    name: string;
+    type: string;
+    description?: string;
+    encoding: string;
+  }>;
+  globalImportance?: GlobalImportance[];
+  modelName?: string;
 }
 
 export function ModelFeaturesViewer({
-  features,
-  modelName,
+  features = [],
+  globalImportance = [],
+  modelName = "Model",
 }: ModelFeaturesViewerProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortField, setSortField] = useState<string | null>("name");
+  const [sortField, setSortField] = useState<string | null>("importance_rank");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedEncodings, setSelectedEncodings] = useState<string[]>([]);
 
-  // Get unique feature types and tags
+  // Create a map of feature importance data for quick lookup
+  const importanceMap = globalImportance.reduce((map, item) => {
+    map[item.feature] = {
+      coefficient: item.coefficient,
+      abs_coefficient: item.abs_coefficient,
+    };
+    return map;
+  }, {} as Record<string, { coefficient: number; abs_coefficient: number }>);
+
+  // Sort global importance by abs_coefficient to get rankings
+  const sortedImportance = [...globalImportance].sort((a, b) => b.abs_coefficient - a.abs_coefficient);
+  const rankMap = sortedImportance.reduce((map, item, index) => {
+    map[item.feature] = index + 1;
+    return map;
+  }, {} as Record<string, number>);
+
+  // Debug logging to understand the data structure
+  console.log('ModelFeaturesViewer - features prop:', features);
+  console.log('ModelFeaturesViewer - features type:', typeof features);
+  console.log('ModelFeaturesViewer - features isArray:', Array.isArray(features));
+  
+  // Ensure features is an array before processing
+  const featuresArray = Array.isArray(features) ? features : [];
+  
+  // Enhance features with coefficient data
+  const enhancedFeatures: EnhancedFeature[] = featuresArray.map(feature => {
+    const importance = importanceMap[feature.name];
+    return {
+      ...feature,
+      coefficient: importance?.coefficient,
+      abs_coefficient: importance?.abs_coefficient,
+      importance_rank: rankMap[feature.name],
+    };
+  });
+
+  // Get unique feature types and encodings for filtering
   const featureTypes = Array.from(
-    new Set(features.map((feature) => feature.type)),
+    new Set(enhancedFeatures.map((feature) => feature.type)),
   );
-  const allTags = Array.from(
-    new Set(features.flatMap((feature) => feature.tags || [])),
+  const encodingTypes = Array.from(
+    new Set(enhancedFeatures.map((feature) => feature.encoding)),
   );
-  // Filter features based on search query, selected types, and tags
-  const filteredFeatures = features.filter((feature) => {
+
+  // Filter features based on search query, selected types, and encodings
+  const filteredFeatures = enhancedFeatures.filter((feature) => {
     const matchesSearch =
       feature.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      feature.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      feature.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      feature.encoding.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType =
       selectedTypes.length === 0 || selectedTypes.includes(feature.type);
-    const matchesTags =
-      selectedTags.length === 0 ||
-      feature.tags?.some((tag) => selectedTags.includes(tag));
-    return matchesSearch && matchesType && matchesTags;
+    const matchesEncoding =
+      selectedEncodings.length === 0 || selectedEncodings.includes(feature.encoding);
+    return matchesSearch && matchesType && matchesEncoding;
   });
 
   // Sort features
   const sortedFeatures = [...filteredFeatures].sort((a, b) => {
     if (!sortField) return 0;
 
-    const fieldA = a[sortField as keyof Feature];
-    const fieldB = b[sortField as keyof Feature];
+    const fieldA = a[sortField as keyof EnhancedFeature];
+    const fieldB = b[sortField as keyof EnhancedFeature];
 
-    if (fieldA === undefined || fieldB === undefined) return 0;
+    if (fieldA === undefined || fieldB === undefined) {
+      // Put undefined values at the end
+      if (fieldA === undefined && fieldB === undefined) return 0;
+      if (fieldA === undefined) return sortDirection === "asc" ? 1 : -1;
+      if (fieldB === undefined) return sortDirection === "asc" ? -1 : 1;
+    }
 
     const comparison =
       typeof fieldA === "string"
@@ -109,10 +162,24 @@ export function ModelFeaturesViewer({
     );
   };
 
-  const toggleTagFilter = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+  const toggleEncodingFilter = (encoding: string) => {
+    setSelectedEncodings((prev) =>
+      prev.includes(encoding) ? prev.filter((e) => e !== encoding) : [...prev, encoding],
     );
+  };
+
+  // Get coefficient direction icon
+  const getCoefficientIcon = (coefficient?: number) => {
+    if (coefficient === undefined) return <Minus className="h-3 w-3 text-muted-foreground" />;
+    if (coefficient > 0) return <TrendingUp className="h-3 w-3 text-green-600" />;
+    if (coefficient < 0) return <TrendingDown className="h-3 w-3 text-red-600" />;
+    return <Minus className="h-3 w-3 text-muted-foreground" />;
+  };
+
+  // Format coefficient display
+  const formatCoefficient = (coefficient?: number) => {
+    if (coefficient === undefined) return "N/A";
+    return coefficient >= 0 ? `+${coefficient.toFixed(4)}` : coefficient.toFixed(4);
   };
 
   return (
@@ -122,7 +189,7 @@ export function ModelFeaturesViewer({
           <div>
             <CardTitle>Model Features</CardTitle>
             <CardDescription>
-              Features available for {modelName}
+              Features available for {modelName} ({enhancedFeatures.length} total)
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -139,7 +206,7 @@ export function ModelFeaturesViewer({
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search features..."
+              placeholder="Search features by name, description, or encoding..."
               className="pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -151,7 +218,7 @@ export function ModelFeaturesViewer({
               <PopoverTrigger asChild>
                 <SampleButton variant="outline" size="sm">
                   <Filter className="mr-2 h-4 w-4" />
-                  Filter Types
+                  Data Types
                   {selectedTypes.length > 0 && (
                     <Badge variant="secondary" className="ml-2">
                       {selectedTypes.length}
@@ -179,24 +246,24 @@ export function ModelFeaturesViewer({
               <PopoverTrigger asChild>
                 <SampleButton variant="outline" size="sm">
                   <Filter className="mr-2 h-4 w-4" />
-                  Filter Tags
-                  {selectedTags.length > 0 && (
+                  Encodings
+                  {selectedEncodings.length > 0 && (
                     <Badge variant="secondary" className="ml-2">
-                      {selectedTags.length}
+                      {selectedEncodings.length}
                     </Badge>
                   )}
                 </SampleButton>
               </PopoverTrigger>
               <PopoverContent className="w-56" align="end">
                 <div className="space-y-2">
-                  {allTags.map((tag, tn) => (
-                    <div key={tag} className="flex items-center space-x-2">
+                  {encodingTypes.map((encoding) => (
+                    <div key={encoding} className="flex items-center space-x-2">
                       <SampleCheckbox
-                        id={`tag-${tn}`}
-                        checked={!!(tag && selectedTags.includes(tag))}
-                        onCheckedChange={() => toggleTagFilter(tag || "")}
+                        id={`encoding-${encoding}`}
+                        checked={selectedEncodings.includes(encoding)}
+                        onCheckedChange={() => toggleEncodingFilter(encoding)}
                       />
-                      <Label htmlFor={`tag-${tag}`}>{tag}</Label>
+                      <Label htmlFor={`encoding-${encoding}`}>{encoding}</Label>
                     </div>
                   ))}
                 </div>
@@ -210,7 +277,7 @@ export function ModelFeaturesViewer({
             <TableHeader>
               <TableRow>
                 <TableHead
-                  className="w-[200px] cursor-pointer"
+                  className="w-[180px] cursor-pointer"
                   onClick={() => toggleSort("name")}
                 >
                   <div className="flex items-center">
@@ -228,7 +295,7 @@ export function ModelFeaturesViewer({
                   onClick={() => toggleSort("type")}
                 >
                   <div className="flex items-center">
-                    Type
+                    Original Type
                     {sortField === "type" &&
                       (sortDirection === "asc" ? (
                         <SortAsc className="ml-2 h-4 w-4" />
@@ -237,14 +304,13 @@ export function ModelFeaturesViewer({
                       ))}
                   </div>
                 </TableHead>
-                <TableHead>Description</TableHead>
                 <TableHead
                   className="cursor-pointer"
-                  onClick={() => toggleSort("importance")}
+                  onClick={() => toggleSort("encoding")}
                 >
                   <div className="flex items-center">
-                    Importance
-                    {sortField === "importance" &&
+                    Encoding
+                    {sortField === "encoding" &&
                       (sortDirection === "asc" ? (
                         <SortAsc className="ml-2 h-4 w-4" />
                       ) : (
@@ -252,8 +318,35 @@ export function ModelFeaturesViewer({
                       ))}
                   </div>
                 </TableHead>
-                <TableHead>Required</TableHead>
-                <TableHead>Tags</TableHead>
+                <TableHead
+                  className="cursor-pointer"
+                  onClick={() => toggleSort("importance_rank")}
+                >
+                  <div className="flex items-center">
+                    Importance Rank
+                    {sortField === "importance_rank" &&
+                      (sortDirection === "asc" ? (
+                        <SortAsc className="ml-2 h-4 w-4" />
+                      ) : (
+                        <SortDesc className="ml-2 h-4 w-4" />
+                      ))}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer"
+                  onClick={() => toggleSort("coefficient")}
+                >
+                  <div className="flex items-center">
+                    Coefficient
+                    {sortField === "coefficient" &&
+                      (sortDirection === "asc" ? (
+                        <SortAsc className="ml-2 h-4 w-4" />
+                      ) : (
+                        <SortDesc className="ml-2 h-4 w-4" />
+                      ))}
+                  </div>
+                </TableHead>
+                <TableHead>Description</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -268,50 +361,40 @@ export function ModelFeaturesViewer({
                         {mapFeatureType(feature.type)}
                       </Badge>
                     </TableCell>
-                    <TableCell
-                      className="max-w-[300px] truncate"
-                      title={feature.description}
-                    >
-                      {feature.description}
+                    <TableCell>
+                      <Badge variant="secondary">
+                        {feature.encoding}
+                      </Badge>
                     </TableCell>
                     <TableCell>
-                      {feature.importance !== undefined ? (
-                        <div className="flex items-center">
-                          <div className="w-full bg-muted rounded-full h-2.5 mr-2">
-                            <div
-                              className="bg-primary h-2.5 rounded-full"
-                              style={{
-                                width: `${toPercent(
-                                  Math.abs(feature.importance) > 1
-                                    ? 1
-                                    : Math.abs(feature.importance),
-                                  2,
-                                )}`,
-                              }}
-                            ></div>
-                          </div>
-                          <span className="text-xs">
-                            {toPercent(feature.importance, 2)}
-                          </span>
+                      {feature.importance_rank ? (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="w-8 h-6 justify-center">
+                            #{feature.importance_rank}
+                          </Badge>
+                          {feature.abs_coefficient && (
+                            <div className="text-xs text-muted-foreground">
+                              {toPercent(feature.abs_coefficient, 2)}
+                            </div>
+                          )}
                         </div>
                       ) : (
-                        "N/A"
+                        <span className="text-muted-foreground text-sm">N/A</span>
                       )}
                     </TableCell>
-                    <TableCell>{feature.required ? "Yes" : "No"}</TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {feature.tags &&
-                          feature.tags.map((tag) => (
-                            <Badge
-                              key={tag}
-                              variant="secondary"
-                              className="text-xs"
-                            >
-                              {tag}
-                            </Badge>
-                          ))}
+                      <div className="flex items-center gap-2">
+                        {getCoefficientIcon(feature.coefficient)}
+                        <span className="text-sm font-mono">
+                          {formatCoefficient(feature.coefficient)}
+                        </span>
                       </div>
+                    </TableCell>
+                    <TableCell
+                      className="max-w-[200px] truncate"
+                      title={feature.description}
+                    >
+                      {feature.description || <span className="text-muted-foreground text-sm">—</span>}
                     </TableCell>
                   </TableRow>
                 ))
