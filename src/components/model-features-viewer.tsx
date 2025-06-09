@@ -89,12 +89,45 @@ export function ModelFeaturesViewer({
   console.log('ModelFeaturesViewer - features prop:', features);
   console.log('ModelFeaturesViewer - features type:', typeof features);
   console.log('ModelFeaturesViewer - features isArray:', Array.isArray(features));
+  console.log('ModelFeaturesViewer - features length:', features?.length);
+  console.log('ModelFeaturesViewer - globalImportance:', globalImportance);
+  console.log('ModelFeaturesViewer - first feature:', features?.[0]);
   
   // Ensure features is an array before processing
   const featuresArray = Array.isArray(features) ? features : [];
   
+  // Normalize features to match expected structure
+  const normalizedFeatures = featuresArray.map(feature => {
+    // Handle both old and new feature structures
+    if (typeof feature === 'string') {
+      // Old structure: features might be just strings
+      return {
+        name: feature,
+        type: 'unknown',
+        description: '',
+        encoding: 'unknown'
+      };
+    } else if (feature && typeof feature === 'object') {
+      // Cast to any to handle different possible structures
+      const featureAny = feature as any;
+      // Ensure all required properties exist
+      return {
+        name: featureAny.name || 'Unknown',
+        type: featureAny.type || featureAny.dataType || 'unknown',
+        description: featureAny.description || '',
+        encoding: featureAny.encoding || 'unknown'
+      };
+    }
+    return {
+      name: 'Unknown',
+      type: 'unknown', 
+      description: '',
+      encoding: 'unknown'
+    };
+  });
+  
   // Enhance features with coefficient data
-  const enhancedFeatures: EnhancedFeature[] = featuresArray.map(feature => {
+  const enhancedFeatures: EnhancedFeature[] = normalizedFeatures.map(feature => {
     const importance = importanceMap[feature.name];
     return {
       ...feature,
@@ -103,6 +136,9 @@ export function ModelFeaturesViewer({
       importance_rank: rankMap[feature.name],
     };
   });
+
+  console.log('ModelFeaturesViewer - normalizedFeatures count:', normalizedFeatures.length);
+  console.log('ModelFeaturesViewer - enhancedFeatures count:', enhancedFeatures.length);
 
   // Get unique feature types and encodings for filtering
   const featureTypes = Array.from(
@@ -188,7 +224,7 @@ export function ModelFeaturesViewer({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
           <div>
             <CardTitle>Model Features</CardTitle>
-            <CardDescription>
+                        <CardDescription>
               Features available for {modelName} ({enhancedFeatures.length} total)
             </CardDescription>
           </div>
