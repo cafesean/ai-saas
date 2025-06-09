@@ -132,8 +132,26 @@ export async function POST(
     } else {
       throw new Error("Endpoint not found");
     }
-  } catch (error) {
+  } catch (error: any) {
     console.log(error);
-    return NextResponse.json({ error }, { status: 400 });
+    if (
+      error &&
+      error?.response.data &&
+      error?.response.data.message.includes("Error in workflow")
+    ) {
+      return NextResponse.json(
+        {
+          error: {
+            message: `N8N: ${error?.response.data.message}`,
+          },
+        },
+        { status: 400 },
+      );
+    } else {
+      return NextResponse.json(
+        { error: error?.response.data },
+        { status: 400 },
+      );
+    }
   }
 }

@@ -112,7 +112,7 @@ const ModelsPage = () => {
     files: File[];
     importType: string;
   }) => {
-    if (!name || !version || !files || files.length === 0) {
+    if (!name || !files || files.length === 0) {
       toast.error("Please fill all required fields and upload files.");
       return;
     } else if (files.length > 2) {
@@ -177,26 +177,23 @@ const ModelsPage = () => {
         });
         if (allSuccess) {
           let framework = "PyTorch";
-          let metrics = metadata?.performance_metrics || null;
+          let metrics = metadata?.metrics || null;
           let modelType = metadata?.model_type || "Classification";
-          let features = metadata?.feature_names || [];
-          let featureTypes = metadata?.feature_types || null;
-          let featuresImportants = metadata?.feature_importance || null;
+          let features = metadata?.features || [];
           let outputs = metadata?.outputs || null;
-          if (features && featureTypes) {
-            features = formatFeatures(
-              features,
-              featureTypes,
-              featuresImportants,
-            );
-          }
+          let inference = metadata?.inference || null;
           if (metrics) {
             metrics = {
               ...metrics,
-              ks: `${metrics.ks}`,
-              accuracy: `${metrics.accuracy}`,
-              auroc: `${metrics.auroc}`,
-              gini: `${metrics.gini}`,
+              ks: `${metrics.summary.ks_statistic || 0 }`,
+              accuracy: `${metrics.summary.accuracy || 0}`,
+              auroc: `${metrics.summary.auc || 0}`,
+              gini: `${metrics.summary.gini || 0}`,
+              precision: `${metrics.summary.precision || 0}`,
+              recall: `${metrics.summary.recall || 0}`,
+              f1: `${metrics.summary.f1 || 0}`,
+              brier_score: `${metrics.summary.brier_score || 0}`,
+              log_loss: `${metrics.summary.log_loss || 0}`,
               ksChart: metrics.ks_chart,
               accuracyChart: metrics.accuracy_chart,
               aurocChart: metrics.auroc_chart,
@@ -208,6 +205,11 @@ const ModelsPage = () => {
             if (outputs) {
               metrics.outputs = {
                 outputs,
+              };
+            }
+            if (inference) {
+              metrics.inference = {
+                inference,
               };
             }
           }
