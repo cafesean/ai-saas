@@ -56,18 +56,23 @@ interface ModelFeaturesViewerProps {
   }>;
   globalImportance?: GlobalImportance[];
   modelName?: string;
+  numericalStats?: any;
+  categoricalAnalysis?: any;
 }
 
 export function ModelFeaturesViewer({
   features = [],
   globalImportance = [],
   modelName = "Model",
+  numericalStats = {},
+  categoricalAnalysis = {},
 }: ModelFeaturesViewerProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<string | null>("importance_rank");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedEncodings, setSelectedEncodings] = useState<string[]>([]);
+  const [selectedFeature, setSelectedFeature] = useState<{name: string; type: string} | null>(null);
 
   // Create a map of feature importance data for quick lookup
   const importanceMap = globalImportance.reduce((map, item) => {
@@ -216,6 +221,14 @@ export function ModelFeaturesViewer({
   const formatCoefficient = (coefficient?: number) => {
     if (coefficient === undefined) return "N/A";
     return coefficient >= 0 ? `+${coefficient.toFixed(4)}` : coefficient.toFixed(4);
+  };
+
+  // Handle feature click for drill-down
+  const handleFeatureClick = (feature: EnhancedFeature) => {
+    setSelectedFeature({
+      name: feature.name,
+      type: feature.type
+    });
   };
 
   return (
@@ -388,7 +401,11 @@ export function ModelFeaturesViewer({
             <TableBody>
               {sortedFeatures.length > 0 ? (
                 sortedFeatures.map((feature, fn) => (
-                  <TableRow key={`${feature.name}-${fn}`}>
+                  <TableRow 
+                    key={`${feature.name}-${fn}`}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleFeatureClick(feature)}
+                  >
                     <TableCell className="font-medium">
                       {feature.name}
                     </TableCell>
@@ -445,6 +462,76 @@ export function ModelFeaturesViewer({
           </Table>
         </div>
       </CardContent>
+      
+      {/* Feature Detail Modal */}
+      {selectedFeature && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setSelectedFeature(null)}>
+          <div className="bg-white rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-y-auto m-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Feature Analysis: {selectedFeature.name}</h2>
+              <button 
+                onClick={() => setSelectedFeature(null)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                ✕
+              </button>
+            </div>
+            
+            {/* Check if numerical analysis is available */}
+            {numericalStats[selectedFeature.name] ? (
+              <div className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  Numerical analysis for {selectedFeature.name}
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <h3 className="font-medium mb-2">Statistical Summary</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <strong>Good Class:</strong>
+                      <ul className="mt-1 space-y-1">
+                        <li>Mean: {numericalStats[selectedFeature.name].good_class.mean}</li>
+                        <li>Min: {numericalStats[selectedFeature.name].good_class.min}</li>
+                        <li>Max: {numericalStats[selectedFeature.name].good_class.max}</li>
+                        <li>Median: {numericalStats[selectedFeature.name].good_class.median}</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <strong>Bad Class:</strong>
+                      <ul className="mt-1 space-y-1">
+                        <li>Mean: {numericalStats[selectedFeature.name].bad_class.mean}</li>
+                        <li>Min: {numericalStats[selectedFeature.name].bad_class.min}</li>
+                        <li>Max: {numericalStats[selectedFeature.name].bad_class.max}</li>
+                        <li>Median: {numericalStats[selectedFeature.name].bad_class.median}</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : categoricalAnalysis[selectedFeature.name] ? (
+              <div className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  Categorical analysis for {selectedFeature.name}
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <h3 className="font-medium mb-2">Information Value</h3>
+                  <div className="text-lg font-semibold">
+                    {categoricalAnalysis[selectedFeature.name].information_value}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-muted-foreground">
+                  No detailed analysis available for {selectedFeature.name}
+                </div>
+                <div className="text-sm text-muted-foreground mt-2">
+                  This feature may not have numerical or categorical analysis computed yet.
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

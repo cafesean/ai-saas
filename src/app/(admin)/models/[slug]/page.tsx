@@ -36,6 +36,7 @@ import { RunInferenceDialog } from "@/components/run-inference-dialog";
 import { ModelInputSchemaViewer } from "@/components/model-input-schema-viewer";
 import { ModelOutputSchemaViewer } from "@/components/model-output-schema-viewer";
 import { ChartGrid } from "@/components/charts/dynamic-chart";
+import { NumericalFeatureDetail } from "@/components/numerical-feature-detail";
 import {
   capitalizeFirstLetterLowercase,
   toPercent,
@@ -272,7 +273,21 @@ const ModelDetail = () => {
                       features={model?.metrics[0]?.features?.features || []}
                       globalImportance={model?.metrics[0]?.feature_analysis?.global_importance || []}
                       modelName={model?.name}
+                      numericalStats={model?.metrics[0]?.feature_analysis?.numerical_stats || {}}
+                      categoricalAnalysis={model?.metrics[0]?.feature_analysis?.categorical_analysis || {}}
                     />
+
+                    {/* Numerical Feature Analysis */}
+                    {model?.metrics[0]?.feature_analysis?.numerical_stats && (
+                      <div className="mt-6">
+                        <h3 className="text-lg font-semibold mb-4">Numerical Feature Analysis</h3>
+                        <NumericalFeatureDetail
+                          featureName="credit_score"
+                          numericalStats={model.metrics[0].feature_analysis.numerical_stats}
+                        />
+                      </div>
+                    )}
+
                   </TabsContent>
 
                   <TabsContent value="performance" className="space-y-6">
