@@ -45,7 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/sample-select";
-import Breadcrumbs from "@/components/breadcrambs";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { api, useUtils } from "@/utils/trpc";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
 import { WorkflowStatus, WorkflowTypes } from "@/constants/general";

@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Breadcrumbs from "@/components/breadcrambs";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { AdminRoutes } from "@/constants/routes";
 import { api, useUtils } from "@/utils/trpc";
 import { Badge } from "@/components/ui/badge";

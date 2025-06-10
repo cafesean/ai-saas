@@ -66,7 +66,7 @@ import { SplitOutNode } from "@/components/nodes/SplitOutNode";
 import { LoopNode } from "@/components/nodes/LoopNode";
 import { RAGNode } from "@/components/nodes/RAGNode";
 import { api, useUtils } from "@/utils/trpc";
-import Breadcrumbs from "@/components/breadcrambs";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { AdminRoutes } from "@/constants/routes";
 import { WorkflowStatus, WorkflowTypes } from "@/constants/general";
 import NodePropertiesPanel from "./components/NodePropertiesPanel";
@@ -87,7 +87,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useModalState } from "@/framework/hooks/useModalState";
-import { WorkflowTestRunDialog } from "@/components/workflow-test-run-dialog";
+import { WorkflowTestRunDialog } from "@/components/dialog/WorkflowTestRun";
 import { ModelTypes } from "@/constants/model";
 import { KnowledgeBaseStatus } from "@/constants/knowledgeBase";
 

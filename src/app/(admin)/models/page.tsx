@@ -17,8 +17,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import ImportModelDialog from "@/components/import-model-dialog";
-import { BuildModelDialog } from "@/components/build-model-dialog";
-import { ConnectExternalModelDialog } from "@/components/connect-external-model-dialog";
+import { BuildModelDialog } from "@/components/dialog/BuildModel";
+import { ConnectExternalModelDialog } from "@/components/dialog/ConnectExternal";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
 import { ModelInputType } from "@/constants/model";
 import { ModelStatus, S3_UPLOAD } from "@/constants/general";

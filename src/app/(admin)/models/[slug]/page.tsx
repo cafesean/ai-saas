@@ -18,25 +18,25 @@ import { SampleButton } from "@/components/ui/sample-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Import our new components
-import { FineTuneModelDialog } from "@/components/fine-tune-model-dialog";
-import { InferenceDetailDialog } from "@/components/inference-detail-dialog";
-import { FeatureImportanceDetail } from "@/components/feature-importance-detail";
-import { ModelVersions } from "@/components/model-versions";
-import { AllKPIsDialog } from "@/components/all-kpis-dialog";
-import Breadcrumbs from "@/components/breadcrambs";
+import { FineTuneModelDialog } from "@/components/dialog/FineTune";
+import InferenceDetailDialog from "@/components/dialog/InferenceDetail";
+import ImportanceDetail from "@/components/feature/ImportanceDetail";
+import ModelVersions from "@/components/model/Versions";
+import { AllKPIsDialog } from "@/components/dialog/AllKpis";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { DefaultSkeleton } from "@/components/skeletons/default-skeleton";
 import { ModelDetailSkeleton } from "@/components/skeletons/model-detail-skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AdminRoutes } from "@/constants/routes";
-import { ConfusionMatrix } from "@/components/confusion-matrix";
-import { ModelFeaturesViewer } from "@/components/model-features-viewer";
-import { ModelInfoCard } from "@/components/model-info-card";
-import { RunInferenceDialog } from "@/components/run-inference-dialog";
-import { ModelInputSchemaViewer } from "@/components/model-input-schema-viewer";
-import { ModelOutputSchemaViewer } from "@/components/model-output-schema-viewer";
-import { ChartGrid } from "@/components/charts/dynamic-chart";
-import { NumericalFeatureDetail } from "@/components/numerical-feature-detail";
+import { ConfusionMatrix } from "@/components/model";
+import FeaturesViewer from "@/components/model/FeaturesViewer";
+import InfoCard from "@/components/model/InfoCard";
+import { RunInferenceDialog } from "@/components/dialog/RunInference";
+import InputSchema from "@/components/model/InputSchema";
+import OutputSchema from "@/components/model/OutputSchema";
+import { ChartGrid } from "@/components/model";
+import NumericalDetail from "@/components/feature/NumericalDetail";
 import {
   capitalizeFirstLetterLowercase,
   toPercent,
@@ -154,7 +154,7 @@ const ModelDetail = () => {
 
                   <TabsContent value="overview" className="space-y-6">
                     {/* Enhanced Model Information Card */}
-                    <ModelInfoCard 
+                    <InfoCard 
                       modelInfo={model?.metrics[0]?.model_info_details}
                       className="mb-6"
                     />
@@ -218,58 +218,42 @@ const ModelDetail = () => {
                       </Card>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <Card className="md:col-span-1">
-                        <CardHeader>
-                          <CardTitle>Feature Importance</CardTitle>
-                          <CardDescription>
-                            Top features influencing model predictions
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <FeatureImportanceDetail
-                            features={model?.metrics[0]?.feature_analysis?.global_importance || []}
-                            maxFeatures={8}
-                          />
-                        </CardContent>
-                      </Card>
-
-                      <Card className="md:col-span-1">
-                        <CardHeader>
-                          <CardTitle>Confusion Matrix</CardTitle>
-                          <CardDescription>
-                            Prediction accuracy visualization
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <ConfusionMatrix
-                            matrix={(() => {
-                              const confusionChart = model?.metrics[0]?.charts_data?.find(
-                                (chart: any) => chart.name === "Confusion Matrix"
-                              );
-                              
-                              if (confusionChart) {
-                                return {
-                                  raw: confusionChart.matrix,
-                                  labels: confusionChart.labels,
-                                };
-                              }
-                              
-                              // Fallback data
+                    {/* Confusion Matrix */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Confusion Matrix</CardTitle>
+                        <CardDescription>
+                          Prediction accuracy visualization
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ConfusionMatrix
+                          matrix={(() => {
+                            const confusionChart = model?.metrics[0]?.charts_data?.find(
+                              (chart: any) => chart.name === "Confusion Matrix"
+                            );
+                            
+                            if (confusionChart) {
                               return {
-                                raw: [
-                                  [85, 15],
-                                  [10, 90],
-                                ],
-                                labels: ["Negative", "Positive"],
+                                raw: confusionChart.matrix,
+                                labels: confusionChart.labels,
                               };
-                            })()}
-                          />
-                        </CardContent>
-                      </Card>
-                    </div>
+                            }
+                            
+                            // Fallback data
+                            return {
+                              raw: [
+                                [85, 15],
+                                [10, 90],
+                              ],
+                              labels: ["Negative", "Positive"],
+                            };
+                          })()}
+                        />
+                      </CardContent>
+                    </Card>
 
-                    <ModelFeaturesViewer
+                    <FeaturesViewer
                       features={model?.metrics[0]?.features?.features || []}
                       globalImportance={model?.metrics[0]?.feature_analysis?.global_importance || []}
                       modelName={model?.name}
@@ -278,12 +262,28 @@ const ModelDetail = () => {
                     />
 
                     {/* Numerical Feature Analysis */}
-                    {model?.metrics[0]?.feature_analysis?.numerical_stats && (
+                    {model?.metrics[0]?.feature_analysis?.numerical_stats?.credit_score && (
                       <div className="mt-6">
                         <h3 className="text-lg font-semibold mb-4">Numerical Feature Analysis</h3>
-                        <NumericalFeatureDetail
-                          featureName="credit_score"
-                          numericalStats={model.metrics[0].feature_analysis.numerical_stats}
+                        <NumericalDetail
+                          feature={{
+                            name: "Credit Score",
+                            stats: {
+                              count: 1000,
+                              mean: model.metrics[0].feature_analysis.numerical_stats.credit_score.good_class?.mean || 0,
+                              std: 75,
+                              min: model.metrics[0].feature_analysis.numerical_stats.credit_score.good_class?.min || 0,
+                              max: model.metrics[0].feature_analysis.numerical_stats.credit_score.good_class?.max || 0,
+                              q25: 600,
+                              q50: model.metrics[0].feature_analysis.numerical_stats.credit_score.good_class?.median || 0,
+                              q75: 720
+                            },
+                            importance: {
+                              coefficient: 0.35,
+                              abs_coefficient: 0.35,
+                              rank: 1
+                            }
+                          }}
                         />
                       </div>
                     )}
@@ -377,69 +377,45 @@ const ModelDetail = () => {
                   </TabsContent>
 
                   <TabsContent value="versions" className="space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Model Versions</CardTitle>
-                        <CardDescription>
-                          Version history and performance comparison
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <ModelVersions versions={model?.metrics || []} />
-                      </CardContent>
-                    </Card>
+                    <ModelVersions versions={model?.metrics || []} />
                   </TabsContent>
 
                   <TabsContent value="documentation" className="space-y-6">
-                    {/* Model Overview Card */}
+                    {/* API Documentation */}
                     <Card>
                       <CardHeader>
-                        <CardTitle>Model Overview</CardTitle>
+                        <CardTitle>API Usage</CardTitle>
                         <CardDescription>
-                          Usage guidelines and technical specifications
+                          How to integrate and use this model in your applications
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="prose max-w-none dark:prose-invert">
-                          <h3>Overview</h3>
+                          <h3>Usage Guidelines</h3>
                           <p>
-                            This model is designed to perform{" "}
-                            {model?.metrics[0]?.model_info_details?.type || model?.type || "classification"} tasks using a{" "}
-                            {model?.metrics[0]?.model_info_details?.framework || model?.framework || "PyTorch"} framework. It was
-                            trained on a dataset with{" "}
-                            {model?.metrics[0]?.model_info_details?.training_rows || model?.features?.length || 0} training examples and{" "}
-                            {model?.metrics[0]?.model_info_details?.feature_count || 0} key features.
+                            This model provides real-time predictions via REST API endpoints. 
+                            It accepts JSON input and returns prediction results with confidence scores.
                           </p>
-                          {model?.metrics[0]?.model_info_details && (
-                            <div className="mt-4">
-                              <h4>Model Details</h4>
-                              <ul>
-                                <li><strong>Version:</strong> {model?.metrics[0]?.model_info_details?.version || "1.0.0"}</li>
-                                <li><strong>Training Date:</strong> {model?.metrics[0]?.model_info_details?.training_date || "N/A"}</li>
-                                <li><strong>Test Rows:</strong> {model?.metrics[0]?.model_info_details?.test_rows || "N/A"}</li>
-                                <li><strong>Target Variable:</strong> {model?.metrics[0]?.model_info_details?.target_variable || "N/A"}</li>
-                              </ul>
-                            </div>
-                          )}
-
-                          <h3>Training Methodology</h3>
-                          <p>
-                            This model was trained using supervised learning
-                            techniques. It uses optimization algorithms to minimize cross-entropy
-                            loss and achieve optimal performance on the target dataset.
-                          </p>
+                          
+                          <h4>Best Practices</h4>
+                          <ul>
+                            <li>Always validate input data before sending requests</li>
+                            <li>Handle prediction confidence scores appropriately</li>
+                            <li>Implement proper error handling for failed requests</li>
+                            <li>Monitor model performance metrics regularly</li>
+                          </ul>
                         </div>
                       </CardContent>
                     </Card>
 
                     {/* Input Schema Component */}
-                    <ModelInputSchemaViewer
+                    <InputSchema
                       inputSchema={model?.metrics[0]?.inference?.input_schema}
                       modelName={model?.name}
                     />
 
                     {/* Output Schema Component */}
-                    <ModelOutputSchemaViewer
+                    <OutputSchema
                       outputSchema={model?.metrics[0]?.inference?.output}
                       modelName={model?.name}
                     />

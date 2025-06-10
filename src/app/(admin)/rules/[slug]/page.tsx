@@ -61,7 +61,7 @@ const EditRule = () => {
           {isClient && <RuleFormBase rule={rule.data} handleUpdateRule={handleUpdateRule} />}
         </div>
       </div>
-      {update.isLoading && <FullScreenLoading />}
+      {update.isPending && <FullScreenLoading />}
     </div>
   );
 };

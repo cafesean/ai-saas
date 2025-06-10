@@ -32,7 +32,7 @@ import {
 import DecisionTableCard from "./components/DecisionTableCard";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
 import { useModalState } from "@/framework/hooks/useModalState";
-import Breadcrumbs from "@/components/breadcrambs";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { DefaultSkeleton } from "@/components/skeletons/default-skeleton";
 import { TableSkeleton } from "@/components/skeletons/table-skeleton";
