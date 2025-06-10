@@ -65,6 +65,19 @@ Ready to proceed with **SAAS-16: Enhanced Feature Importance Visualization** usi
 - **Real Confusion Matrix**: Shows actual model confusion matrix instead of placeholder
 - **Improved UX**: Better metric descriptions and formatting
 
+## Lessons Learned
+
+### RunInference Optional Chaining Fix ✅
+**Issue**: `TypeError: Cannot read properties of null (reading 'inference')` in `RunInference.tsx`
+
+**Root Cause**: Missing optional chaining in line 71: `model.metrics[0]?.inference.inference?.input_schema`
+
+**Solution**: Added proper optional chaining: `model.metrics[0]?.inference?.inference?.input_schema`
+
+**Key Learning**: Always use consistent optional chaining when accessing nested properties that might be null/undefined. The pattern should be `?.` at every level where the property might not exist.
+
+**Related Fix**: Also created missing `RoleDetails` component to resolve build error in levels page.
+
 ## Next Steps
 1. Find existing MetricCard and AllKPIsDialog components
 2. Analyze current data structure usage

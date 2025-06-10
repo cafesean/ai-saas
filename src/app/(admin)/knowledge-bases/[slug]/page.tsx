@@ -66,7 +66,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, useUtils } from "@/utils/trpc";
-import Breadcrumbs from "@/components/breadcrambs";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { KnowledgeBaseDetailSkeleton } from "@/components/skeletons/knowledge-base-detail-skeleton";
 import { AdminRoutes } from "@/constants/routes";
 import {

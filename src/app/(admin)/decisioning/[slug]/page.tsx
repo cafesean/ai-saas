@@ -27,7 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import Breadcrumbs from "@/components/breadcrambs";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { AdminRoutes } from "@/constants/routes";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
 import { DecisionStatus } from "@/constants/decisionTable";
