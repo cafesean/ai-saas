@@ -250,20 +250,18 @@ export function RunInferenceDialog({
             ) : result ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  {model.metrics[0]?.inference?.inference?.output_schema?.map(
-                    (output: any, oi: number) => (
-                      <div
-                        key={`${output.name}-${oi}`}
-                        className="bg-muted/30 p-4 rounded-md"
-                      >
-                        <div className="text-sm text-muted-foreground">
-                          {capitalizeFirstLetterLowercase(output.name)}
-                        </div>
-                        <div className="text-2xl font-bold mt-1">
-                          {result[output.name]}
-                        </div>
+                  {model.metrics[0]?.inference?.inference?.output && (
+                    <div
+                      key={`${model.metrics[0]?.inference?.inference?.output.name}`}
+                      className="bg-muted/30 p-4 rounded-md"
+                    >
+                      <div className="text-sm text-muted-foreground">
+                        {capitalizeFirstLetterLowercase(model.metrics[0]?.inference?.inference?.output.name)}
                       </div>
-                    ),
+                      <div className="text-2xl font-bold mt-1">
+                        {result[model.metrics[0]?.inference?.inference?.output.name]}
+                      </div>
+                    </div>
                   )}
                 </div>
                 <div className="rounded-md border p-4">
