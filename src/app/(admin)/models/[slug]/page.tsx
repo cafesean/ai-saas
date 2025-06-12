@@ -410,13 +410,13 @@ const ModelDetail = () => {
 
                     {/* Input Schema Component */}
                     <InputSchema
-                      inputSchema={model?.metrics[0]?.inference?.input_schema}
+                      inputSchema={model?.metrics[0]?.inference.inference?.input_schema}
                       modelName={model?.name}
                     />
 
                     {/* Output Schema Component */}
                     <OutputSchema
-                      outputSchema={model?.metrics[0]?.inference?.output}
+                      outputSchema={model?.metrics[0]?.inference.inference?.output}
                       modelName={model?.name}
                     />
                   </TabsContent>
