@@ -5,6 +5,14 @@ const nextConfig = {
     typedRoutes: true,
     serverActions: {
       bodySizeLimit: '2mb',
+      allowedOrigins: [
+        'localhost:3000',
+        'localhost:3001', 
+        process.env.NEXT_PUBLIC_BASE_URL,
+        process.env.NEXT_PUBLIC_CDN_BASE_URL,
+        // Add your production domains here
+        'your-production-domain.com',
+      ].filter(Boolean),
     },
   },
   webpack: (config, { isServer }) => {
