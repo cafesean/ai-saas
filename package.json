@@ -2,9 +2,12 @@
   "name": "project-pricing",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=18.17.0"
+  },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --turbo",
     "start": "next start",
     "lint": "next lint",
     "terser": "npx terser --compress --mangle --output $npm_config_output -- $npm_config_input"
