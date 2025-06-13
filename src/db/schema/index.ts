@@ -55,6 +55,14 @@ import {
   conversationRelations,
   conversationMessageRelations,
 } from "./knowledge_base";
+import {
+  users,
+  tenants,
+  userTenants,
+  usersRelations,
+  tenantsRelations,
+  userTenantsRelations,
+} from "./tenant";
 
 export {
   templates,
@@ -106,6 +114,12 @@ export {
   knowledgeBaseConversationRelations,
   conversationRelations,
   conversationMessageRelations,
+  users,
+  tenants,
+  userTenants,
+  usersRelations,
+  tenantsRelations,
+  userTenantsRelations,
 };
 
 export default {
@@ -158,4 +172,10 @@ export default {
   knowledgeBaseConversationRelations,
   conversationRelations,
   conversationMessageRelations,
+  users,
+  tenants,
+  userTenants,
+  usersRelations,
+  tenantsRelations,
+  userTenantsRelations,
 };

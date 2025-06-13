@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { desc, relations } from "drizzle-orm";
 import { DecisionStatus } from "@/constants/decisionTable";
+import { tenants } from "./tenant";
 
 export const decision_tables = pgTable(
   "decision_tables",
@@ -25,6 +26,10 @@ export const decision_tables = pgTable(
     status: varchar("status", { length: 100 })
       .notNull()
       .default(DecisionStatus.ACTIVE),
+    // Multi-tenancy support (SAAS-32)
+    tenantId: integer("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "restrict" }),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "date",
@@ -41,6 +46,7 @@ export const decision_tables = pgTable(
   (table) => [
     index("dt_id_idx").on(table.id),
     index("dt_uuid_idx").on(table.uuid),
+    index("dt_tenant_id_idx").on(table.tenantId),
   ],
 );
 
@@ -216,10 +222,14 @@ export const decision_table_output_results = pgTable(
 // Relations
 export const decisionTablesRelations = relations(
   decision_tables,
-  ({ many }) => ({
-    decisionTableRows: many(decision_table_rows),
-    decisionTableInputs: many(decision_table_inputs),
-    decisionTableOutputs: many(decision_table_outputs),
+  ({ one, many }) => ({
+    tenant: one(tenants, {
+      fields: [decision_tables.tenantId],
+      references: [tenants.id],
+    }),
+    rows: many(decision_table_rows),
+    inputs: many(decision_table_inputs),
+    outputs: many(decision_table_outputs),
   }),
 );
 
@@ -230,8 +240,8 @@ export const decisionTableRowsRelations = relations(
       fields: [decision_table_rows.dt_id],
       references: [decision_tables.uuid],
     }),
-    decisionTableInputConditions: many(decision_table_input_conditions),
-    decisionTableOutputResults: many(decision_table_output_results),
+    inputConditions: many(decision_table_input_conditions),
+    outputResults: many(decision_table_output_results),
   }),
 );
 
@@ -242,7 +252,7 @@ export const decisionTableInputsRelations = relations(
       fields: [decision_table_inputs.dt_id],
       references: [decision_tables.uuid],
     }),
-    decisionTableInputConditions: many(decision_table_input_conditions),
+    conditions: many(decision_table_input_conditions),
   }),
 );
 
@@ -253,18 +263,18 @@ export const decisionTableOutputsRelations = relations(
       fields: [decision_table_outputs.dt_id],
       references: [decision_tables.uuid],
     }),
-    decisionTableOutputResults: many(decision_table_output_results),
+    results: many(decision_table_output_results),
   }),
 );
 
 export const decisionTableInputConditionsRelations = relations(
   decision_table_input_conditions,
   ({ one }) => ({
-    decisionTableRow: one(decision_table_rows, {
+    row: one(decision_table_rows, {
       fields: [decision_table_input_conditions.dt_row_id],
       references: [decision_table_rows.uuid],
     }),
-    decisionTableInput: one(decision_table_inputs, {
+    input: one(decision_table_inputs, {
       fields: [decision_table_input_conditions.dt_input_id],
       references: [decision_table_inputs.uuid],
     }),
@@ -274,11 +284,11 @@ export const decisionTableInputConditionsRelations = relations(
 export const decisionTableOutputResultsRelations = relations(
   decision_table_output_results,
   ({ one }) => ({
-    decisionTableRow: one(decision_table_rows, {
+    row: one(decision_table_rows, {
       fields: [decision_table_output_results.dt_row_id],
       references: [decision_table_rows.uuid],
     }),
-    decisionTableOutput: one(decision_table_outputs, {
+    output: one(decision_table_outputs, {
       fields: [decision_table_output_results.dt_output_id],
       references: [decision_table_outputs.uuid],
     }),

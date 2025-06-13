@@ -1,0 +1,46 @@
+---
+description: understanding Jira tool use
+globs: 
+alwaysApply: false
+---
+# Jira
+## Project Key
+Always find the default project key from .env using JIRA_PROJECT_KEY.
+
+## Getting Jira Issues
+If the user's message does NOT contain a specific project AND a specific Jira Server, ask the USER to provide this information before using the tool. Always set the project key to uppercase when sending to the MCP server.
+- Always include the Issue Key with url link to issue, summary, status, epic link, and sprint.
+- The URL structure should be like: https://base_url/browse/{project_key}-{number}
+
+## Creating Jira Issues
+The project key MUST be certain. The project key is usually less 10 characters and will ONLY consist of alpha-numeric characters, never any special characters of punctuation.
+- If no assignee is mentioned, assign the issue to unassigned
+- Do NOT add any quotation marks within a JQL statement
+- Creating Epics: to create an epic, be sure to include the Epic Name as shown here: {
+  "additional_fields": {
+    "Epic Name": "{epic_name}"
+  }
+}
+- When creating stories, always set "Epic Link" to the correct Epic's issue key. If an Epic doesn't exist, ask the user to create one first, or ask to link to a Default epic (which you should create if it doesn't exist already).
+- If multiple issues need to be created, use the batch create tool. If one of the issues to be created is an epic, create that issue first so that it can be linkable by other issues.
+
+## Updating Jira Issues
+- Jira is the single source of truth for task status. Use the Jira MCP Server for all status transitions.
+- Key statues you will interact with or that will be set by other roles include:
+  - `Open` / `To Do`: Task is ready to be picked up.
+  - `In Progress`: Task is actively being worked on by a developer.
+  - `Ready for Review`: Development is complete, code is pushed, PR is created, and task is awaiting Tech Lead code review.
+  - `Ready for QA`: Tech Lead has reviewed and approved the code, PR merged, and task is awaiting QA.
+  - `In QA`: QA is actively testing the task.
+  - `Resolved`: QA has passed the task. It may await User Acceptance Testing (UAT).
+  - `Failed QA` / `Reopened`: QA found issues, or UAT failed. Task needs rework. Bugs should be logged as separate, linked Jira issues.
+  - `Closed` / `Done`: UAT passed (if applicable), and the task is considered fully complete.
+- If multiple issues need to be updated, use the batch update tool.
+- Always ensure your actions (e.g., creating a PR) are completed BEFORE updating the Jira status to reflect that state (e.g., `Ready for Review`).
+- Add informative comments to Jira tasks when updating status, especially providing PR links or summarizing test results.
+
+## Creating sprints
+- The start and end dates must be in the future.
+- The date format should be YYYY-MM-DDTHH:MM:SS+ZZZZ, where +ZZZZ is the time zone offset.
+- To add issues to the sprint, use the jira_update_issue tool and set the Sprint field in additional_fields to the sprint ID (as a number).
+- Sprint field requires a numerical value for the sprint ID, not a string.

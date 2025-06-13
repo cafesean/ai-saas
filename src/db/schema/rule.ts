@@ -13,6 +13,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { desc, relations } from 'drizzle-orm';
 import { RuleStatus } from '@/constants/general';
+import { tenants } from './tenant';
 import type {
   OperatorType,
   ConditionDataType,
@@ -29,12 +30,17 @@ export const rules = pgTable(
     status: varchar('status', { length: 100 })
       .notNull()
       .default(RuleStatus.ACTIVE),
+    // Multi-tenancy support (SAAS-32)
+    tenantId: integer('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'restrict' }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => [
     index('rule_id_idx').on(table.id),
     index('rule_uuid_idx').on(table.uuid),
+    index('rule_tenant_id_idx').on(table.tenantId),
   ],
 );
 
@@ -119,6 +125,10 @@ export const rule_flow_actions = pgTable(
 
 // Relations
 export const rulesRelations = relations(rules, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [rules.tenantId],
+    references: [tenants.id],
+  }),
   ruleFlows: many(rule_flows),
 }));
 
