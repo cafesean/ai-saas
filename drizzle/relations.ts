@@ -1,75 +1,171 @@
 import { relations } from "drizzle-orm/relations";
-import { group, groupPolicy, levels, levelRates, ratecards, roles, rolePolicy, levelRoles, org, orgUser, user } from "./schema";
+import { rules, ruleFlows, conditionGroups, conditions, knowledgeBases, conversations, conversationMessages, decisionTables, decisionTableInputs, decisionTableInputConditions, decisionTableRows, decisionTableOutputs, decisionTableOutputResults, workflows, edges, endpoints, models, inferences, knowledgeBaseDocuments, modelMetrics, nodes, ruleFlowActions, workflowRunHistory } from "./schema";
 
-export const groupPolicyRelations = relations(groupPolicy, ({one}) => ({
-	group: one(group, {
-		fields: [groupPolicy.groupId],
-		references: [group.id]
+export const ruleFlowsRelations = relations(ruleFlows, ({one, many}) => ({
+	rule: one(rules, {
+		fields: [ruleFlows.ruleId],
+		references: [rules.id]
+	}),
+	conditionGroups: many(conditionGroups),
+	ruleFlowActions: many(ruleFlowActions),
+}));
+
+export const rulesRelations = relations(rules, ({many}) => ({
+	ruleFlows: many(ruleFlows),
+}));
+
+export const conditionGroupsRelations = relations(conditionGroups, ({one, many}) => ({
+	ruleFlow: one(ruleFlows, {
+		fields: [conditionGroups.ruleFlowId],
+		references: [ruleFlows.id]
+	}),
+	conditions: many(conditions),
+}));
+
+export const conditionsRelations = relations(conditions, ({one}) => ({
+	conditionGroup: one(conditionGroups, {
+		fields: [conditions.conditionGroupId],
+		references: [conditionGroups.id]
 	}),
 }));
 
-export const groupRelations = relations(group, ({many}) => ({
-	groupPolicies: many(groupPolicy),
-}));
-
-export const levelRatesRelations = relations(levelRates, ({one}) => ({
-	level: one(levels, {
-		fields: [levelRates.levelId],
-		references: [levels.id]
+export const conversationsRelations = relations(conversations, ({one, many}) => ({
+	knowledgeBase: one(knowledgeBases, {
+		fields: [conversations.kbId],
+		references: [knowledgeBases.uuid]
 	}),
-	ratecard: one(ratecards, {
-		fields: [levelRates.ratecardId],
-		references: [ratecards.id]
-	}),
+	conversationMessages: many(conversationMessages),
 }));
 
-export const levelsRelations = relations(levels, ({many}) => ({
-	levelRates: many(levelRates),
-	levelRoles: many(levelRoles),
+export const knowledgeBasesRelations = relations(knowledgeBases, ({many}) => ({
+	conversations: many(conversations),
+	knowledgeBaseDocuments: many(knowledgeBaseDocuments),
 }));
 
-export const ratecardsRelations = relations(ratecards, ({many}) => ({
-	levelRates: many(levelRates),
-}));
-
-export const rolePolicyRelations = relations(rolePolicy, ({one}) => ({
-	role: one(roles, {
-		fields: [rolePolicy.roleId],
-		references: [roles.id]
+export const conversationMessagesRelations = relations(conversationMessages, ({one}) => ({
+	conversation: one(conversations, {
+		fields: [conversationMessages.conversationId],
+		references: [conversations.uuid]
 	}),
 }));
 
-export const rolesRelations = relations(roles, ({many}) => ({
-	rolePolicies: many(rolePolicy),
-	levelRoles: many(levelRoles),
+export const decisionTableInputsRelations = relations(decisionTableInputs, ({one, many}) => ({
+	decisionTable: one(decisionTables, {
+		fields: [decisionTableInputs.dtId],
+		references: [decisionTables.uuid]
+	}),
+	decisionTableInputConditions: many(decisionTableInputConditions),
 }));
 
-export const levelRolesRelations = relations(levelRoles, ({one}) => ({
-	level: one(levels, {
-		fields: [levelRoles.levelId],
-		references: [levels.id]
-	}),
-	role: one(roles, {
-		fields: [levelRoles.roleId],
-		references: [roles.id]
-	}),
+export const decisionTablesRelations = relations(decisionTables, ({many}) => ({
+	decisionTableInputs: many(decisionTableInputs),
+	decisionTableRows: many(decisionTableRows),
+	decisionTableOutputs: many(decisionTableOutputs),
 }));
 
-export const orgUserRelations = relations(orgUser, ({one}) => ({
-	org: one(org, {
-		fields: [orgUser.orgId],
-		references: [org.id]
+export const decisionTableInputConditionsRelations = relations(decisionTableInputConditions, ({one}) => ({
+	decisionTableInput: one(decisionTableInputs, {
+		fields: [decisionTableInputConditions.dtInputId],
+		references: [decisionTableInputs.uuid]
 	}),
-	user: one(user, {
-		fields: [orgUser.userId],
-		references: [user.id]
+	decisionTableRow: one(decisionTableRows, {
+		fields: [decisionTableInputConditions.dtRowId],
+		references: [decisionTableRows.uuid]
 	}),
 }));
 
-export const orgRelations = relations(org, ({many}) => ({
-	orgUsers: many(orgUser),
+export const decisionTableRowsRelations = relations(decisionTableRows, ({one, many}) => ({
+	decisionTableInputConditions: many(decisionTableInputConditions),
+	decisionTable: one(decisionTables, {
+		fields: [decisionTableRows.dtId],
+		references: [decisionTables.uuid]
+	}),
+	decisionTableOutputResults: many(decisionTableOutputResults),
 }));
 
-export const userRelations = relations(user, ({many}) => ({
-	orgUsers: many(orgUser),
+export const decisionTableOutputsRelations = relations(decisionTableOutputs, ({one, many}) => ({
+	decisionTable: one(decisionTables, {
+		fields: [decisionTableOutputs.dtId],
+		references: [decisionTables.uuid]
+	}),
+	decisionTableOutputResults: many(decisionTableOutputResults),
+}));
+
+export const decisionTableOutputResultsRelations = relations(decisionTableOutputResults, ({one}) => ({
+	decisionTableOutput: one(decisionTableOutputs, {
+		fields: [decisionTableOutputResults.dtOutputId],
+		references: [decisionTableOutputs.uuid]
+	}),
+	decisionTableRow: one(decisionTableRows, {
+		fields: [decisionTableOutputResults.dtRowId],
+		references: [decisionTableRows.uuid]
+	}),
+}));
+
+export const edgesRelations = relations(edges, ({one}) => ({
+	workflow: one(workflows, {
+		fields: [edges.workflowId],
+		references: [workflows.uuid]
+	}),
+}));
+
+export const workflowsRelations = relations(workflows, ({many}) => ({
+	edges: many(edges),
+	endpoints: many(endpoints),
+	nodes: many(nodes),
+	workflowRunHistories: many(workflowRunHistory),
+}));
+
+export const endpointsRelations = relations(endpoints, ({one}) => ({
+	workflow: one(workflows, {
+		fields: [endpoints.workflowId],
+		references: [workflows.uuid]
+	}),
+}));
+
+export const inferencesRelations = relations(inferences, ({one}) => ({
+	model: one(models, {
+		fields: [inferences.modelId],
+		references: [models.id]
+	}),
+}));
+
+export const modelsRelations = relations(models, ({many}) => ({
+	inferences: many(inferences),
+	modelMetrics: many(modelMetrics),
+}));
+
+export const knowledgeBaseDocumentsRelations = relations(knowledgeBaseDocuments, ({one}) => ({
+	knowledgeBase: one(knowledgeBases, {
+		fields: [knowledgeBaseDocuments.kbId],
+		references: [knowledgeBases.uuid]
+	}),
+}));
+
+export const modelMetricsRelations = relations(modelMetrics, ({one}) => ({
+	model: one(models, {
+		fields: [modelMetrics.modelId],
+		references: [models.id]
+	}),
+}));
+
+export const nodesRelations = relations(nodes, ({one}) => ({
+	workflow: one(workflows, {
+		fields: [nodes.workflowId],
+		references: [workflows.uuid]
+	}),
+}));
+
+export const ruleFlowActionsRelations = relations(ruleFlowActions, ({one}) => ({
+	ruleFlow: one(ruleFlows, {
+		fields: [ruleFlowActions.ruleFlowId],
+		references: [ruleFlows.id]
+	}),
+}));
+
+export const workflowRunHistoryRelations = relations(workflowRunHistory, ({one}) => ({
+	workflow: one(workflows, {
+		fields: [workflowRunHistory.workflowId],
+		references: [workflows.uuid]
+	}),
 }));
