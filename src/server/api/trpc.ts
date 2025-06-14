@@ -63,11 +63,12 @@ export const createTRPCContext = async (opts: FetchCreateContextFnOptions) => {
   let user = null;
   let tenantId = null;
   
-  // For development, always use mock user to bypass NextAuth issues
+  // For development, use configurable mock authentication
   const isDevelopment = process.env.NODE_ENV === 'development';
   const mockUserId = process.env.NEXT_PUBLIC_MOCK_USER_ID;
+  const enableMockAuth = process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH === 'true';
   
-  if (isDevelopment && mockUserId) {
+  if (isDevelopment && enableMockAuth && mockUserId) {
     console.log('Development mode: Using mock user ID:', mockUserId);
     
     try {
@@ -104,6 +105,28 @@ export const createTRPCContext = async (opts: FetchCreateContextFnOptions) => {
       }
     } catch (error) {
       console.error('Error loading mock user:', error);
+    }
+  } else if (isDevelopment && !enableMockAuth) {
+    // Development mode with real authentication - require login
+    try {
+      session = await getServerSession(authOptions);
+      
+      if (session?.user) {
+        user = session.user;
+        
+        // Get user's primary tenant (first tenant if multiple)
+        if (session.user.id) {
+          const userTenant = await db.query.userTenants.findFirst({
+            where: eq(userTenants.userId, session.user.id),
+            with: {
+              tenant: true,
+            },
+          });
+          tenantId = userTenant?.tenantId || null;
+        }
+      }
+    } catch (error) {
+      console.error('NextAuth session failed:', error instanceof Error ? error.message : 'Unknown error');
     }
   } else {
     // Production: Use NextAuth
@@ -201,6 +224,7 @@ const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
       // Infers the session and user as non-nullable
       session: ctx.session,
       user: ctx.user,
+      tenantId: ctx.tenantId,
     },
   });
 });

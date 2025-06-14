@@ -2,17 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 import { db } from "@/db/config";
 import schema from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
+import { withApiAuth, createApiError, createApiSuccess } from "@/lib/api-auth";
 
 const instance = axios.create();
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { modelId: string } },
-  res: NextResponse,
-) {
+export const POST = withApiAuth(async (request: NextRequest, user) => {
   try {
-    const { modelId } = await params;
+    // Extract modelId from URL path
+    const urlParts = request.url.split('/');
+    const modelId = urlParts[urlParts.length - 1];
+    
+    if (!modelId) {
+      return createApiError("Model ID is required", 400);
+    }
+    
     let payload = null;
     try {
       payload = await request.json();
@@ -20,17 +24,16 @@ export async function POST(
       console.warn("Body is not valid JSON or is empty.");
     }
 
+    // Add tenant isolation to model query
     const model = await db.query.models.findFirst({
-      where: eq(schema.models.uuid, modelId),
+      where: and(
+        eq(schema.models.uuid, modelId),
+        eq(schema.models.tenantId, user.tenantId)
+      ),
     });
+    
     if (!model) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Model is not found.",
-        },
-        { status: 400 },
-      );
+      return createApiError("Model not found or access denied", 404);
     }
     if (model) {
       const inferenceOptions = {
@@ -58,10 +61,7 @@ export async function POST(
           output: inferenceResponse.data,
         });
       }
-      return NextResponse.json({
-        success: true,
-        data: inferenceResponse.data,
-      });
+      return createApiSuccess(inferenceResponse.data);
     } else {
       throw new Error("Model not found");
     }
@@ -69,22 +69,15 @@ export async function POST(
     console.log(error);
     if (
       error &&
-      error?.response.data &&
-      error?.response.data.message.includes("Error in workflow")
+      error?.response?.data &&
+      error?.response?.data?.message?.includes("Error in workflow")
     ) {
-      return NextResponse.json(
-        {
-          error: {
-            message: `N8N: ${error?.response.data.message}`,
-          },
-        },
-        { status: 400 },
-      );
+      return createApiError(`N8N: ${error?.response.data.message}`, 400);
     } else {
-      return NextResponse.json(
-        { error: error?.response.data },
-        { status: 400 },
-      );
+      return createApiError(error?.response?.data || "Model inference failed", 400);
     }
   }
-}
+}, {
+  requireAuth: true,
+  requiredPermission: 'model:inference'
+});

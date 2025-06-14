@@ -8,6 +8,7 @@ import { rulesRouter } from "./routers/rule.router";
 import { decisionTableRouter } from "./routers/decisionTable.router";
 import { knowledgeBasesRouter } from "./routers/knowledge-bases.router";
 import { dashboardRouter } from "./routers/dashboard.router";
+import { adminRouter } from "./routers/admin.router";
 /**
  *
 /**
@@ -31,6 +32,7 @@ export const appRouter = createTRPCRouter({
   decisionTable: decisionTableRouter,
   knowledgeBases: knowledgeBasesRouter,
   dashboard: dashboardRouter,
+  admin: adminRouter,
 });
 
 // Export type definition of API

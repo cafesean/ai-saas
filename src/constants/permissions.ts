@@ -281,6 +281,12 @@ export const TENANT_PERMISSIONS: Permission[] = [
 // Administrative Permissions
 export const ADMIN_PERMISSIONS: Permission[] = [
   {
+    slug: "admin:full_access",
+    name: "Full Administrative Access",
+    description: "Complete administrative privileges across all system functions",
+    category: "admin",
+  },
+  {
     slug: "admin:system_settings",
     name: "System Settings",
     description: "Access and modify system-wide settings",
@@ -361,6 +367,34 @@ export const ENDPOINT_PERMISSIONS: Permission[] = [
   },
 ];
 
+// File Management Permissions
+export const FILE_PERMISSIONS: Permission[] = [
+  {
+    slug: "file:upload",
+    name: "Upload Files",
+    description: "Upload files to the system",
+    category: "file",
+  },
+  {
+    slug: "file:read",
+    name: "View Files",
+    description: "View and download files",
+    category: "file",
+  },
+  {
+    slug: "file:delete",
+    name: "Delete Files",
+    description: "Delete files from the system",
+    category: "file",
+  },
+  {
+    slug: "file:manage_s3",
+    name: "Manage S3 Storage",
+    description: "Direct access to S3 storage operations",
+    category: "file",
+  },
+];
+
 // All permissions combined
 export const ALL_PERMISSIONS: Permission[] = [
   ...WORKFLOW_PERMISSIONS,
@@ -373,6 +407,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   ...ADMIN_PERMISSIONS,
   ...WIDGET_PERMISSIONS,
   ...ENDPOINT_PERMISSIONS,
+  ...FILE_PERMISSIONS,
 ];
 
 // Permission slugs for easy reference

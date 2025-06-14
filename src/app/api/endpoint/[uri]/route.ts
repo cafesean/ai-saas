@@ -3,20 +3,23 @@ import axios from "axios";
 import { z } from "zod";
 import { db } from "@/db/config";
 import schema from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
 import { WorkflowRunHistoryStatus, WorkflowStatus } from "@/constants/general";
+import { withApiAuth, createApiError, createApiSuccess } from "@/lib/api-auth";
 
 const instance = axios.create();
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { uri: string } },
-  res: NextResponse,
-) {
+export const POST = withApiAuth(async (request: NextRequest, user) => {
   try {
-    const { uri } = await params;
+    // Extract URI from URL path
+    const urlParts = request.url.split('/');
+    const uri = urlParts[urlParts.length - 1];
+    
+    if (!uri) {
+      return createApiError("Endpoint URI is required", 400);
+    }
     let payload = null;
     try {
       payload = await request.json();

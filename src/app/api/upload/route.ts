@@ -3,17 +3,15 @@ import { v4 as uuidv4 } from "uuid";
 
 import { uploadFileToS3 } from "@/lib/aws-s3";
 import { S3_UPLOAD } from "@/constants/general";
+import { withApiAuth, createApiError, createApiSuccess } from "@/lib/api-auth";
 
-export async function POST(request: NextRequest) {
+export const POST = withApiAuth(async (request: NextRequest, user) => {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
 
     if (!file) {
-      return NextResponse.json(
-        { success: false, error: "No file provided" },
-        { status: 400 },
-      );
+      return createApiError("No file provided", 400);
     }
 
     const originalName = file.name;
@@ -22,10 +20,7 @@ export async function POST(request: NextRequest) {
     const fileSize = file.size;
 
     if (fileSize > S3_UPLOAD.maxSize) {
-      return NextResponse.json(
-        { success: false, error: "File size exceeds limit" },
-        { status: 400 },
-      );
+      return createApiError("File size exceeds limit", 400);
     }
 
     const customPath = (formData.get("path") as string) || "";
@@ -45,33 +40,24 @@ export async function POST(request: NextRequest) {
     });
 
     if (!result.success) {
-      return NextResponse.json(
-        { success: false, error: result.error || "Upload failed" },
-        { status: 500 },
-      );
+      return createApiError(result.error || "Upload failed", 500);
     }
 
     // Return successful upload information
-    return NextResponse.json(
-      {
-        success: true,
-        data: {
-          uuid: uuidv4(),
-          url: result.url,
-          key: result.key,
-          fileName: fileName,
-          originalName: originalName,
-          contentType: fileType,
-          size: fileSize,
-        },
-      },
-      { status: 200 },
-    );
+    return createApiSuccess({
+      uuid: uuidv4(),
+      url: result.url,
+      key: result.key,
+      fileName: fileName,
+      originalName: originalName,
+      contentType: fileType,
+      size: fileSize,
+    });
   } catch (error) {
     console.error("File upload processing error:", error);
-    return NextResponse.json(
-      { success: false, error: "File upload processing failed" },
-      { status: 500 },
-    );
+    return createApiError("File upload processing failed", 500);
   }
-}
+}, { 
+  requireAuth: true,
+  requiredPermission: 'file:upload' 
+});
