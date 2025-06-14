@@ -15,7 +15,7 @@ const EditRule = () => {
   const params = useParams();
   const slug = params.slug as string;
   const utils = useUtils();
-  let rule = api.rule.getByUUID.useQuery({ uuid: slug });
+  const rule = api.rule.getByUUID.useQuery({ uuid: slug });
   const update = api.rule.update.useMutation({
     onSuccess: (data) => {
       utils.rule.getAll.invalidate();

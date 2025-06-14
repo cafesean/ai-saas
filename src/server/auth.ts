@@ -87,7 +87,7 @@ export const authOptions: NextAuthOptions = {
       switch (trigger) {
         case "signIn": {
           console.log('jwt in signIn:', trigger, user, token);
-          let databaseUser = await findUserByEmail(user?.email ?? token.email["default"]);
+          const databaseUser = await findUserByEmail(user?.email ?? token.email["default"]);
           // It will be always available, because already validated on signIn
           if (!databaseUser) {
             throw new TRPCError({
@@ -109,7 +109,7 @@ export const authOptions: NextAuthOptions = {
         }
         case "update": {
           // console.log('jwt in update:', trigger, user, token);
-          let databaseUser = await findUserByEmail(token.email);
+          const databaseUser = await findUserByEmail(token.email);
           // It will be always available, because already validated on signIn
           if (!databaseUser) {
             throw new TRPCError({

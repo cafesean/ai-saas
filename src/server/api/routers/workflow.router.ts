@@ -473,8 +473,8 @@ const generateN8NNodesAndN8NConnections = async (
   edges: any[],
   tx: any,
 ) => {
-  let n8nNodes: any[] = [];
-  let n8nConnections: any = {};
+  const n8nNodes: any[] = [];
+  const n8nConnections: any = {};
   for (const node of nodes) {
     switch (node.type) {
       case NodeTypes.trigger:
@@ -599,7 +599,7 @@ const generateN8NNodesAndN8NConnections = async (
           const decisionTableInputs = decisionTable.decisionTableInputs;
           const decisionTableOutputs = decisionTable.decisionTableOutputs;
           if (decisionTableRows.length > 0) {
-            let decisionTableJSCodeArray = [];
+            const decisionTableJSCodeArray = [];
             // Generate decision table array
             let decisionTableCode = "const decisionTable = [\n";
             decisionTableRows.forEach((row: any, rn: number) => {
