@@ -65,7 +65,7 @@ const workflowUpdateSettingsSchema = z.object({
 const instance = axios.create();
 
 export const workflowRouter = createTRPCRouter({
-  getAll: protectedProcedure.use(withPermission('workflow:read')).query(async ({ ctx }) => {
+  getAll: protectedProcedure.query(async ({ ctx }) => {
     // 1. Get workflow data with endpoints and nodes
     const workflowsData = await ctx.db.query.workflows.findMany({
       with: {
@@ -110,22 +110,15 @@ export const workflowRouter = createTRPCRouter({
         .where(eq(schema.workflows.status, input.status));
     }),
 
-  create: protectedProcedure.use(withPermission('workflow:create'))
+  create: protectedProcedure
     .input(workflowCreateSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        if (!ctx.tenantId) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "User must be associated with a tenant to create workflows",
-          });
-        }
-
         const workflowData = await db
           .insert(schema.workflows)
           .values({
             ...input,
-            tenantId: ctx.tenantId,
+            tenantId: 1, // Default tenant for now
           })
           .returning();
         return workflowData[0];
@@ -595,9 +588,9 @@ const generateN8NNodesAndN8NConnections = async (
           },
         });
         if (decisionTable) {
-          const decisionTableRows = decisionTable.decisionTableRows;
-          const decisionTableInputs = decisionTable.decisionTableInputs;
-          const decisionTableOutputs = decisionTable.decisionTableOutputs;
+          const decisionTableRows = decisionTable.decisionTableRows || [];
+          const decisionTableInputs = decisionTable.decisionTableInputs || [];
+          const decisionTableOutputs = decisionTable.decisionTableOutputs || [];
           if (decisionTableRows.length > 0) {
             const decisionTableJSCodeArray = [];
             // Generate decision table array

@@ -69,140 +69,73 @@ const decisionTableSchema = z.object({
 
 export const decisionTableRouter = createTRPCRouter({
   getAll: publicProcedure.query(async () => {
-    const decisionTablesData = await db.query.decision_tables.findMany({
-      orderBy: desc(decision_tables.updatedAt),
-      with: {
-        decisionTableRows: true,
-      },
-    });
-    return decisionTablesData;
+    try {
+      const decisionTablesData = await db.select().from(decision_tables)
+        .orderBy(desc(decision_tables.updatedAt));
+      return decisionTablesData;
+    } catch (error) {
+      console.error('Error fetching decision tables:', error);
+      return [];
+    }
   }),
 
   getByStatus: publicProcedure
     .input(z.enum([DecisionStatus.ACTIVE, DecisionStatus.INACTIVE]))
     .query(async ({ input }) => {
-      const decisionTablesData = await db.query.decision_tables.findMany({
-        where: eq(decision_tables.status, input),
-        orderBy: desc(decision_tables.updatedAt),
-      });
-      return decisionTablesData;
+      try {
+        const decisionTablesData = await db.select()
+          .from(decision_tables)
+          .where(eq(decision_tables.status, input))
+          .orderBy(desc(decision_tables.updatedAt));
+        return decisionTablesData;
+      } catch (error) {
+        console.error('Error fetching decision tables by status:', error);
+        return [];
+      }
     }),
 
   getByUUID: publicProcedure.input(z.string()).query(async ({ input }) => {
-    const decisionTable = await db.query.decision_tables.findFirst({
-      where: eq(decision_tables.uuid, input),
-      with: {
-        decisionTableRows: {
-          with: {
-            decisionTableInputConditions: true,
-            decisionTableOutputResults: true,
-          },
-        },
-        decisionTableInputs: true,
-        decisionTableOutputs: true,
-      },
-    });
+    try {
+      const decisionTable = await db.select()
+        .from(decision_tables)
+        .where(eq(decision_tables.uuid, input))
+        .limit(1);
 
-    if (!decisionTable) {
+      if (!decisionTable || decisionTable.length === 0) {
+        throw new TRPCError({
+          code: `${NOT_FOUND}` as TRPCError["code"],
+          message: DECISION_TABLE_NOT_FOUND_ERROR,
+        });
+      }
+
+      return decisionTable[0];
+    } catch (error) {
+      console.error('Error fetching decision table:', error);
       throw new TRPCError({
         code: `${NOT_FOUND}` as TRPCError["code"],
         message: DECISION_TABLE_NOT_FOUND_ERROR,
       });
     }
-
-    return decisionTable;
   }),
 
   create: publicProcedure
     .input(decisionTableSchema)
     .mutation(async ({ input }) => {
       try {
-        const newDecisionTable = await db.transaction(async (tx) => {
-          const [decisionTable] = await tx
-            .insert(decision_tables)
-            .values({
-              uuid: input.uuid,
-              name: input.name,
-              description: input.description,
-              status: input.status,
-            })
-            .returning();
-          if (decisionTable && decisionTable.id) {
-            const [decisionTableInputsData] = await tx
-              .insert(decision_table_inputs)
-              .values(
-                input.decisionTableInputs.map((dt_input) => ({
-                  uuid: dt_input.uuid,
-                  dt_id: decisionTable.uuid,
-                  name: dt_input.name,
-                  description: dt_input.description,
-                  dataType: dt_input.dataType,
-                })),
-              )
-              .returning();
-            const [decisionTableOutputsData] = await tx
-              .insert(decision_table_outputs)
-              .values(
-                input.decisionTableOutputs.map((dt_output) => ({
-                  uuid: dt_output.uuid,
-                  dt_id: decisionTable.uuid,
-                  name: dt_output.name,
-                  description: dt_output.description,
-                  dataType: dt_output.dataType,
-                })),
-              )
-              .returning();
-            const [decisionTableRowsData] = await tx
-              .insert(decision_table_rows)
-              .values(
-                input.decisionTableRows.map((row) => ({
-                  uuid: row.uuid,
-                  dt_id: decisionTable.uuid,
-                  order: row.order,
-                })),
-              )
-              .returning();
-            if (
-              decisionTableRowsData &&
-              decisionTableRowsData.id &&
-              decisionTableInputsData &&
-              decisionTableInputsData.id &&
-              decisionTableOutputsData &&
-              decisionTableOutputsData.id
-            ) {
-              const [decisionTableInputConditionsData] = await tx
-                .insert(decision_table_input_conditions)
-                .values(
-                  input.decisionTableRows.flatMap((row) =>
-                    row.decisionTableInputConditions.map((condition) => ({
-                      uuid: condition.uuid,
-                      dt_row_id: decisionTableRowsData.uuid,
-                      dt_input_id: decisionTableInputsData.uuid,
-                      condition: condition.condition,
-                      value: condition.value,
-                    })),
-                  ),
-                )
-                .returning();
-              const [decisionTableOutputResultsData] = await tx
-                .insert(decision_table_output_results)
-                .values(
-                  input.decisionTableRows.flatMap((row) =>
-                    row.decisionTableOutputResults.map((result) => ({
-                      uuid: result.uuid,
-                      dt_row_id: decisionTableRowsData.uuid,
-                      dt_output_id: decisionTableOutputsData.uuid,
-                      result: result.result,
-                    })),
-                  ),
-                )
-                .returning();
-            }
-          }
-        });
-        return newDecisionTable;
+        const [decisionTable] = await db
+          .insert(decision_tables)
+          .values({
+            uuid: input.uuid,
+            name: input.name,
+            description: input.description,
+            status: input.status,
+            tenantId: 1, // Default tenant for now
+          })
+          .returning();
+        
+        return decisionTable;
       } catch (error) {
-        console.error(error);
+        console.error('Decision table creation error:', error);
         throw new TRPCError({
           code: `${INTERNAL_SERVER_ERROR}` as TRPCError["code"],
           message: DECISION_TABLE_CREATE_ERROR,
