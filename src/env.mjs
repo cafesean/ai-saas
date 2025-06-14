@@ -17,16 +17,17 @@ const server = z.object({
     (str) => process.env.NEXTAUTH_URL ? str : "https://" + process.env.VERCEL_URL,
     z.string().url(),
   ),
-  SMTP_HOST: z.string(),
-  SMTP_PORT: z.string(),
-  SMTP_USER: z.string(),
-  SMTP_PASSWORD: z.string(),
-  SMTP_FROM_MAIL: z.string(),
-  SQS_URL: z.string(),
-  AWS_ACC_KEY_ID: z.string(),
-  AWS_REGION: z.string(),
-  AWS_SECRET_ACCESS_KEY: z.string(),
-  OPENAI_API_KEY: z.string(),
+  // Make these optional for development
+  SMTP_HOST: process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
+  SMTP_PORT: process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
+  SMTP_USER: process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
+  SMTP_PASSWORD: process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
+  SMTP_FROM_MAIL: process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
+  SQS_URL: process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
+  AWS_ACC_KEY_ID: process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
+  AWS_REGION: process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
+  OPENAI_API_KEY: process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
 });
 
 /**
@@ -41,22 +42,22 @@ const client = z.object({
     // This makes Vercel deployments not fail if you don't set NEXTAUTH_URL
     // Since NextAuth.js automatically uses the VERCEL_URL if present.
     (str) => process.env.NEXT_PUBLIC_NEXTAUTH_URL ? str : "https://" + process.env.VERCEL_URL,
-    z.string().url(),
-  ),
+    z.string().url().optional(),
+  ).optional(),
   NEXT_PUBLIC_BASE_URL: z.preprocess(
     // This makes Vercel deployments not fail if you don't set NEXTAUTH_URL
     // Since NextAuth.js automatically uses the VERCEL_URL if present.
     (str) => process.env.NEXT_PUBLIC_BASE_URL ? str : "https://" + process.env.VERCEL_URL,
-    z.string().url(),
-  ),
+    z.string().url().optional(),
+  ).optional(),
   NEXT_PUBLIC_CDN_BASE_URL: z.preprocess(
     // This makes Vercel deployments not fail if you don't set NEXTAUTH_URL
     // Since NextAuth.js automatically uses the VERCEL_URL if present.
     (str) => process.env.NEXT_PUBLIC_CDN_BASE_URL ? str : "https://" + process.env.VERCEL_URL,
-    z.string().url(),
-  ),
+    z.string().url().optional(),
+  ).optional(),
   NEXT_PUBLIC_NETWORK: z.string().optional(),
-  NEXT_PUBLIC_AI_API_URL: z.string(),
+  NEXT_PUBLIC_AI_API_URL: process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
 });
 
 /**

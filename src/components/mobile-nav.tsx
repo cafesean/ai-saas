@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, Brain } from "lucide-react";
+import { type Route } from "next";
+import { Menu, Brain, LogOut, User, Settings } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
 
 import { SampleButton } from "@/components/ui/sample-button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -20,6 +22,14 @@ import {
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
+  const { data: session } = useSession();
+
+  const handleLogout = async () => {
+    await signOut({ 
+      redirect: true,
+      callbackUrl: '/login'
+    });
+  };
 
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
@@ -58,18 +68,34 @@ export function MobileNav() {
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">
-                  Mohammed Al-Farsi
+                  {session?.user?.name || 'User'}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  m.alfarsi@example.sa
+                  {session?.user?.email || 'No email'}
                 </p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={"/profile" as Route} className="flex items-center">
+                <User className="mr-2 h-4 w-4" />
+                Profile
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={"/settings/general" as Route} className="flex items-center">
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Log out</DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={handleLogout}
+              className="flex items-center text-red-600 focus:text-red-600"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Log out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

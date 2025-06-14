@@ -1,0 +1,214 @@
+import { db } from "@/db/config";
+import type { GetServerSidePropsContext } from "next";
+import { getServerSession, type NextAuthOptions } from 'next-auth';
+import CredentialsProvider from "next-auth/providers/credentials";
+import { env } from "@/env.mjs";
+import bcrypt from 'bcrypt';
+import { users } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+
+/**
+* Options for NextAuth.js used to configure adapters, providers, callbacks,
+* etc.
+**/
+export const authOptions: NextAuthOptions = {
+  callbacks: {
+    jwt: async ({ token, user, trigger }) => {
+      console.log('JWT callback triggered:', { trigger, user: user?.email, tokenSub: token.sub });
+      
+      if (trigger === "signIn" && user) {
+        console.log('Processing signIn for user:', user.email);
+        token.sub = user.uuid || user.id.toString();
+        token.userId = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.username = user.username;
+        token.picture = user.avatar;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
+        console.log('JWT token updated:', { sub: token.sub, userId: token.userId, email: token.email });
+      }
+      
+      return token;
+    },
+    session: async ({ session, token }) => {
+      console.log('Session callback triggered:', { sessionUser: session.user?.email, tokenSub: token.sub });
+      
+      if (token && session.user) {
+        session.user.id = token.userId as number;
+        session.user.uuid = token.sub as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        session.user.username = token.username as string;
+        session.user.avatar = token.picture as string;
+        session.user.firstName = token.firstName as string;
+        session.user.lastName = token.lastName as string;
+        session.user.roles = [];
+        session.user.orgUser = [];
+      }
+      
+      console.log('Session callback result:', { 
+        userId: session.user?.id, 
+        email: session.user?.email 
+      });
+      
+      return session;
+    }
+  },
+  pages: {
+    signIn: "/login",
+    error: "/login",
+  },
+  secret: env.NEXTAUTH_SECRET,
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60,
+  },
+  providers: [
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { 
+          label: "Email", 
+          type: "email",
+          placeholder: "admin@example.com"
+        },
+        password: { 
+          label: "Password", 
+          type: "password",
+          placeholder: "password"
+        }
+      },
+      async authorize(credentials) {
+        console.log("=== AUTHORIZE FUNCTION CALLED ===");
+        console.log("Credentials received:", { 
+          email: credentials?.email, 
+          passwordLength: credentials?.password?.length 
+        });
+
+        if (!credentials?.email || !credentials?.password) {
+          console.log("❌ Missing credentials");
+          return null;
+        }
+
+        try {
+          console.log("🔍 Searching for user:", credentials.email);
+          
+          const userData = await db.query.users.findFirst({
+            where: eq(users.email, credentials.email)
+          });
+
+          console.log("User lookup result:", !!userData);
+          if (userData) {
+            console.log("User data found:", {
+              id: userData.id,
+              email: userData.email,
+              hasPassword: !!userData.password
+            });
+          }
+
+          if (!userData) {
+            console.log("❌ User not found in database");
+            return null;
+          }
+
+          if (!userData.password) {
+            console.log("❌ User has no password set");
+            return null;
+          }
+
+          console.log("🔐 Comparing passwords...");
+          
+          const isValidPassword = await bcrypt.compare(credentials.password, userData.password);
+          console.log("Password comparison result:", isValidPassword);
+          
+          if (!isValidPassword) {
+            console.log("❌ Invalid password");
+            return null;
+          }
+
+          console.log("✅ Authentication successful for:", credentials.email);
+
+          const userResult = {
+            id: userData.id,
+            email: userData.email,
+            name: userData.name || userData.email,
+            uuid: userData.uuid || userData.id.toString(),
+            username: userData.username || "",
+            password: userData.password,
+            orgUser: [],
+            roles: [],
+            avatar: userData.avatar || "",
+            firstName: userData.firstName || '',
+            lastName: userData.lastName || '',
+          };
+
+          console.log("🎯 Returning user object:", {
+            id: userResult.id,
+            email: userResult.email,
+            name: userResult.name,
+            uuid: userResult.uuid
+          });
+
+          return userResult;
+        } catch (error) {
+          console.error("❌ Auth error:", error);
+          return null;
+        }
+      }
+    }),
+  ],
+  debug: process.env.NODE_ENV === "development",
+  logger: {
+    error(code, metadata) {
+      console.error("NextAuth Error:", code, metadata);
+    },
+    warn(code) {
+      console.warn("NextAuth Warning:", code);
+    },
+    debug(code, metadata) {
+      console.log("NextAuth Debug:", code, metadata);
+    },
+  },
+};
+
+// Helper function to find user by email
+const findUserByEmail = async (email: string) => {
+  console.log('in findUserByEmail: email', email);
+  
+  try {
+    const userData = await db.query.users.findFirst({
+      where: eq(users.email, email)
+    });
+
+    if (!userData) {
+      console.log('User not found for email:', email);
+      return null;
+    }
+
+    return {
+      id: userData.id,
+      uuid: userData.uuid || "",
+      name: userData.name || "",
+      username: userData.username || "",
+      email: email,
+      password: userData.password,
+      avatar: userData.avatar,
+      firstName: userData.firstName || '',
+      lastName: userData.lastName || '',
+    };
+  } catch (error) {
+    console.error('Error in findUserByEmail:', error);
+    return null;
+  }
+};
+
+/**
+* Wrapper for `getServerSession`
+**/
+export const getServerAuthSession = (ctx: {
+  req: GetServerSidePropsContext["req"];
+  res: GetServerSidePropsContext["res"];
+}) => {
+  return getServerSession(ctx.req, ctx.res, authOptions);
+}; 

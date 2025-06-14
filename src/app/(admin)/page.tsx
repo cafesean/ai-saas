@@ -26,6 +26,7 @@ import { SampleButton } from "@/components/ui/sample-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatNumber, getTimeAgo } from "@/utils/func";
 import { AdminRoutes } from "@/constants/routes";
+import { AuthDebug } from "@/components/debug/AuthDebug";
 
 // Prevent static prerendering to fix TRPC issues
 export const dynamic = "force-dynamic";
@@ -34,6 +35,9 @@ export default function Home() {
   const { data: stats, isLoading, error } = api.dashboard.getStats.useQuery();
   return (
     <div className="flex flex-col w-full">
+      {/* Temporary debug component */}
+      <AuthDebug />
+      
       <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>

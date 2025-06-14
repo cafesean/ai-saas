@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 import { db } from '@/db/config';
 import { permissions, rolePermissions, roles } from '@/db/schema';
-import { eq, asc, inArray } from 'drizzle-orm';
+import { eq, asc, inArray, count } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 
 export const permissionRouter = createTRPCRouter({
@@ -15,6 +15,40 @@ export const permissionRouter = createTRPCRouter({
         .orderBy(asc(permissions.category), asc(permissions.name));
     }),
 
+  // Get all permissions with role usage statistics
+  getAllWithUsage: protectedProcedure.use(withPermission('admin:role_management'))
+    .query(async ({ ctx }) => {
+      // Get all permissions
+      const allPermissions = await db.select()
+        .from(permissions)
+        .where(eq(permissions.isActive, true))
+        .orderBy(asc(permissions.category), asc(permissions.name));
+
+      // Get role usage for each permission
+      const permissionsWithUsage = await Promise.all(
+        allPermissions.map(async (permission) => {
+          // Get roles that have this permission
+          const rolesWithPermission = await db.select({
+            roleId: roles.id,
+            roleName: roles.name,
+            isSystemRole: roles.isSystemRole,
+          })
+            .from(roles)
+            .innerJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+            .where(eq(rolePermissions.permissionId, permission.id))
+            .orderBy(asc(roles.name));
+
+          return {
+            ...permission,
+            roleCount: rolesWithPermission.length,
+            roles: rolesWithPermission,
+          };
+        })
+      );
+
+      return permissionsWithUsage;
+    }),
+
   // Get permissions by category
   getByCategory: protectedProcedure.use(withPermission('admin:role_management'))
     .input(z.string())
@@ -23,6 +57,21 @@ export const permissionRouter = createTRPCRouter({
         .from(permissions)
         .where(eq(permissions.category, input))
         .orderBy(asc(permissions.name));
+    }),
+
+  // Get all permission categories with counts
+  getCategoriesWithCounts: protectedProcedure.use(withPermission('admin:role_management'))
+    .query(async ({ ctx }) => {
+      const result = await db.select({
+        category: permissions.category,
+        count: count(),
+      })
+        .from(permissions)
+        .where(eq(permissions.isActive, true))
+        .groupBy(permissions.category)
+        .orderBy(asc(permissions.category));
+      
+      return result.filter(r => r.category);
     }),
 
   // Get all permission categories
@@ -74,6 +123,45 @@ export const permissionRouter = createTRPCRouter({
       }
 
       return permission;
+    }),
+
+  // Get permission statistics
+  getStats: protectedProcedure.use(withPermission('admin:role_management'))
+    .query(async ({ ctx }) => {
+      // Total permissions
+      const totalPermissions = await db.select({ count: count() })
+        .from(permissions)
+        .where(eq(permissions.isActive, true));
+
+      // Permissions by category
+      const permissionsByCategory = await db.select({
+        category: permissions.category,
+        count: count(),
+      })
+        .from(permissions)
+        .where(eq(permissions.isActive, true))
+        .groupBy(permissions.category)
+        .orderBy(asc(permissions.category));
+
+      // Most used permissions (by role count)
+      const mostUsedPermissions = await db.select({
+        permissionId: permissions.id,
+        slug: permissions.slug,
+        name: permissions.name,
+        roleCount: count(),
+      })
+        .from(permissions)
+        .leftJoin(rolePermissions, eq(permissions.id, rolePermissions.permissionId))
+        .where(eq(permissions.isActive, true))
+        .groupBy(permissions.id, permissions.slug, permissions.name)
+        .orderBy(count())
+        .limit(10);
+
+      return {
+        totalPermissions: totalPermissions[0]?.count || 0,
+        categoryCounts: permissionsByCategory.filter(c => c.category),
+        mostUsedPermissions,
+      };
     }),
 
   // Create new permission (for system admin use)

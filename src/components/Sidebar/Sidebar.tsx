@@ -18,6 +18,7 @@ import {
   User,
   Shield,
   Users,
+  Key,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -153,19 +154,19 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
     {
       title: "Models",
       icon: Brain,
-      permission: "models:read", // Requires model read permission
+      // permission: "model:read", // Temporarily removed for testing
       children: [
         {
           title: "All Models",
           href: AdminRoutes.models,
           icon: Brain,
-          permission: "models:read",
+          // permission: "model:read", // Temporarily removed for testing
         },
         {
           title: "Model Registry",
           href: AdminRoutes.modelRegistry,
           icon: Database,
-          permission: "models:manage", // Higher permission for registry
+          // permission: "model:create", // Temporarily removed for testing
         },
       ],
     },
@@ -173,43 +174,43 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
       title: "Workflows",
       href: AdminRoutes.workflows,
       icon: GitBranch,
-      permission: "workflow:read", // Basic workflow access
+      // permission: "workflow:read", // Temporarily removed for testing
     },
     {
       title: "Decisioning",
       href: AdminRoutes.decisionTables,
       icon: FileText,
-      permission: "decisioning:read", // Decision table access
+      // permission: "decision_table:read", // Temporarily removed for testing
     },
     {
       title: "Analytics",
       href: "/analytics",
       icon: BarChart3,
-      anyPermissions: ["analytics:read", "admin:full_access"], // Analytics or admin access
+      // anyPermissions: ["admin:full_access"], // Temporarily removed for testing
     },
     {
       title: "Knowledge Bases",
       href: AdminRoutes.knowledgebase,
       icon: Database,
-      permission: "knowledge_bases:read",
+      // permission: "knowledge_base:read", // Temporarily removed for testing
     },
     {
       title: "AI Docs",
       href: "/documents",
       icon: File,
-      permission: "documents:read",
+      // permission: "admin:full_access", // Temporarily removed for testing
     },
     {
       title: "Content Repo",
       href: "/content-repo",
       icon: File,
-      permission: "content:read",
+      // permission: "admin:full_access", // Temporarily removed for testing
     },
     {
       title: "Widgets",
       href: "/widgets",
       icon: Layout,
-      permission: "widgets:read",
+      // permission: "admin:full_access", // Temporarily removed for testing
     },
     {
       title: "API Docs",
@@ -223,15 +224,21 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
   const adminNavItems: NavItem[] = [
     {
       title: "Role Management",
-      href: "/roles",
+      href: AdminRoutes.roles,
       icon: Shield,
-      permission: "admin:role_management",
+      // anyPermissions: ["role:read", "admin:full_access"], // Temporarily removed for testing
+    },
+    {
+      title: "Permissions",
+      href: AdminRoutes.permissions, 
+      icon: Key,
+      // anyPermissions: ["permission:read", "admin:full_access"], // Temporarily removed for testing
     },
     {
       title: "User Management", 
       href: "/users",
       icon: Users,
-      permission: "admin:user_management",
+      // permission: "admin:full_access", // Temporarily removed for testing
     },
   ];
 
@@ -251,25 +258,25 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
           title: "Organizations",
           href: "/settings/organizations",
           icon: Building,
-          permission: "organization:manage",
+          // permission: "admin:full_access", // Temporarily removed for testing
         },
         {
           title: "Users",
           href: "/settings/users",
           icon: User,
-          permission: "admin:user_management",
+          // permission: "admin:full_access", // Temporarily removed for testing
         },
         {
           title: "API Keys",
           href: "/settings/api-keys",
           icon: Code,
-          permission: "api_keys:manage",
+          // permission: "admin:full_access", // Temporarily removed for testing
         },
         {
           title: "Templates",
           href: "/settings/templates",
           icon: FileText,
-          permission: "workflow:manage_templates",
+          // permission: "workflow:create", // Temporarily removed for testing
         },
       ],
     },
@@ -295,24 +302,22 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
           ))}
           
           {/* Admin navigation section with visual separator */}
-          <WithPermission anyPermissions={["admin:role_management", "admin:user_management"]} hideWhenUnauthorized>
-            <div className="my-2 border-t border-border pt-2">
-              <div className="px-3 pb-2">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Administration
-                </h4>
-              </div>
-              {adminNavItems.map((item, index) => (
-                <NavItemComponent
-                  key={`admin-${index}`}
-                  item={item}
-                  pathname={pathname}
-                  expanded={expanded}
-                  toggleExpanded={toggleExpanded}
-                />
-              ))}
+          <div className="my-2 border-t border-border pt-2">
+            <div className="px-3 pb-2">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Administration
+              </h4>
             </div>
-          </WithPermission>
+            {adminNavItems.map((item, index) => (
+              <NavItemComponent
+                key={`admin-${index}`}
+                item={item}
+                pathname={pathname}
+                expanded={expanded}
+                toggleExpanded={toggleExpanded}
+              />
+            ))}
+          </div>
         </nav>
       </ScrollArea>
       <div className="mt-auto border-t">

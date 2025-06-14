@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 import { TRPCProvider } from "@/framework/providers/TRPCProvider";
 import { Toaster } from "sonner";
+import { AuthProvider } from "@/components/providers/auth-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -28,24 +29,26 @@ export default function RootLayout({
           "min-h-screen bg-background antialiased",
         )}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <TRPCProvider>
-            {children}
-            <Toaster
-              className="custom-toaster"
-              richColors
-              position="top-center"
-              duration={5000}
-              closeButton
-              gap={8}
-            />
-          </TRPCProvider>
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <TRPCProvider>
+              {children}
+              <Toaster
+                className="custom-toaster"
+                richColors
+                position="top-center"
+                duration={5000}
+                closeButton
+                gap={8}
+              />
+            </TRPCProvider>
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );
