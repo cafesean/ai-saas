@@ -4,6 +4,7 @@ export const Routes = {
 
 export const AdminRoutes = {
   roles: "/roles",
+  permissions: "/permissions",
   levels: "/levels",
   ratecards: "/ratecards",
   models: "/models",

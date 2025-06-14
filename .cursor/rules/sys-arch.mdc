@@ -91,10 +91,9 @@ src/
 │ ├── aws-s3.ts # AWS S3 client and utility functions
 │ ├── model-service.ts # Mock model service (should be replaced by tRPC)
 │ ├── parser/ # Parsers (e.g., workflow-parser.ts for n8n)
-│ └── prisma.ts # Prisma client (potentially unused or for specific part)
 │ └── utils.ts # General utility functions (cn)
 ├── prisma/ # Prisma ORM files
-│ └── schema.prisma # Prisma schema definition (seems to be the primary schema now)
+│ └── schema.prisma # Prisma schema definition (only used for pushing and pulling)
 ├── schemas/ # Zod schemas for validation
 │ ├── index.ts
 │ └── knowledge-bases.ts
@@ -107,9 +106,9 @@ src/
 ├── styles/ # Global styles (already in app/globals.css)
 ├── types/ # Application-specific TypeScript type definitions
 └── env.mjs # Environment variable validation (T3 Env)
-## 3. Database Design (Primarily Drizzle with PostgreSQL, Prisma also present)
+## 3. Database Design (Drizzle with PostgreSQL)
 
-The primary database schema appears to be managed by Drizzle ORM, targeting PostgreSQL. A `prisma/schema.prisma` file also exists, which might be used for other parts of the application or represent an ongoing transition. For this architecture document, we will focus on the Drizzle schema found in `src/db/schema/`.
+The primary database schema is managed by Drizzle ORM, targeting PostgreSQL.
 
 Key entities include:
 *   `models`, `model_metrics`, `inferences`
@@ -119,7 +118,7 @@ Key entities include:
 *   `decision_tables`, `decision_table_rows`, `decision_table_inputs`, `decision_table_outputs`, `decision_table_input_conditions`, `decision_table_output_results`
 *   `knowledge_bases`, `knowledge_base_documents`, `conversations`, `conversation_messages`
 *   `templates` (for n8n), `node_types` (for n8n)
-*   Authentication tables managed by NextAuth.js (implicitly, likely via Prisma adapter if `prisma/schema.prisma` is used for auth).
+*   Authentication tables managed by NextAuth.js
 *   Pricing-related tables (`roles`, `levels`, `rate_cards`, `level_rates`, `pricing_roles`, `pricings`) are defined in `src/db/default-schema.ts` and `src/db/queries.ts`, suggesting a separate or potentially older module for pricing.
 
 *(Refer to `DB.MD` for a detailed schema breakdown based on Drizzle definitions).*
@@ -168,7 +167,6 @@ NextAuth.js is used for user authentication and session management.
     *   Configuration is in `src/server/auth.ts_`.
     *   Uses JWT strategy for sessions.
     *   Includes a CredentialsProvider for email/password login.
-    *   The Prisma schema (`prisma/schema.prisma`) contains NextAuth.js default models (`User`, `Account`, `Session`, `VerificationToken`), suggesting Prisma is used as the adapter for storing authentication data. This contrasts with the Drizzle ORM used for other application data.
     *   Session data is accessible on the server via tRPC context (if integrated) and on the client via `useSession` hook.
 
 ## 6. Environment Variables
@@ -212,7 +210,7 @@ Environment variables are managed for configuration flexibility.
     *   Google Drive for file selection.
 *   **Database Schema Management:** Drizzle Kit is likely used for schema migrations (inferred from `package.json` and typical Drizzle usage).
 *   **Client-Side State Management:** Zustand is used for managing global client-side state, while tRPC's integration with React Query handles server state and caching.
-*   **Separation of ORMs:** The system uses Drizzle ORM for primary application data and appears to use Prisma for authentication-related data via NextAuth.js. This is an unusual setup that might introduce complexity.
+*   **ORM:** The system uses Drizzle ORM for primary application data.
 
 ## 9. Common Problems to Avoid (General Best Practices)
 

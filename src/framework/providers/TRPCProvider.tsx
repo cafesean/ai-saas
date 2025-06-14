@@ -3,8 +3,16 @@
 import * as React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink, loggerLink } from '@trpc/client';
+import { SessionProvider } from 'next-auth/react';
 import { api, getBaseUrl } from '@/utils/trpc';
+import { useAuthSync } from '@/framework/store/auth.store';
 import superjson from 'superjson';
+
+// Auth sync component
+function AuthSyncProvider({ children }: { children: React.ReactNode }) {
+  useAuthSync(); // This will sync the NextAuth session with our Zustand store
+  return <>{children}</>;
+}
 
 export function TRPCProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = React.useState(() => new QueryClient({
@@ -46,6 +54,7 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
         }),
         httpBatchLink({
           url: `${getBaseUrl()}/api/trpc`,
+          transformer: superjson,
           headers() {
             return {};
           },
@@ -53,11 +62,16 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
       ],
     })
   );
+  
   return (
-    <api.Provider client={trpcClient} queryClient={queryClient as any}>
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
-    </api.Provider>
+    <SessionProvider>
+      <api.Provider client={trpcClient} queryClient={queryClient as any}>
+        <QueryClientProvider client={queryClient}>
+          <AuthSyncProvider>
+            {children}
+          </AuthSyncProvider>
+        </QueryClientProvider>
+      </api.Provider>
+    </SessionProvider>
   );
 } 

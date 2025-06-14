@@ -6,7 +6,7 @@ import { db } from "@/db/config";
 import schema, { models, model_metrics } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 import { ModelStatus } from "@/constants/general";
-import { createTRPCRouter, publicProcedure, protectedProcedure, requiresPermission } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure } from "../trpc";
 import { NOT_FOUND, INTERNAL_SERVER_ERROR } from "@/constants/errorCode";
 import {
   MODEL_NOT_FOUND_ERROR,
@@ -15,7 +15,7 @@ import {
 } from "@/constants/errorMessage";
 
 const modelSchema = z.object({
-  uuid: z.string().min(36),
+  uuid: z.string().min(36).optional(), // Optional for creates, required for updates
   name: z.string().min(1),
   description: z.string().nullable(),
   fileName: z.string().min(1),
@@ -58,7 +58,6 @@ export const modelRouter = createTRPCRouter({
     .input(z.void())
     .query(async ({ ctx }) => {
       const modelsData = await db.query.models.findMany({
-        where: eq(models.tenantId, ctx.tenantId!),
         orderBy: desc(models.updatedAt),
         with: {
           metrics: {
@@ -69,20 +68,17 @@ export const modelRouter = createTRPCRouter({
       return modelsData;
     }),
 
-  getByStatus: requiresPermission('model:read')
+  getByStatus: protectedProcedure
     .input(z.enum([ModelStatus.ACTIVE, ModelStatus.INACTIVE]))
     .query(async ({ input, ctx }) => {
       const modelsData = await db.query.models.findMany({
-        where: and(
-          eq(models.status, input),
-          eq(models.tenantId, ctx.tenantId!)
-        ),
+        where: eq(models.status, input),
         orderBy: desc(models.updatedAt),
       });
       return modelsData;
     }),
 
-  getByUUID: requiresPermission('model:read')
+  getByUUID: protectedProcedure
     .input(z.string())
     .query(async ({ input, ctx }) => {
       if (!input) {
@@ -92,10 +88,7 @@ export const modelRouter = createTRPCRouter({
         });
       }
       const model = await db.query.models.findFirst({
-        where: and(
-          eq(models.uuid, input),
-          eq(models.tenantId, ctx.tenantId!)
-        ),
+        where: eq(models.uuid, input),
         with: {
           metrics: {
             orderBy: desc(schema.model_metrics.createdAt),
@@ -113,7 +106,7 @@ export const modelRouter = createTRPCRouter({
       return model;
     }),
 
-  create: requiresPermission('model:create')
+  create: protectedProcedure
     .input(modelSchema)
     .mutation(async ({ input, ctx }) => {
       try {
@@ -121,7 +114,6 @@ export const modelRouter = createTRPCRouter({
           const [model] = await tx
             .insert(models)
             .values({
-              uuid: input.uuid,
               name: input.name,
               description: input.description,
               fileName: input.fileName,
@@ -132,7 +124,7 @@ export const modelRouter = createTRPCRouter({
               status: input.status || ModelStatus.INACTIVE,
               type: input.type,
               framework: input.framework,
-              tenantId: ctx.tenantId!,
+              tenantId: 1, // Default tenant ID for now
             })
             .returning();
           if (model && model.id && input.metrics) {
@@ -177,8 +169,8 @@ export const modelRouter = createTRPCRouter({
       }
     }),
 
-  update: requiresPermission('model:update')
-    .input(modelSchema)
+  update: protectedProcedure
+    .input(modelSchema.required({ uuid: true })) // UUID is required for updates
     .mutation(async ({ input, ctx }) => {
       try {
         const editModel = await db.transaction(async (tx) => {
@@ -196,10 +188,7 @@ export const modelRouter = createTRPCRouter({
               type: input.type,
               framework: input.framework,
             })
-            .where(and(
-              eq(models.uuid, input.uuid),
-              eq(models.tenantId, ctx.tenantId!)
-            ))
+            .where(eq(models.uuid, input.uuid))
             .returning();
           if (model && model.id) {
             if (input.metrics) {

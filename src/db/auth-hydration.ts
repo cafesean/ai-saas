@@ -21,14 +21,83 @@ const RECONNECT_DELAY = 1000; // Start with 1 second
  * @param session - NextAuth session object
  */
 export function hydrateAuthStore(session: Session | null): void {
-  const { login, logout, setLoading } = useAuthStore.getState();
+  const { setAuthState, logout } = useAuthStore.getState();
   
-  setLoading(true);
+  setAuthState({ loading: true });
   
   try {
     if (session?.user) {
       console.log("Hydrating auth store with session data");
-      login(session);
+      
+      // Extract user profile
+      const userProfile = {
+        id: session.user.id?.toString() || '',
+        email: session.user.email || '',
+        name: session.user.name || undefined,
+        image: session.user.avatar || undefined,
+      };
+
+      // Extract primary role
+      const primaryRole = session.user.roles?.[0];
+      const role = primaryRole ? {
+        id: primaryRole.id?.toString() || '',
+        name: primaryRole.name || '',
+        description: primaryRole.title || '',
+        isSystemRole: true,
+      } : null;
+
+      // Extract permissions from roles
+      const permissions: any[] = [];
+      
+      if (session.user.roles) {
+        session.user.roles.forEach(role => {
+          if (role.policies) {
+            role.policies.forEach(policy => {
+              // Convert CRUD permissions to permission objects
+              if (policy.can_create) {
+                permissions.push({
+                  id: `${policy.id}-create`,
+                  slug: `${policy.name}:create`,
+                  name: `Create ${policy.name}`,
+                  category: policy.name,
+                });
+              }
+              if (policy.can_read) {
+                permissions.push({
+                  id: `${policy.id}-read`,
+                  slug: `${policy.name}:read`,
+                  name: `Read ${policy.name}`,
+                  category: policy.name,
+                });
+              }
+              if (policy.can_update) {
+                permissions.push({
+                  id: `${policy.id}-update`,
+                  slug: `${policy.name}:update`,
+                  name: `Update ${policy.name}`,
+                  category: policy.name,
+                });
+              }
+              if (policy.can_delete) {
+                permissions.push({
+                  id: `${policy.id}-delete`,
+                  slug: `${policy.name}:delete`,
+                  name: `Delete ${policy.name}`,
+                  category: policy.name,
+                });
+              }
+            });
+          }
+        });
+      }
+
+      setAuthState({
+        authenticated: true,
+        loading: false,
+        user: userProfile,
+        role,
+        permissions,
+      });
       
       // Start session monitoring after successful hydration
       startSessionMonitoring(session.user.id.toString());
@@ -40,8 +109,6 @@ export function hydrateAuthStore(session: Session | null): void {
   } catch (error) {
     console.error("Error hydrating auth store:", error);
     logout();
-  } finally {
-    setLoading(false);
   }
 }
 
@@ -207,8 +274,15 @@ function handlePermissionsUpdated(userId: string, permissions: string[], current
   
   console.log("Permissions updated for current user");
   
-  const { updatePermissions } = useAuthStore.getState();
-  updatePermissions(permissions);
+  const { setAuthState } = useAuthStore.getState();
+  // Convert string permissions to Permission objects
+  const permissionObjects = permissions.map((slug, index) => ({
+    id: `perm-${index}`,
+    slug,
+    name: slug.replace(/[_:]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+    category: slug.split(':')[0] || 'general',
+  }));
+  setAuthState({ permissions: permissionObjects });
 }
 
 /**
@@ -240,11 +314,11 @@ function handleRoleChanged(userId: string, currentUserId: string): void {
  * ```
  */
 export function useAuthHydration(session: Session | null, status: "loading" | "authenticated" | "unauthenticated"): void {
-  const { setLoading } = useAuthStore.getState();
+  const { setAuthState } = useAuthStore.getState();
   
   // Handle loading state
   if (status === "loading") {
-    setLoading(true);
+    setAuthState({ loading: true });
     return;
   }
   

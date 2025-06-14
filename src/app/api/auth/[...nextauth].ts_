@@ -1,5 +1,0 @@
-import NextAuth from "next-auth";
-import { authOptions } from "@server/auth";
-export const maxDuration = 300; 
-
-export default NextAuth(authOptions);
