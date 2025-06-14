@@ -17,18 +17,36 @@ import superjson from 'superjson';
 import { ZodError } from 'zod';
 import { db } from '@/db/config';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import type * as schema from '@/db/schema';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/server/auth';
+import { eq, and, count } from 'drizzle-orm';
+import schema, { userTenants, userRoles, rolePermissions, permissions } from '@/db/schema';
+
+/**
+ * Enhanced context with user authentication and tenant information
+ */
+interface CreateContextOptions {
+  session: any | null;
+  user: any | null;
+  tenantId: number | null;
+}
 
 type Context = {
   db: PostgresJsDatabase<typeof schema>;
+  session: any | null;
+  user: any | null;
+  tenantId: number | null;
 };
 
 /**
  * This helper generates the "internals" for a tRPC context.
  */
-const createInnerTRPCContext = () => {
+const createInnerTRPCContext = (opts: CreateContextOptions) => {
   return {
     db,
+    session: opts.session,
+    user: opts.user,
+    tenantId: opts.tenantId,
   };
 };
 
@@ -39,14 +57,94 @@ const createInnerTRPCContext = () => {
  * @see https://trpc.io/docs/context
  */
 export const createTRPCContext = async (opts: FetchCreateContextFnOptions) => {
-  return createInnerTRPCContext();
+  const { req } = opts;
+  
+  let session = null;
+  let user = null;
+  let tenantId = null;
+  
+  // For development, always use mock user to bypass NextAuth issues
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const mockUserId = process.env.NEXT_PUBLIC_MOCK_USER_ID;
+  
+  if (isDevelopment && mockUserId) {
+    console.log('Development mode: Using mock user ID:', mockUserId);
+    
+    try {
+      // Get mock user from database
+      const mockUser = await db.query.users.findFirst({
+        where: eq(schema.users.id, parseInt(mockUserId)),
+      });
+      
+      if (mockUser) {
+        // Get user's tenant
+        const userTenant = await db.query.userTenants.findFirst({
+          where: eq(userTenants.userId, mockUser.id),
+          with: {
+            tenant: true,
+          },
+        });
+        
+        user = {
+          id: mockUser.id,
+          email: mockUser.email,
+          name: mockUser.name,
+        };
+        tenantId = userTenant?.tenantId || null;
+        
+        // Create a mock session
+        session = {
+          user,
+          expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+        };
+        
+        console.log('Mock user loaded successfully:', { userId: user.id, tenantId });
+      } else {
+        console.error('Mock user not found in database:', mockUserId);
+      }
+    } catch (error) {
+      console.error('Error loading mock user:', error);
+    }
+  } else {
+    // Production: Use NextAuth
+    try {
+      session = await getServerSession(authOptions);
+      
+      if (session?.user) {
+        user = session.user;
+        
+        // Get user's primary tenant (first tenant if multiple)
+        if (session.user.id) {
+          const userTenant = await db.query.userTenants.findFirst({
+            where: eq(userTenants.userId, session.user.id),
+            with: {
+              tenant: true,
+            },
+          });
+          tenantId = userTenant?.tenantId || null;
+        }
+      }
+    } catch (error) {
+      console.error('NextAuth session failed:', error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
+  
+  return createInnerTRPCContext({
+    session,
+    user,
+    tenantId,
+  });
 };
 
 /**
  * Pages Router context creator
  */
 export const createPagesRouterContext = () => {
-  return createInnerTRPCContext();
+  return createInnerTRPCContext({
+    session: null,
+    user: null,
+    tenantId: null,
+  });
 };
 
 /**
@@ -87,42 +185,150 @@ export const createTRPCRouter = t.router;
  */
 export const publicProcedure = t.procedure;
 
-// const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
-//   if (!ctx.session || !ctx.session.user) {
-//     throw new TRPCError({ code: "UNAUTHORIZED" });
-//   }
-//   return next({
-//     ctx: {
-//       // infers the `session` as non-nullable
-//       session: { ...ctx.session, user: ctx.session.user },
-//     },
-//   });
-// });
+/**
+ * Authentication middleware - ensures user is logged in
+ */
+const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
+  if (!ctx.session || !ctx.user) {
+    throw new TRPCError({ 
+      code: "UNAUTHORIZED",
+      message: "Authentication required. Please log in to access this resource."
+    });
+  }
+  return next({
+    ctx: {
+      ...ctx,
+      // Infers the session and user as non-nullable
+      session: ctx.session,
+      user: ctx.user,
+    },
+  });
+});
 
-// const enforceUserIsAdmin = t.middleware(({meta, ctx, next}) => {
-//   if (!ctx.session || !ctx.session.user) {
-//     throw new TRPCError({code: "UNAUTHORIZED"});
-//   }
+/**
+ * Permission checking middleware with caching
+ */
+const createPermissionMiddleware = (requiredPermission: string) => {
+  return t.middleware(async ({ ctx, next }) => {
+    if (!ctx.session || !ctx.user) {
+      throw new TRPCError({ 
+        code: "UNAUTHORIZED",
+        message: "Authentication required for this operation."
+      });
+    }
 
-//   if (!checkUseHasRole(ctx.session, Role.Admin)) {
-//     throw new TRPCError({code: "FORBIDDEN"});
-//   }
+    if (!ctx.tenantId) {
+      throw new TRPCError({
+        code: "FORBIDDEN", 
+        message: "User must be associated with a tenant to perform this action."
+      });
+    }
 
-//   if (meta?.access) {
-//     if (!checkUserHasAccess(ctx.session, meta.access.policy, meta.access.access)) {
-//       throw new TRPCError({code: "FORBIDDEN"});
-//     }
-//   }
+    // Check if user has the required permission
+    const hasPermission = await checkUserPermission(
+      ctx.user.id, 
+      ctx.tenantId, 
+      requiredPermission
+    );
 
-//   return next({
-//     ctx: {
-//       // infers the `session` as non-nullable
-//       session: {...ctx.session, user: ctx.session.user},
-//     },
-//   });
-// });
+    if (!hasPermission) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: `Permission denied. Required permission: ${requiredPermission}`
+      });
+    }
 
-// Export reusable router and procedure helpers
-// export const router = t.router;
-// export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);
-// export const adminProcedure = t.procedure.use(enforceUserIsAdmin);
+    return next({
+      ctx: {
+        ...ctx,
+        session: ctx.session,
+        user: ctx.user,
+        tenantId: ctx.tenantId,
+      },
+    });
+  });
+};
+
+/**
+ * Helper function to check user permissions
+ */
+async function checkUserPermission(
+  userId: number, 
+  tenantId: number, 
+  permissionSlug: string
+): Promise<boolean> {
+  try {
+    // Query to check if user has the permission through their roles
+    const result = await db
+      .select({ count: count() })
+      .from(userRoles)
+      .innerJoin(rolePermissions, eq(userRoles.roleId, rolePermissions.roleId))
+      .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+      .where(
+        and(
+          eq(userRoles.userId, userId),
+          eq(userRoles.tenantId, tenantId),
+          eq(permissions.slug, permissionSlug),
+          eq(permissions.isActive, true)
+        )
+      );
+
+    return (result[0]?.count ?? 0) > 0;
+  } catch (error) {
+    console.error('Error checking user permission:', error);
+    return false;
+  }
+}
+
+/**
+ * Admin middleware - requires admin role
+ */
+const enforceUserIsAdmin = t.middleware(async ({ ctx, next }) => {
+  if (!ctx.session || !ctx.user || !ctx.tenantId) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Authentication required for admin access."
+    });
+  }
+
+  // Check if user has admin role
+  const isAdmin = await checkUserPermission(ctx.user.id, ctx.tenantId, 'admin:full_access');
+
+  if (!isAdmin) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Administrator privileges required for this operation."
+    });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      session: ctx.session,
+      user: ctx.user,
+      tenantId: ctx.tenantId,
+    },
+  });
+});
+
+/**
+ * Protected procedure - requires authentication
+ */
+export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);
+
+/**
+ * Admin procedure - requires admin privileges  
+ */
+export const adminProcedure = t.procedure.use(enforceUserIsAdmin);
+
+/**
+ * Permission-based procedure factory
+ * Usage: requiresPermission('model:create')
+ */
+export const requiresPermission = (permission: string) => {
+  return t.procedure.use(createPermissionMiddleware(permission));
+};
+
+// Export type definitions for use in other files
+export type { Context };
+export { checkUserPermission };
