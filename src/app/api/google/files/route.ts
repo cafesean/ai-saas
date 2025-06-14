@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleDriveSource, GoogleTokenUrl, GoogleGrantType, CreateGetDriveFilesUrl } from '@/constants/google';
+import { withApiAuth, createApiError, createApiSuccess } from '@/lib/api-auth';
 
 interface GoogleTokenResponse {
   access_token: string;
@@ -22,7 +23,7 @@ interface GoogleFilesResponse {
   nextPageToken?: string;
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withApiAuth(async (request: NextRequest, user) => {
   try {
     const { searchParams } = new URL(request.url);
     const pageToken = searchParams.get('pageToken');
@@ -49,10 +50,7 @@ export async function GET(request: NextRequest) {
       if (!tokenResponse.ok) {
         const errorData = await tokenResponse.json();
         console.error('Google OAuth token error:', errorData);
-        return NextResponse.json(
-          { error: 'Failed to exchange authorization code' },
-          { status: 500 }
-        );
+        return createApiError('Failed to exchange authorization code', 500);
       }
 
       const tokenData: GoogleTokenResponse = await tokenResponse.json();
@@ -61,10 +59,7 @@ export async function GET(request: NextRequest) {
 
     // Verify access token
     if (!accessToken) {
-      return NextResponse.json(
-        { error: 'Access token is required' },
-        { status: 400 }
-      );
+      return createApiError('Access token is required', 400);
     }
 
     // Get search query if provided
@@ -90,14 +85,11 @@ export async function GET(request: NextRequest) {
     if (!filesResponse.ok) {
       const errorData = await filesResponse.json();
       console.error('Google Drive API error:', errorData);
-      return NextResponse.json(
-        { error: 'Failed to fetch files from Google Drive' },
-        { status: 500 }
-      );
+      return createApiError('Failed to fetch files from Google Drive', 500);
     }
 
     const filesData: GoogleFilesResponse = await filesResponse.json();
-    return NextResponse.json({
+    return createApiSuccess({
       files: filesData.files,
       ...(code && { access_token: accessToken }), // Only include access_token if code was provided
       nextPageToken: filesData.nextPageToken,
@@ -105,9 +97,9 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error in Google Drive files API:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return createApiError('Internal server error', 500);
   }
-}
+}, {
+  requireAuth: true,
+  requiredPermission: 'file:google_drive'
+});

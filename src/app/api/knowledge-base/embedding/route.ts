@@ -68,48 +68,39 @@ export const POST = withApiAuth(async (request: NextRequest, user) => {
     );
 
     if (!result.data.success) {
-      return NextResponse.json(
-        { success: false, error: result.data.error || "Upload failed" },
-        { status: 500 },
-      );
+      return createApiError(result.data.error || "Upload failed", 500);
     }
 
     // Return successful upload information
-    return NextResponse.json(
-      {
-        success: true,
-      },
-      { status: 200 },
-    );
+    return createApiSuccess({
+      message: "File uploaded successfully"
+    });
   } catch (error) {
     console.error("File upload processing error:", error);
-    return NextResponse.json(
-      { success: false, error: "File upload processing failed" },
-      { status: 500 },
-    );
+    return createApiError("File upload processing failed", 500);
   }
-}
+}, {
+  requireAuth: true,
+  requiredPermission: 'knowledge_base:upload_document'
+});
 
-export async function DELETE(request: NextRequest, res: NextResponse) {
-  if (request.method !== "DELETE") {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Method not allowed",
-      },
-      { status: 405 },
-    );
-  }
+export const DELETE = withApiAuth(async (request: NextRequest, user) => {
   try {
     const { kbId, documents } = await request.json();
     if (!kbId || !documents) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "KB ID and Document ID is required",
-        },
-        { status: 400 },
-      );
+      return createApiError("KB ID and Document ID is required", 400);
+    }
+
+    // Verify user has access to this knowledge base (tenant isolation)
+    const knowledgeBase = await db.query.knowledge_bases.findFirst({
+      where: and(
+        eq(schema.knowledge_bases.id, parseInt(kbId)),
+        eq(schema.knowledge_bases.tenantId, user.tenantId)
+      ),
+    });
+
+    if (!knowledgeBase) {
+      return createApiError("Knowledge Base not found or access denied", 404);
     }
 
     const result = await axios.delete(
@@ -127,24 +118,17 @@ export async function DELETE(request: NextRequest, res: NextResponse) {
       },
     );
     if (!result.data.success) {
-      return NextResponse.json(
-        { success: false, error: result.data.error || "Delete failed" },
-        { status: 500 },
-      );
+      return createApiError(result.data.error || "Delete failed", 500);
     }
 
-    // Return successful upload information
-    return NextResponse.json(
-      {
-        success: true,
-      },
-      { status: 200 },
-    );
+    return createApiSuccess({
+      message: "Documents deleted successfully"
+    });
   } catch (error) {
     console.error("File delete processing error:", error);
-    return NextResponse.json(
-      { error: "File delete processing failed" },
-      { status: 500 },
-    );
+    return createApiError("File delete processing failed", 500);
   }
-}
+}, {
+  requireAuth: true,
+  requiredPermission: 'knowledge_base:delete'
+});

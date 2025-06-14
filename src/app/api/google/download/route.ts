@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleDocTypes, GoogleDriveFileUrl } from '@/constants/google';
+import { withApiAuth, createApiError } from '@/lib/api-auth';
 
-export async function GET(request: NextRequest) {
+export const GET = withApiAuth(async (request: NextRequest, user) => {
   try {
     // Get file ID
     const { searchParams } = new URL(request.url);
@@ -9,10 +10,7 @@ export async function GET(request: NextRequest) {
     const accessToken = searchParams.get('access_token');
 
     if (!fileId || !accessToken) {
-      return NextResponse.json(
-        { error: 'File ID and access token are required' },
-        { status: 400 }
-      );
+      return createApiError('File ID and access token are required', 400);
     }
 
     // First get file metadata
@@ -28,10 +26,7 @@ export async function GET(request: NextRequest) {
     if (!metadataResponse.ok) {
       const errorData = await metadataResponse.json().catch(() => ({}));
       console.error('Google Drive metadata error:', errorData);
-      return NextResponse.json(
-        { error: 'Failed to get file metadata from Google Drive' },
-        { status: 500 }
-      );
+      return createApiError('Failed to get file metadata from Google Drive', 500);
     }
 
     const metadata = await metadataResponse.json();
@@ -63,15 +58,11 @@ export async function GET(request: NextRequest) {
     if (!fileResponse.ok) {
       const errorData = await fileResponse.json().catch(() => ({}));
       console.error('Google Drive download error:', errorData);
-      return NextResponse.json(
-        { error: 'Failed to download file from Google Drive' },
-        { status: 500 }
-      );
+      return createApiError('Failed to download file from Google Drive', 500);
     }
 
     // Get file content
     const fileBlob = await fileResponse.blob();
-
 
     // Encode the filename for Content-Disposition header
     const encodedFilename = encodeURIComponent(metadata.name).replace(/['()]/g, escape);
@@ -85,9 +76,9 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error in Google Drive download API:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return createApiError('Internal server error', 500);
   }
-}
+}, {
+  requireAuth: true,
+  requiredPermission: 'file:google_drive'
+});
