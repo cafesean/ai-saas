@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 import { Route } from "next";
 import { toast } from "sonner";
+import { WithPermission } from "@/components/auth/WithPermission";
 
 import { Card } from "@/components/ui/card";
 import { SampleButton } from "@/components/ui/sample-button";
@@ -377,21 +378,30 @@ export default function WorkflowsPage() {
                           viewMode={viewMode}
                           onChange={setViewMode}
                         />
-                        <Dialog
-                          open={isCreateDialogOpen}
-                          onOpenChange={(open: boolean) => {
-                            setIsCreateDialogOpen(open);
-                            if (!open) {
-                              resetForm();
-                            }
-                          }}
-                        >
-                          <DialogTrigger asChild>
-                            <SampleButton>
+                        <WithPermission
+                          permission="workflow:create"
+                          fallback={
+                            <SampleButton disabled title="You need workflow creation permissions to create new workflows">
                               <Plus className="mr-2 h-4 w-4" />
                               New Workflow
                             </SampleButton>
-                          </DialogTrigger>
+                          }
+                        >
+                          <Dialog
+                            open={isCreateDialogOpen}
+                            onOpenChange={(open: boolean) => {
+                              setIsCreateDialogOpen(open);
+                              if (!open) {
+                                resetForm();
+                              }
+                            }}
+                          >
+                            <DialogTrigger asChild>
+                              <SampleButton>
+                                <Plus className="mr-2 h-4 w-4" />
+                                New Workflow
+                              </SampleButton>
+                            </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
                               <DialogTitle>Create New Workflow</DialogTitle>
@@ -473,6 +483,7 @@ export default function WorkflowsPage() {
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
+                        </WithPermission>
                       </div>
                     </div>
                     <Tabs defaultValue="all">
@@ -641,36 +652,65 @@ function WorkflowCard({
                 </SampleButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem className="cursor-pointer" asChild>
-                  <Link
-                    href={`${
-                      AdminRoutes.workflowDetail.replace(
-                        ":uuid",
-                        workflow.uuid,
-                      ) as Route
-                    }`}
-                    className="flex items-center gap-2 w-full h-full"
+                <WithPermission 
+                  permission="workflow:update"
+                  hideWhenUnauthorized
+                >
+                  <DropdownMenuItem className="cursor-pointer" asChild>
+                    <Link
+                      href={`${
+                        AdminRoutes.workflowDetail.replace(
+                          ":uuid",
+                          workflow.uuid,
+                        ) as Route
+                      }`}
+                      className="flex items-center gap-2 w-full h-full"
+                    >
+                      Edit Workflow
+                    </Link>
+                  </DropdownMenuItem>
+                </WithPermission>
+                
+                <WithPermission 
+                  permission="workflow:create"
+                  hideWhenUnauthorized
+                >
+                  <DropdownMenuItem>Duplicate</DropdownMenuItem>
+                </WithPermission>
+                
+                <WithPermission 
+                  permission="workflow:publish"
+                  hideWhenUnauthorized
+                >
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => onChangeStatus(workflow)}
                   >
-                    Edit Workflow
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>Duplicate</DropdownMenuItem>
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={() => onChangeStatus(workflow)}
+                    {workflow.status === WorkflowStatus.PUBLISHED
+                      ? "Pause Workflow"
+                      : "Publish Workflow"}
+                  </DropdownMenuItem>
+                </WithPermission>
+                
+                <WithPermission 
+                  permission="workflow:read"
+                  hideWhenUnauthorized
                 >
-                  {workflow.status === WorkflowStatus.PUBLISHED
-                    ? "Pause Workflow"
-                    : "Publish Workflow"}
-                </DropdownMenuItem>
-                <DropdownMenuItem>Export</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive cursor-pointer"
-                  onClick={() => onDelete(workflow)}
+                  <DropdownMenuItem>Export</DropdownMenuItem>
+                </WithPermission>
+                
+                <WithPermission 
+                  permission="workflow:delete"
+                  hideWhenUnauthorized
                 >
-                  Delete Workflow
-                </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive cursor-pointer"
+                    onClick={() => onDelete(workflow)}
+                  >
+                    Delete Workflow
+                  </DropdownMenuItem>
+                </WithPermission>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

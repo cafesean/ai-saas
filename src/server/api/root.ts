@@ -10,6 +10,8 @@ import { knowledgeBasesRouter } from "./routers/knowledge-bases.router";
 import { dashboardRouter } from "./routers/dashboard.router";
 import { adminRouter } from "./routers/admin.router";
 import { twilioRouter } from "./routers/twilio.router";
+import { roleRouter } from "./routers/role.router";
+import { permissionRouter } from "./routers/permission.router";
 /**
  *
 /**
@@ -35,6 +37,8 @@ export const appRouter = createTRPCRouter({
   dashboard: dashboardRouter,
   admin: adminRouter,
   twilio: twilioRouter,
+  role: roleRouter,
+  permission: permissionRouter,
 });
 
 // Export type definition of API
