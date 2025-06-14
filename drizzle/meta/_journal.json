@@ -1,7 +1,8 @@
 {
   "version": "7",
   "dialect": "postgresql",
-  "entries": [    {
+  "entries": [
+    {
       "idx": 0,
       "version": "7",
       "when": 1739629934161,
@@ -13,6 +14,13 @@
       "version": "7",
       "when": 1739899962252,
       "tag": "0001_smooth_baron_zemo",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1749878229217,
+      "tag": "0002_young_mandroid",
       "breakpoints": true
     }
   ]

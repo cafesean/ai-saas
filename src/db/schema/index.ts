@@ -63,6 +63,16 @@ import {
   tenantsRelations,
   userTenantsRelations,
 } from "./tenant";
+import {
+  roles,
+  permissions,
+  rolePermissions,
+  userRoles,
+  rolesRelations,
+  permissionsRelations,
+  rolePermissionsRelations,
+  userRolesRelations,
+} from "./rbac";
 
 export {
   templates,
@@ -120,6 +130,14 @@ export {
   usersRelations,
   tenantsRelations,
   userTenantsRelations,
+  roles,
+  permissions,
+  rolePermissions,
+  userRoles,
+  rolesRelations,
+  permissionsRelations,
+  rolePermissionsRelations,
+  userRolesRelations,
 };
 
 export default {
@@ -178,4 +196,12 @@ export default {
   usersRelations,
   tenantsRelations,
   userTenantsRelations,
+  roles,
+  permissions,
+  rolePermissions,
+  userRoles,
+  rolesRelations,
+  permissionsRelations,
+  rolePermissionsRelations,
+  userRolesRelations,
 };
