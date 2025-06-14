@@ -1,5 +1,5 @@
 import { Role } from '@/constants/role';
-import { db } from "@/db";
+import { db } from "@/db/config";
 import type { GetServerSidePropsContext } from "next";
 import { Session, User, getServerSession, type NextAuthOptions } from 'next-auth';
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -13,6 +13,11 @@ import bcrypt from 'bcrypt-nodejs';
 import crypto from "crypto";
 import { DefaultJWT } from "next-auth/jwt";
 import slugify from "slugify";
+
+// Temporary Prisma client import for compatibility
+// TODO: Migrate completely to Drizzle ORM
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
 
 /**
 * Module augmentation for `next-auth` types.
