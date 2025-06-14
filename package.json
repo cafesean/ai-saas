@@ -7,7 +7,8 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build --turbo",
+    "build": "SKIP_ENV_VALIDATION=true next build",
+    "build:strict": "next build",
     "start": "next start",
     "lint": "next lint",
     "terser": "npx terser --compress --mangle --output $npm_config_output -- $npm_config_input"
