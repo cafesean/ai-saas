@@ -29,7 +29,7 @@ interface DecisionTableCardProps {
     name: string;
     description?: string | null;
     status: string;
-    decisionTableRows: any[];
+    decisionTableRows?: any[];
     createdAt: Date | string;
     updatedAt: Date | string;
   };
@@ -114,7 +114,7 @@ const DecisionTableCard = ({ table, onDelete }: DecisionTableCardProps) => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center text-xs text-muted-foreground">
             <Grid3X3 className="mr-1 h-3 w-3" />
-            <span>{table.decisionTableRows.length} rows</span>
+            <span>{table.decisionTableRows?.length || 0} rows</span>
           </div>
 
           <div className="flex items-center text-xs text-muted-foreground">

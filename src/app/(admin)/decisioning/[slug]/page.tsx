@@ -85,7 +85,7 @@ const DecisionTableDetailPage = () => {
       if (decisionTableData) {
         setTable(decisionTableData);
         setInputs(
-          decisionTableData.decisionTableInputs.map((input: any) => ({
+          decisionTableData.decisionTableInputs?.map((input: any) => ({
             ...input,
             dt_id: decisionTableData.uuid,
           })) || [],

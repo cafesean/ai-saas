@@ -13,7 +13,7 @@ const roleSchema = z.object({
 });
 
 export const roleRouter = createTRPCRouter({
-  getAll: protectedProcedure.use(withPermission('admin:role_management'))
+  getAll: protectedProcedure
     .query(async ({ ctx }) => {
       return await db.select()
         .from(roles)
@@ -21,7 +21,7 @@ export const roleRouter = createTRPCRouter({
         .orderBy(asc(roles.name));
     }),
 
-  getById: protectedProcedure.use(withPermission('admin:role_management'))
+  getById: protectedProcedure
     .input(z.number())
     .query(async ({ ctx, input }) => {
       const [role] = await db.select()
@@ -226,7 +226,7 @@ export const roleRouter = createTRPCRouter({
     }),
 
   // Get all roles with permission counts
-  getAllWithStats: protectedProcedure.use(withPermission('admin:role_management'))
+  getAllWithStats: protectedProcedure
     .query(async ({ ctx }) => {
       const rolesData = await db.select()
         .from(roles)
