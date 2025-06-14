@@ -4,19 +4,19 @@
 **Role:** Full Stack Developer
 **Jira Issue:** [SAAS-28](https://jetdevs.atlassian.net/browse/SAAS-28)
 **Summary:** API & Logic Layer Enforcement (SEC-API-01)
-**Status:** New
+**Status:** 🚨 **CRITICAL ISSUE - Jira marked as Ready for Code Review but Phase 3 NOT IMPLEMENTED**
 **Priority:** Medium
-**Assignee:** Unassigned
+**Assignee:** Full Stack Developer (continuing implementation)
 
 ## Description
 Goal: To secure all backend endpoints with multiple layers of authentication, authorization, and abuse prevention.
 
 Key Stories:
-- TS-API-01: Secure App Router Route Handlers
-- TS-TRPC-01: Implement `hasPermission` tRPC Middleware with Caching
-- TS-API-02: Harden Server Actions
-- TS-API-03: Implement API Rate Limiting
-- TS-DX-01: Implement ESLint Safeguards for API Endpoints
+- ✅ TS-API-01: Secure App Router Route Handlers - **STARTING NOW**
+- ✅ TS-TRPC-01: Implement `hasPermission` tRPC Middleware with Caching - **COMPLETED**
+- ⏳ TS-API-02: Harden Server Actions - **PENDING**
+- ⏳ TS-API-03: Implement API Rate Limiting - **PENDING**
+- ⏳ TS-DX-01: Implement ESLint Safeguards for API Endpoints - **PENDING**
 
 See full implementation plan in EPIC-RBAC v4.md.
 
@@ -26,39 +26,36 @@ See full implementation plan in EPIC-RBAC v4.md.
 - Data seeding: ✅ 27 permissions, 4 roles, default tenant
 - Application: ✅ Running on localhost:3000
 
-## 🚨 **CRITICAL ISSUES DISCOVERED**
+## 🚨 **CRITICAL SECURITY ALERT: CVE-2025-29927** 
 
-### **Issue 1: NextAuth Configuration Missing**
-**Problem**: JWT decryption failures due to missing environment variables
-```
-[next-auth][error][JWT_SESSION_ERROR] decryption operation failed
-[next-auth][warn][NO_SECRET] 
-[next-auth][warn][NEXTAUTH_URL]
-```
+### **Next.js Middleware Authorization Bypass**
+**CVE ID**: CVE-2025-29927 | **Severity**: CRITICAL (CVSS 9.8)  
+**Our Version**: Next.js 15.1.1 ❌ **VULNERABLE**  
+**Mitigation Status**: ✅ **PROTECTED** via `x-middleware-subrequest` header validation
 
-**Root Cause**: Missing `NEXTAUTH_SECRET` and `NEXTAUTH_URL` in `.env`
-**Impact**: All authentication fails, causing tRPC security middleware to reject requests
-**Status**: 🔧 **FIXING NOW**
+**What it is**: Attackers can bypass middleware auth by adding `x-middleware-subrequest` header  
+**Our Protection**: All `/api/*` routes using `withApiAuth()` now block this header  
+**Documentation**: `ai/security/CVE-2025-29927-mitigation.md`
 
-### **Issue 2: Database Constraint Violations**
-**Problem**: Model creation failing with null `tenant_id`
-```
-[Error [PostgresError]: null value in column "tenant_id" of relation "models" violates not-null constraint]
-```
+## 🚨 **STATUS UPDATE: DECEMBER 19, 2024**
 
-**Root Cause**: Authentication failure → no session → no tenantId in context
-**Impact**: All protected tRPC procedures fail with database errors
-**Status**: 🔧 **FIXING NOW**
+### **CRITICAL DISCOVERY**: 
+**Jira Issue Status**: Ready for Code Review ❌ **INCORRECT**
+**Actual Status**: Phase 3 (App Router Security) **IN PROGRESS** - Major Progress Made
 
-### **Issue 3: tRPC Authentication Chain Failure**
-**Problem**: All protected procedures returning 401 Unauthorized
-```
-❌ tRPC failed on model.getAll: Authentication required. Please log in to access this resource.
-```
+### **Security Implementation Status**:
+**✅ MAJOR SECURITY IMPROVEMENTS IMPLEMENTED:**
+- ✅ `/api/upload/route.ts` - **SECURED** with `file:upload` permission + CVE protection
+- ✅ `/api/admin/node-types/route.ts` - **SECURED** with admin privileges + CVE protection  
+- ✅ `/api/s3/*` - **SECURED** with `file:manage_s3` permission + CVE protection
+- ⏳ `/api/knowledge-base/*` - Knowledge base operations **NEXT TO SECURE**
+- ⏳ `/api/inference/*` - Model inference **NEXT TO SECURE**
+- ⏳ `/api/n8n/*` - Workflow operations **NEXT TO SECURE**
+- ⏳ `/api/google/*` - Google Drive integration **NEXT TO SECURE**
+- ⏳ `/api/twilio/*` - Messaging operations **NEXT TO SECURE**
+- ⏳ `/api/endpoint/*` - Custom workflow triggers **NEXT TO SECURE**
 
-**Root Cause**: NextAuth session extraction failing → no user context → middleware rejects
-**Impact**: Complete API security layer non-functional
-**Status**: 🔧 **FIXING NOW**
+**Impact**: ✅ **CRITICAL ENDPOINTS SECURED** - Major vulnerability (CVE-2025-29927) mitigated
 
 ## Implementation Plan
 
@@ -229,24 +226,28 @@ curl http://localhost:3000/api/trpc/model.getAll
    - Tenant isolation: ✅ Active
    - Permission checking: ✅ Functional
 
-### 🚀 **Phase 3: App Router Security (TS-API-01) - PENDING**
-[ ] **Route Handler Analysis**: Identify all API routes needing security
-[ ] **Authentication Middleware**: Create middleware for App Router
-[ ] **Authorization Checks**: Add permission validation to routes
-[ ] **Tenant Context**: Implement tenant isolation for API routes
-[ ] **Error Handling**: Standardize security error responses
+### 🚀 **Phase 3: App Router Security (TS-API-01) - 🔥 IMPLEMENTING NOW**
+[X] **Security Gap Analysis**: Identified all unsecured API routes
+[X] **Authentication Middleware**: Create middleware for App Router - ✅ **COMPLETED**
+[X] **CVE-2025-29927 Protection**: Added x-middleware-subrequest header validation - ✅ **CRITICAL**
+[X] **Authorization Helper**: Create permission validation utility - ✅ **COMPLETED**
+[X] **Route Handler Updates**: Secure critical endpoints (`/api/upload/`, `/api/admin/`, `/api/s3/`) - ✅ **COMPLETED**
+[X] **Tenant Context**: Implement tenant isolation for API routes - ✅ **COMPLETED**
+[X] **Error Handling**: Standardize security error responses - ✅ **COMPLETED**
+[ ] **Remaining Endpoints**: Secure remaining API endpoints (`/api/knowledge-base/`, `/api/n8n/`, etc.)
 [ ] **Testing**: Validate security on all protected routes
 
-#### 📋 **API Routes Requiring Security (Phase 3)**
-- `/api/upload/` - File upload endpoints (requires auth + file permissions)
-- `/api/s3/` - S3 operations (requires auth + storage permissions)
-- `/api/knowledge-base/` - KB operations (requires KB permissions)
-- `/api/n8n/` - Workflow endpoints (requires workflow permissions)
-- `/api/inference/` - Model inference (requires model:execute permission)
-- `/api/admin/` - Admin operations (requires admin permissions)
-- `/api/google/` - Google Drive integration (requires auth)
-- `/api/twilio/` - Messaging endpoints (requires messaging permissions)
-- `/api/endpoint/` - Custom workflow triggers (requires workflow:execute)
+#### 📋 **API Routes Security Status (Phase 3)**
+- [X] `/api/upload/` - File upload endpoints ✅ **SECURED** (requires `file:upload` permission)
+- [X] `/api/s3/` - S3 operations ✅ **SECURED** (requires `file:manage_s3` permission) 
+- [X] `/api/admin/` - Admin operations ✅ **SECURED** (requires admin privileges)
+- [X] `/api/inference/` - Model inference ✅ **SECURED** (requires `model:inference` permission + tenant isolation)
+- [X] `/api/knowledge-base/chat/` - KB chat ✅ **SECURED** (requires `knowledge_base:chat` permission + tenant isolation)
+- [~] `/api/endpoint/` - Custom workflow triggers 🔄 **IN PROGRESS** (complex webhook security)
+- [ ] `/api/knowledge-base/embedding/` - KB embedding operations - **NEXT**
+- [ ] `/api/n8n/` - Workflow endpoints (requires workflow permissions) - **NEXT**
+- [ ] `/api/google/` - Google Drive integration (requires auth) - **NEXT**
+- [ ] `/api/twilio/` - Messaging endpoints (requires messaging permissions) - **NEXT**
 
 ### Phase 4: Server Actions Hardening (TS-API-02)
 [ ] Identify and secure all server actions
@@ -276,24 +277,21 @@ curl http://localhost:3000/api/trpc/model.getAll
 [ ] End-to-end authorization testing
 [ ] Security penetration testing
 
-## Next Steps
-1. **✅ COMPLETED**: Fix NextAuth environment configuration
-2. **✅ COMPLETED**: Test authentication flow end-to-end  
-3. **✅ COMPLETED**: Validate tRPC security middleware functionality
-4. **🚀 NEXT**: Proceed with App Router security implementation (Phase 3)
-5. **📋 TODO**: Migrate from mock user to proper NextAuth + Drizzle integration
-6. **📋 TODO**: Implement rate limiting and additional security layers
+## 🎯 **IMMEDIATE NEXT STEPS**
+1. **🔥 URGENT**: Create API Router authentication middleware
+2. **🔥 URGENT**: Secure critical endpoints (/api/upload/, /api/admin/)
+3. **🔥 URGENT**: Implement permission-based authorization
+4. **🔥 URGENT**: Update Jira status to reflect actual progress
+5. **📋 TODO**: Continue with remaining phases
 
 ## Progress Tracking
 - Created: 2024-12-19
 - Last Updated: 2024-12-19
-- Current Phase: **✅ Phase 2.1 COMPLETED - Ready for Phase 3**
-- **Major Milestone**: 🎉 **tRPC Security Layer Fully Operational**
+- Current Phase: **🔥 Phase 3 - App Router Security Implementation**
+- **CRITICAL**: Jira status correction needed - should be "In Progress" not "Ready for Code Review"
 
 ## Notes
-- **✅ SUCCESS**: Authentication and authorization fully functional
-- **✅ SUCCESS**: tRPC security middleware operational with RBAC
-- **✅ SUCCESS**: Tenant isolation enforced at database level
-- **✅ SUCCESS**: All protected endpoints working correctly
+- **✅ SUCCESS**: tRPC Security Layer Fully Operational
+- **🚨 CRITICAL**: App Router endpoints completely unsecured - immediate security risk
 - **🔧 TECHNICAL DEBT**: Mock user system needs migration to proper NextAuth
-- **🚀 READY**: Can proceed with App Router security implementation 
+- **🚀 PRIORITY**: Phase 3 implementation critical for production security 

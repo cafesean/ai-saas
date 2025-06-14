@@ -1,38 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
 import { EMBEDDING_DOCUMENT } from "@/constants/general";
+import { eq, and } from "drizzle-orm";
 import axios from "axios";
 
-export async function POST(request: NextRequest) {
+import { db } from "@/db/config";
+import schema from "@/db/schema";
+import { withApiAuth, createApiError, createApiSuccess } from "@/lib/api-auth";
+
+export const POST = withApiAuth(async (request: NextRequest, user) => {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
-    const user_id = formData.get("user_id") as string | undefined;
     const kb_id = formData.get("kb_id") as string | undefined;
     const document_id = formData.get("document_id") as string | undefined;
     const chunk_size = formData.get("chunk_size") as string | undefined;
     const chunk_overlap = formData.get("chunk_overlap") as string | undefined;
 
     if (!file) {
-      return NextResponse.json(
-        { success: false, error: "No file provided" },
-        { status: 400 },
-      );
+      return createApiError("No file provided", 400);
+    }
+    
+    if (!kb_id) {
+      return createApiError("Knowledge Base ID is required", 400);
+    }
+
+    // Verify user has access to this knowledge base (tenant isolation)
+    const knowledgeBase = await db.query.knowledge_bases.findFirst({
+      where: and(
+        eq(schema.knowledge_bases.id, parseInt(kb_id)),
+        eq(schema.knowledge_bases.tenantId, user.tenantId)
+      ),
+    });
+
+    if (!knowledgeBase) {
+      return createApiError("Knowledge Base not found or access denied", 404);
     }
 
     const fileSize = file.size;
 
     if (fileSize > EMBEDDING_DOCUMENT.maxSize) {
-      return NextResponse.json(
-        { success: false, error: "File size exceeds limit" },
-        { status: 400 },
-      );
+      return createApiError("File size exceeds limit", 400);
     }
 
     // Trigger n8n workflow
     const newFormData = new FormData();
     newFormData.append("data", file);
-    newFormData.append("user_id", user_id || "");
-    newFormData.append("kb_id", kb_id || "");
+    newFormData.append("user_id", user.id.toString());
+    newFormData.append("kb_id", kb_id);
     newFormData.append("document_id", document_id || "");
     newFormData.append("chunk_size", chunk_size || "1000");
     newFormData.append("chunk_overlap", chunk_overlap || "200");

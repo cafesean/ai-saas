@@ -1,5 +1,5 @@
 import { unknown, z } from "zod";
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure } from "../trpc";
 import { db } from "@/db/config";
 import schema, { rules } from "@/db/schema";
 import { eq, asc, desc, count, inArray, max } from "drizzle-orm";
@@ -110,13 +110,23 @@ export const workflowRouter = createTRPCRouter({
         .where(eq(schema.workflows.status, input.status));
     }),
 
-  create: publicProcedure
+  create: protectedProcedure
     .input(workflowCreateSchema)
     .mutation(async ({ ctx, input }) => {
       try {
+        if (!ctx.tenantId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "User must be associated with a tenant to create workflows",
+          });
+        }
+
         const workflowData = await db
           .insert(schema.workflows)
-          .values(input)
+          .values({
+            ...input,
+            tenantId: ctx.tenantId,
+          })
           .returning();
         return workflowData[0];
       } catch (error) {

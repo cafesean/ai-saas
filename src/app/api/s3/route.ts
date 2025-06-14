@@ -1,54 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { deleteMultipleFilesFromS3 } from "@/lib/aws-s3";
+import { withApiAuth, createApiError, createApiSuccess } from "@/lib/api-auth";
 
-export async function DELETE(request: NextRequest) {
-  if (request.method !== "DELETE") {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Method not allowed",
-      },
-      { status: 405 },
-    );
-  }
+export const DELETE = withApiAuth(async (request: NextRequest, user) => {
   try {
     const { keys } = await request.json();
     if (!keys) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "keys is required",
-        },
-        { status: 400 },
-      );
+      return createApiError("keys is required", 400);
     }
 
-    // Upload file to S3
+    // Delete files from S3
     const result = await deleteMultipleFilesFromS3(keys);
 
     if (!result.success) {
-      return NextResponse.json(
-        { success: false, error: result.errors || "Delete failed" },
-        { status: 500 },
-      );
+      const errorMessage = Array.isArray(result.errors) 
+        ? result.errors.map(e => e.error).join(', ')
+        : result.errors || "Delete failed";
+      return createApiError(errorMessage, 500);
     }
 
-    // Return successful upload information
-    return NextResponse.json(
-      {
-        success: true,
-        data: {
-          keys,
-        },
-      },
-      { status: 200 },
-    );
+    // Return successful deletion information
+    return createApiSuccess({ keys });
   } catch (error) {
-    console.error("File upload processing error:", error);
-    return NextResponse.json(
-      { success: false, error: "File upload processing failed" },
-      { status: 500 },
-    );
+    console.error("File deletion processing error:", error);
+    return createApiError("File deletion processing failed", 500);
   }
-}
+}, {
+  requireAuth: true,
+  requiredPermission: 'file:manage_s3'
+});

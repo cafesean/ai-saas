@@ -1,75 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
+import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db/config";
 import schema from "@/db/schema";
+import { withApiAuth, createApiError, createApiSuccess } from "@/lib/api-auth";
 
-export async function POST(request: NextRequest) {
-  if (request.method !== "POST") {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Method not allowed",
-      },
-      { status: 405 },
-    );
-  }
+export const POST = withApiAuth(async (request: NextRequest, user) => {
   try {
-    const { query, userId, kbId, conversationId, role, stream } =
-      await request.json();
+    const { query, kbId, conversationId, role, stream } = await request.json();
+    
     if (!query) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "query is required",
-        },
-        { status: 400 },
-      );
-    }
-    if (!userId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "User ID is required",
-        },
-        { status: 400 },
-      );
+      return createApiError("query is required", 400);
     }
     if (!kbId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Knowledge Base ID is required",
-        },
-        { status: 400 },
-      );
+      return createApiError("Knowledge Base ID is required", 400);
     }
-
     if (!conversationId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Conversation ID is required",
-        },
-        { status: 400 },
-      );
+      return createApiError("Conversation ID is required", 400);
+    }
+    if (!role) {
+      return createApiError("Role is required", 400);
     }
 
-    if (!role) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Role is required",
-        },
-        { status: 400 },
-      );
+    // Verify user has access to this knowledge base (tenant isolation)
+    const knowledgeBase = await db.query.knowledge_bases.findFirst({
+      where: and(
+        eq(schema.knowledge_bases.id, kbId),
+        eq(schema.knowledge_bases.tenantId, user.tenantId)
+      ),
+    });
+
+    if (!knowledgeBase) {
+      return createApiError("Knowledge Base not found or access denied", 404);
     }
 
     const result = await axios.post(
       `${process.env.KNOWLEDGE_BASE_CHAT_URL}`,
       {
         query,
-        user_id: userId,
+        user_id: user.id,
         kb_id: kbId,
       },
       {
@@ -121,43 +91,30 @@ export async function POST(request: NextRequest) {
           }, 100);
         },
       });
-      return new Response(readableStream, {
+      return new NextResponse(readableStream, {
         headers: {
-          "Content-Type": "text/event-stream", // 设置响应头为 EventStream
-          "Cache-Control": "no-cache", // 禁用缓存
-          Connection: "keep-alive", // 保持连接
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
         },
       });
     } else {
-      // Return successful upload information
-      return NextResponse.json(
-        {
-          success: true,
-          data: result.data[0].response,
-        },
-        { status: 200 },
-      );
+      // Return successful response
+      return createApiSuccess(result.data[0].response);
     }
   } catch (error: any) {
     console.log(error);
     if (
       error &&
-      error?.response.data &&
-      error?.response.data.message.includes("Error in workflow")
+      error?.response?.data &&
+      error?.response?.data?.message?.includes("Error in workflow")
     ) {
-      return NextResponse.json(
-        {
-          error: {
-            message: `N8N: ${error?.response.data.message}`,
-          },
-        },
-        { status: 400 },
-      );
+      return createApiError(`N8N: ${error?.response.data.message}`, 400);
     } else {
-      return NextResponse.json(
-        { error: error?.response.data },
-        { status: 400 },
-      );
+      return createApiError(error?.response?.data || "Knowledge base chat failed", 400);
     }
   }
-}
+}, {
+  requireAuth: true,
+  requiredPermission: 'knowledge_base:chat'
+});
