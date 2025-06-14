@@ -73,6 +73,10 @@ import {
   rolePermissionsRelations,
   userRolesRelations,
 } from "./rbac";
+import {
+  auditLogs,
+  auditLogsRelations,
+} from "./audit";
 
 export {
   templates,
@@ -138,6 +142,8 @@ export {
   permissionsRelations,
   rolePermissionsRelations,
   userRolesRelations,
+  auditLogs,
+  auditLogsRelations,
 };
 
 export default {
@@ -204,4 +210,6 @@ export default {
   permissionsRelations,
   rolePermissionsRelations,
   userRolesRelations,
+  auditLogs,
+  auditLogsRelations,
 };

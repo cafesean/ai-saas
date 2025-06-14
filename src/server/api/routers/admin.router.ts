@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure, withPermission } from "../trpc";
 import { db } from "@/db/config";
 import { roles, permissions, rolePermissions, userRoles } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
@@ -16,7 +16,18 @@ export const adminRouter = createTRPCRouter({
     };
   }),
 
-  seedRBAC: publicProcedure.mutation(async ({ ctx }) => {
+  seedRBAC: protectedProcedure.use(withPermission('admin:full_access')).mutation(async ({ ctx }) => {
+    // Rate limiting for admin operations
+    try {
+      const { checkTRPCRateLimit } = await import('@/lib/rate-limit');
+      await checkTRPCRateLimit(ctx.user?.id, 'admin.seedRBAC');
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Rate limit exceeded')) {
+        throw error;
+      }
+      console.error('Rate limiting error in admin.seedRBAC:', error);
+    }
+
     try {
       console.log('🚀 Starting RBAC seeding via tRPC...');
 

@@ -6,6 +6,20 @@ import { S3_UPLOAD } from "@/constants/general";
 import { withApiAuth, createApiError, createApiSuccess } from "@/lib/api-auth";
 
 export const POST = withApiAuth(async (request: NextRequest, user) => {
+  // Rate limiting for file uploads
+  try {
+    const { checkGenericRateLimit, fileUploadRateLimit } = await import('@/lib/rate-limit');
+    const identifier = `user:${user.id}`;
+    const rateLimitResult = await checkGenericRateLimit(fileUploadRateLimit, identifier, 'file-upload');
+    
+    if (!rateLimitResult.success) {
+      return createApiError(`Rate limit exceeded. Try again in ${rateLimitResult.retryAfter} seconds.`, 429);
+    }
+  } catch (error) {
+    console.error('Rate limiting error in file upload:', error);
+    // Continue with upload on rate limiting error
+  }
+
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
