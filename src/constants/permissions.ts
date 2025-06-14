@@ -60,6 +60,18 @@ export const WORKFLOW_PERMISSIONS: Permission[] = [
     description: "Trigger workflow execution",
     category: "workflow",
   },
+  {
+    slug: "workflow:manage_templates",
+    name: "Manage Templates",
+    description: "Manage workflow templates including Twilio message templates",
+    category: "workflow",
+  },
+  {
+    slug: "workflow:configure_integrations",
+    name: "Configure Integrations",
+    description: "Configure external integrations like Twilio, webhooks, and third-party services",
+    category: "workflow",
+  },
 ];
 
 // Model Permissions
@@ -429,12 +441,14 @@ export const WORKFLOW_ADDITIONAL_PERMISSIONS: Permission[] = [
   },
 ];
 
-// Twilio Integration Permissions
+// Twilio Integration Permissions (DEPRECATED)
+// These permissions are deprecated and will be removed in a future version.
+// Use workflow:manage_templates and workflow:configure_integrations instead.
 export const TWILIO_PERMISSIONS: Permission[] = [
   {
     slug: "twilio:templates",
-    name: "Twilio Templates",
-    description: "Access Twilio message templates",
+    name: "Twilio Templates (DEPRECATED)",
+    description: "Access Twilio message templates. DEPRECATED: Use workflow:manage_templates instead.",
     category: "twilio",
   },
 ];
@@ -479,6 +493,7 @@ export const DEFAULT_ROLES: RoleConfig[] = [
     description: "Business analyst with workflow, rule, and decision table management",
     permissions: [
       ...WORKFLOW_PERMISSIONS.map(p => p.slug),
+      ...WORKFLOW_ADDITIONAL_PERMISSIONS.map(p => p.slug),
       ...DECISION_TABLE_PERMISSIONS.map(p => p.slug),
       ...RULE_PERMISSIONS.map(p => p.slug),
       ...KNOWLEDGE_BASE_PERMISSIONS.filter(p => !p.slug.includes('delete')).map(p => p.slug),
@@ -494,6 +509,7 @@ export const DEFAULT_ROLES: RoleConfig[] = [
     permissions: [
       ...MODEL_PERMISSIONS.map(p => p.slug),
       ...WORKFLOW_PERMISSIONS.map(p => p.slug),
+      ...WORKFLOW_ADDITIONAL_PERMISSIONS.map(p => p.slug),
       ...ENDPOINT_PERMISSIONS.map(p => p.slug),
       ...WIDGET_PERMISSIONS.map(p => p.slug),
       "decision_table:read",

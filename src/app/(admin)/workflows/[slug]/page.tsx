@@ -30,7 +30,7 @@ import {
   X,
   MoreHorizontal,
 } from "lucide-react";
-import axios from "axios";
+
 
 import { SampleButton } from "@/components/ui/sample-button";
 import { SampleInput } from "@/components/ui/sample-input";
@@ -98,7 +98,7 @@ import {
   WhatsAppSendTypes,
 } from "@/constants/nodes";
 import { WorkflowView } from "@/framework/types/workflow";
-import { TWILIO_API } from "@/constants/api";
+
 
 // Define node types
 const nodeTypes: NodeTypes = {
@@ -281,7 +281,6 @@ export default function WorkflowDetailPage() {
   const [isAddNodeDialogOpen, setIsAddNodeDialogOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isTestRunDialogOpen, setIsTestRunDialogOpen] = useState(false);
-  const [templates, setTemplates] = useState<any[]>([]);
   const {
     deleteConfirmOpen: changeStatusConfirmOpen,
     selectedItem: selectedWorkflow,
@@ -294,6 +293,10 @@ export default function WorkflowDetailPage() {
   const workflow = api.workflow.getByUUID.useQuery({ uuid: slug });
   const knowledgeBases = api.knowledgeBases.getKnowledgeBaseByStatus.useQuery({
     status: KnowledgeBaseStatus.ready,
+  });
+  const templates = api.twilio.getTemplates.useQuery({
+    pageSize: 200,
+    page: 0,
   });
   const updateWorkflowSettings = api.workflow.updateSettings.useMutation({
     onSuccess: () => {
@@ -323,23 +326,7 @@ export default function WorkflowDetailPage() {
     },
   });
 
-  useEffect(() => {
-    getTemplates();
-  }, []);
 
-  const getTemplates = async () => {
-    try {
-      const res = await axios.get(TWILIO_API.getTemplates, {
-        params: {
-          pageSize: 200,
-          page: 0,
-        },
-      });
-      setTemplates(res.data.data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
 
   useEffect(() => {
     if (workflow.data) {
@@ -387,7 +374,7 @@ export default function WorkflowDetailPage() {
     if (workflowItem) {
       let passedValidation = true;
       // Filter out the nodes don't have type
-      let finalNodes = nodes.filter((node: any) => node.type);
+      const finalNodes = nodes.filter((node: any) => node.type);
       // Validate decision table node whether select one decision table or not
       const decisionTableNodes = finalNodes.filter(
         (node: any) => node.type === WorkflowNodeTypes.decisionTable,
@@ -664,7 +651,7 @@ export default function WorkflowDetailPage() {
                       nodeId={selectedNode}
                       nodes={nodes}
                       setNodes={setNodes}
-                      templates={templates}
+                      templates={templates.data || []}
                       knowledgeBases={knowledgeBases.data || []}
                     />
                   </div>

@@ -47,11 +47,11 @@ export function UpdateModelDialog({
 
   useEffect(() => {
     if (open) {
-      let parts = currentVersion.split(".");
+      const parts = currentVersion.split(".");
       parts[parts.length - 1] = (
         parseInt(parts[parts.length - 1] || "1") + 1
       ).toString();
-      let newVersion = parts.join(".");
+      const newVersion = parts.join(".");
       setNewVersionName(newVersion);
     }
   }, [open, currentVersion]);

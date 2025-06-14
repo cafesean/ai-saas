@@ -48,5 +48,5 @@ export const GET = withApiAuth(async (request: NextRequest, user) => {
   }
 }, {
   requireAuth: true,
-  requiredPermission: 'twilio:templates'
+  requiredPermission: 'workflow:manage_templates'
 });

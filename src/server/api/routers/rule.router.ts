@@ -117,7 +117,7 @@ export const rulesRouter = createTRPCRouter({
           // Insert condition groups table
           let addConditionGroups: any[] = [];
           if (addFlows && addFlows.length > 0) {
-            let conditionGroupValues: any[] = [];
+            const conditionGroupValues: any[] = [];
             input.flows.forEach((f) => {
               const flowId = addFlows.find((flow) => flow.uuid === f.id)?.id;
               f.childrenItems?.forEach((cg) => {
@@ -138,7 +138,7 @@ export const rulesRouter = createTRPCRouter({
           // Insert condition table
           let addConditions: any[] = [];
           if (addConditionGroups && addConditionGroups.length > 0) {
-            let conditionValues: any[] = [];
+            const conditionValues: any[] = [];
             input.flows.forEach((flow) => {
               flow.childrenItems?.forEach((cg) => {
                 const conditionGroupId = addConditionGroups.find(
@@ -166,7 +166,7 @@ export const rulesRouter = createTRPCRouter({
           // Insert flow actions table
           let addFlowActions: any[] = [];
           if (addFlows && addFlows.length > 0) {
-            let flowActionValues: any[] = [];
+            const flowActionValues: any[] = [];
             input.flows.forEach((f) => {
               const flowId = addFlows.find((flow) => flow.uuid === f.id)?.id;
               if (flowId) {
@@ -267,7 +267,7 @@ export const rulesRouter = createTRPCRouter({
           // Insert condition groups table
           let addConditionGroups: any[] = [];
           if (addFlows && addFlows.length > 0) {
-            let conditionGroupValues: any[] = [];
+            const conditionGroupValues: any[] = [];
             input.flows.forEach((f) => {
               const flowId = addFlows.find((flow) => flow.uuid === f.id)?.id;
               f.childrenItems?.forEach((cg) => {
@@ -287,7 +287,7 @@ export const rulesRouter = createTRPCRouter({
           // Insert condition table
           let addConditions: any[] = [];
           if (addConditionGroups && addConditionGroups.length > 0) {
-            let conditionValues: any[] = [];
+            const conditionValues: any[] = [];
             input.flows.forEach((flow) => {
               flow.childrenItems?.forEach((cg) => {
                 const conditionGroupId = addConditionGroups.find(
@@ -314,7 +314,7 @@ export const rulesRouter = createTRPCRouter({
           // Insert flow actions table
           let addFlowActions: any[] = [];
           if (addFlows && addFlows.length > 0) {
-            let flowActionValues: any[] = [];
+            const flowActionValues: any[] = [];
             input.flows.forEach((f) => {
               const flowId = addFlows.find((flow) => flow.uuid === f.id)?.id;
               if (flowId) {

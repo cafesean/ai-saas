@@ -176,12 +176,12 @@ const ModelsPage = () => {
           return result.success;
         });
         if (allSuccess) {
-          let framework = "PyTorch";
+          const framework = "PyTorch";
           let metrics = metadata?.metrics || null;
-          let modelType = metadata?.model_type || "Classification";
-          let features = metadata?.features || [];
-          let outputs = metadata?.outputs || null;
-          let inference = metadata?.inference || null;
+          const modelType = metadata?.model_type || "Classification";
+          const features = metadata?.features || [];
+          const outputs = metadata?.outputs || null;
+          const inference = metadata?.inference || null;
           if (metrics) {
             metrics = {
               ...metrics,

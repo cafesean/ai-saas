@@ -66,7 +66,7 @@ const ModelDetail = () => {
   const params = useParams();
   const slug = params.slug as string;
   const [isClient, setIsClient] = useState(false);
-  let modelItem = api.model.getByUUID.useQuery(slug);
+  const modelItem = api.model.getByUUID.useQuery(slug);
 
   const [showRunInference, setShowRunInference] = useState(false);
   const [showInferenceDetail, setShowInferenceDetail] = useState(false);
