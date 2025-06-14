@@ -243,6 +243,27 @@ export const authOptions: NextAuthOptions = {
         if (!credentials) {
           return null
         }
+        
+        // Rate limiting for authentication attempts
+        try {
+          const { checkAuthRateLimit } = await import('@/lib/rate-limit');
+          const identifier = `ip:${req?.headers?.['x-forwarded-for'] || req?.headers?.['x-real-ip'] || 'unknown'}`;
+          const rateLimitResult = await checkAuthRateLimit(identifier);
+          
+          if (!rateLimitResult.success) {
+            throw new TRPCError({
+              code: "TOO_MANY_REQUESTS",
+              message: `Too many login attempts. Try again in ${rateLimitResult.retryAfter} seconds.`,
+            });
+          }
+        } catch (error) {
+          if (error instanceof TRPCError && error.code === "TOO_MANY_REQUESTS") {
+            throw error;
+          }
+          // Log rate limiting error but don't block login
+          console.error('Rate limiting error during login:', error);
+        }
+        
         // console.log("In authorize", credentials);
         const user = await findUserByEmail(credentials.email);
 

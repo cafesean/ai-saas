@@ -1,5 +1,5 @@
 import { unknown, z } from "zod";
-import { createTRPCRouter, publicProcedure, protectedProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure, withPermission } from "../trpc";
 import { db } from "@/db/config";
 import schema, { rules } from "@/db/schema";
 import { eq, asc, desc, count, inArray, max } from "drizzle-orm";
@@ -65,7 +65,7 @@ const workflowUpdateSettingsSchema = z.object({
 const instance = axios.create();
 
 export const workflowRouter = createTRPCRouter({
-  getAll: publicProcedure.query(async ({ ctx }) => {
+  getAll: protectedProcedure.use(withPermission('workflow:read')).query(async ({ ctx }) => {
     // 1. Get workflow data with endpoints and nodes
     const workflowsData = await ctx.db.query.workflows.findMany({
       with: {
@@ -110,7 +110,7 @@ export const workflowRouter = createTRPCRouter({
         .where(eq(schema.workflows.status, input.status));
     }),
 
-  create: protectedProcedure
+  create: protectedProcedure.use(withPermission('workflow:create'))
     .input(workflowCreateSchema)
     .mutation(async ({ ctx, input }) => {
       try {

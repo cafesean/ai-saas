@@ -230,38 +230,15 @@ const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
 });
 
 /**
- * Permission checking middleware with caching
+ * Permission checking middleware with caching and audit logging
  */
+import { hasPermission } from '@/lib/trpc-permissions';
+
 const createPermissionMiddleware = (requiredPermission: string) => {
-  return t.middleware(async ({ ctx, next }) => {
-    if (!ctx.session || !ctx.user) {
-      throw new TRPCError({ 
-        code: "UNAUTHORIZED",
-        message: "Authentication required for this operation."
-      });
-    }
-
-    if (!ctx.tenantId) {
-      throw new TRPCError({
-        code: "FORBIDDEN", 
-        message: "User must be associated with a tenant to perform this action."
-      });
-    }
-
-    // Check if user has the required permission
-    const hasPermission = await checkUserPermission(
-      ctx.user.id, 
-      ctx.tenantId, 
-      requiredPermission
-    );
-
-    if (!hasPermission) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: `Permission denied. Required permission: ${requiredPermission}`
-      });
-    }
-
+  return t.middleware(async ({ ctx, next, path }) => {
+    // Use the enhanced hasPermission middleware
+    await hasPermission(requiredPermission)({ ctx, next, path });
+    
     return next({
       ctx: {
         ...ctx,
@@ -274,34 +251,16 @@ const createPermissionMiddleware = (requiredPermission: string) => {
 };
 
 /**
- * Helper function to check user permissions
+ * Helper function to check user permissions (legacy - use trpc-permissions.ts)
  */
+import { checkUserPermission as checkPermission } from '@/lib/trpc-permissions';
+
 async function checkUserPermission(
   userId: number, 
   tenantId: number, 
   permissionSlug: string
 ): Promise<boolean> {
-  try {
-    // Query to check if user has the permission through their roles
-    const result = await db
-      .select({ count: count() })
-      .from(userRoles)
-      .innerJoin(rolePermissions, eq(userRoles.roleId, rolePermissions.roleId))
-      .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-      .where(
-        and(
-          eq(userRoles.userId, userId),
-          eq(userRoles.tenantId, tenantId),
-          eq(permissions.slug, permissionSlug),
-          eq(permissions.isActive, true)
-        )
-      );
-
-    return (result[0]?.count ?? 0) > 0;
-  } catch (error) {
-    console.error('Error checking user permission:', error);
-    return false;
-  }
+  return checkPermission(userId, tenantId, permissionSlug);
 }
 
 /**
@@ -351,6 +310,24 @@ export const adminProcedure = t.procedure.use(enforceUserIsAdmin);
  */
 export const requiresPermission = (permission: string) => {
   return t.procedure.use(createPermissionMiddleware(permission));
+};
+
+/**
+ * Enhanced permission-based procedure factory with caching and audit logging
+ * Usage: protectedProcedure.use(hasPermission('workflow:create'))
+ */
+export const withPermission = (permission: string) => {
+  return t.middleware(async ({ ctx, next, path }) => {
+    await hasPermission(permission)({ ctx, next, path });
+    return next({
+      ctx: {
+        ...ctx,
+        session: ctx.session!,
+        user: ctx.user!,
+        tenantId: ctx.tenantId!,
+      },
+    });
+  });
 };
 
 // Export type definitions for use in other files

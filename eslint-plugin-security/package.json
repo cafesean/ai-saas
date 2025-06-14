@@ -1,0 +1,12 @@
+{
+  "name": "eslint-plugin-security",
+  "version": "1.0.0",
+  "description": "Custom ESLint plugin for API security rules",
+  "main": "index.js",
+  "keywords": ["eslint", "security", "trpc", "api"],
+  "author": "AI SAAS Team",
+  "license": "MIT",
+  "peerDependencies": {
+    "eslint": ">=8.0.0"
+  }
+} 
