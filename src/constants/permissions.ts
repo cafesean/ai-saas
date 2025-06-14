@@ -214,6 +214,12 @@ export const KNOWLEDGE_BASE_PERMISSIONS: Permission[] = [
     description: "Use chat interface with knowledge bases",
     category: "knowledge_base",
   },
+  {
+    slug: "knowledge_base:callback",
+    name: "Knowledge Base Callback",
+    description: "Process knowledge base document callbacks",
+    category: "knowledge_base",
+  },
 ];
 
 // User Management Permissions
@@ -365,6 +371,12 @@ export const ENDPOINT_PERMISSIONS: Permission[] = [
     description: "Delete API endpoints",
     category: "endpoint",
   },
+  {
+    slug: "endpoint:execute",
+    name: "Execute Endpoint",
+    description: "Execute API endpoint workflows",
+    category: "endpoint",
+  },
 ];
 
 // File Management Permissions
@@ -388,16 +400,49 @@ export const FILE_PERMISSIONS: Permission[] = [
     category: "file",
   },
   {
+    slug: "file:download",
+    name: "Download Files",
+    description: "Download files from the system",
+    category: "file",
+  },
+  {
     slug: "file:manage_s3",
     name: "Manage S3 Storage",
     description: "Direct access to S3 storage operations",
     category: "file",
+  },
+  {
+    slug: "file:google_drive",
+    name: "Google Drive Access",
+    description: "Access Google Drive files and operations",
+    category: "file",
+  },
+];
+
+// Workflow Additional Permissions (extending WORKFLOW_PERMISSIONS)
+export const WORKFLOW_ADDITIONAL_PERMISSIONS: Permission[] = [
+  {
+    slug: "workflow:parse",
+    name: "Parse Workflow",
+    description: "Parse and process workflow templates",
+    category: "workflow",
+  },
+];
+
+// Twilio Integration Permissions
+export const TWILIO_PERMISSIONS: Permission[] = [
+  {
+    slug: "twilio:templates",
+    name: "Twilio Templates",
+    description: "Access Twilio message templates",
+    category: "twilio",
   },
 ];
 
 // All permissions combined
 export const ALL_PERMISSIONS: Permission[] = [
   ...WORKFLOW_PERMISSIONS,
+  ...WORKFLOW_ADDITIONAL_PERMISSIONS,
   ...MODEL_PERMISSIONS,
   ...DECISION_TABLE_PERMISSIONS,
   ...RULE_PERMISSIONS,
@@ -408,6 +453,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   ...WIDGET_PERMISSIONS,
   ...ENDPOINT_PERMISSIONS,
   ...FILE_PERMISSIONS,
+  ...TWILIO_PERMISSIONS,
 ];
 
 // Permission slugs for easy reference

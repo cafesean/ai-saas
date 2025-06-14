@@ -11,7 +11,24 @@ import { withApiAuth, createApiError, createApiSuccess } from "@/lib/api-auth";
 
 const instance = axios.create();
 
-export const POST = withApiAuth(async (request: NextRequest, user) => {
+export async function POST(request: NextRequest) {
+  // Manual authentication for this complex endpoint due to streaming responses
+  const authResult = await import("@/lib/api-auth").then(m => m.authenticateApiRequest(request, {
+    requireAuth: true,
+    requiredPermission: 'endpoint:execute'
+  }));
+
+  if (!authResult.success) {
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: authResult.error 
+      },
+      { status: authResult.status }
+    );
+  }
+
+  const user = authResult.user;
   try {
     // Extract URI from URL path
     const urlParts = request.url.split('/');

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db} from '@/db';
 import { nodeTypes } from '@/db/schema/n8n';
 import { eq } from 'drizzle-orm';
+import { withApiAuth, createApiError, createApiSuccess } from '@/lib/api-auth';
 
 const nodeTypeSchema = z.object({
   type: z.string(),
@@ -10,50 +11,51 @@ const nodeTypeSchema = z.object({
   description: z.string().optional(),
 });
 
-export async function PUT(request: NextRequest): Promise<NextResponse> {
+export const PUT = withApiAuth(async (request: NextRequest, user) => {
   try {
     const id = request.url.split('/').pop();
     const body = await request.json();
     const data = nodeTypeSchema.parse(body);
 
     if (!id) {
-      throw new Error('ID is required');
+      return createApiError('ID is required', 400);
     }
 
     const [nodeType] = await db.update(nodeTypes)
       .set(data)
-      .where(eq(nodeTypes.id, id as string))
+      .where(eq(nodeTypes.id, parseInt(id)))
       .returning();
 
-    return NextResponse.json(nodeType);
+    return createApiSuccess(nodeType);
   } catch (error) {
     console.error('Error updating node type:', error);
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: error.errors },
-        { status: 400 }
-      );
+      return createApiError(`Validation error: ${JSON.stringify(error.errors)}`, 400);
     }
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return createApiError('Internal server error', 500);
   }
-}
+}, {
+  requireAuth: true,
+  requireAdmin: true
+});
 
-export async function DELETE(request: NextRequest): Promise<NextResponse> {
+export const DELETE = withApiAuth(async (request: NextRequest, user) => {
   try {
     const id = request.url.split('/').pop();
     
+    if (!id) {
+      return createApiError('ID is required', 400);
+    }
+    
     await db.delete(nodeTypes)
-      .where(eq(nodeTypes.id, id as string));
+      .where(eq(nodeTypes.id, parseInt(id)));
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error('Error deleting node type:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return createApiError('Internal server error', 500);
   }
-} 
+}, {
+  requireAuth: true,
+  requireAdmin: true
+}); 

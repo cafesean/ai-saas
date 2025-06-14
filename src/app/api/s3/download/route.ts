@@ -1,40 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-
 import { downloadFileFromS3 } from "@/lib/aws-s3";
+import { withApiAuth, createApiError } from "@/lib/api-auth";
 
-export async function POST(request: NextRequest, res: NextResponse) {
-  if (request.method !== "POST") {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Method not allowed",
-      },
-      { status: 405 },
-    );
-  }
+export const POST = withApiAuth(async (request: NextRequest, user) => {
   try {
     const { key } = await request.json();
 
     if (!key) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "File key is required",
-        },
-        { status: 400 },
-      );
+      return createApiError("File key is required", 400);
     }
 
     const { success, data } = await downloadFileFromS3(key);
 
     if (!success) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "File not found",
-        },
-        { status: 404 },
-      );
+      return createApiError("File not found", 404);
     }
 
     const response = new NextResponse(data?.buffer, {
@@ -49,13 +28,10 @@ export async function POST(request: NextRequest, res: NextResponse) {
 
     return response;
   } catch (error) {
-    console.error("File upload processing error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "File upload processing failed",
-      },
-      { status: 500 },
-    );
+    console.error("File download processing error:", error);
+    return createApiError("File download processing failed", 500);
   }
-}
+}, {
+  requireAuth: true,
+  requiredPermission: 'file:download'
+});

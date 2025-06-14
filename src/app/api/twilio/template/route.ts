@@ -1,43 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
+import { withApiAuth, createApiError, createApiSuccess } from "@/lib/api-auth";
 
-export async function GET(request: NextRequest, res: NextResponse) {
-  if (request.method !== "GET") {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Method not allowed",
-      },
-      { status: 405 },
-    );
-  }
+export const GET = withApiAuth(async (request: NextRequest, user) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const friendlyName = searchParams.get("friendlyName");
     const pageSize = searchParams.get("pageSize");
     const page = searchParams.get("page");
+
     if (!pageSize) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Page size is required",
-        },
-        { status: 400 },
-      );
+      return createApiError("Page size is required", 400);
     }
 
     if (page === undefined || page === null) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Page is required",
-        },
-        { status: 400 },
-      );
+      return createApiError("Page is required", 400);
     }
+
     const base64Auth = Buffer.from(
       `${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_TOKEN}`,
     ).toString("base64");
+
     const result = await axios.get(
       `${process.env.TWILIO_GET_TEMPLATE_LIST_URL}`,
       {
@@ -53,26 +36,17 @@ export async function GET(request: NextRequest, res: NextResponse) {
         timeout: 5 * 60 * 1000,
       },
     );
+
     if (!result.data.contents) {
-      return NextResponse.json(
-        { success: false, error: result.data.error || "Get Templates failed" },
-        { status: 500 },
-      );
+      return createApiError(result.data.error || "Get Templates failed", 500);
     }
 
-    // Return successful upload information
-    return NextResponse.json(
-      {
-        success: true,
-        data: result.data.contents,
-      },
-      { status: 200 },
-    );
+    return createApiSuccess(result.data.contents);
   } catch (error) {
-    console.error("Get templates:", error);
-    return NextResponse.json(
-      { error: "Get templates: failed" },
-      { status: 500 },
-    );
+    console.error("Get templates error:", error);
+    return createApiError("Get templates failed", 500);
   }
-}
+}, {
+  requireAuth: true,
+  requiredPermission: 'twilio:templates'
+});
