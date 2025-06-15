@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { UserDataTable } from "./components/UserDataTable";
 import { useUserTableColumns } from "./hooks/useUserTableColumns";
+import { UserFormDialog } from "./components/UserFormDialog";
+import { DeleteUserDialog } from "./components/DeleteUserDialog";
+import { BulkUserOperationsDialog } from "./components/BulkUserOperationsDialog";
 import { type UserWithStats } from "@/types/user";
 import { api } from "@/utils/trpc";
 import { toast } from "sonner";
@@ -14,8 +17,13 @@ export default function UsersPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [manageRolesDialogOpen, setManageRolesDialogOpen] = useState(false);
+
   const [selectedUser, setSelectedUser] = useState<UserWithStats | null>(null);
+  
+  // Bulk operations state
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkOperation, setBulkOperation] = useState<"activate" | "deactivate" | "delete">("activate");
+  const [bulkUsers, setBulkUsers] = useState<UserWithStats[]>([]);
 
   // Fetch users data
   const { 
@@ -109,28 +117,15 @@ export default function UsersPage() {
   };
 
   const handleDeleteSuccess = () => {
-    if (selectedUser) {
-      deleteMutation.mutate(selectedUser.id);
-    }
     setDeleteDialogOpen(false);
     setSelectedUser(null);
+    refetch();
   };
 
   const handleManageRoles = (user: UserWithStats) => {
+    // Role management is now integrated into the edit dialog
     setSelectedUser(user);
-    setManageRolesDialogOpen(true);
-  };
-
-  const handleManageRolesClose = () => {
-    setManageRolesDialogOpen(false);
-    setSelectedUser(null);
-  };
-
-  const handleManageRolesSuccess = () => {
-    setManageRolesDialogOpen(false);
-    setSelectedUser(null);
-    refetch();
-    toast.success("User roles updated successfully");
+    setEditDialogOpen(true);
   };
 
   const handleToggleStatus = (user: UserWithStats) => {
@@ -142,24 +137,32 @@ export default function UsersPage() {
 
   // Bulk operations
   const handleBulkDelete = (users: UserWithStats[]) => {
-    const userIds = users.map(user => user.id);
-    bulkDeleteMutation.mutate({ userIds });
+    setBulkUsers(users);
+    setBulkOperation("delete");
+    setBulkDialogOpen(true);
   };
 
   const handleBulkActivate = (users: UserWithStats[]) => {
-    const userIds = users.map(user => user.id);
-    bulkUpdateMutation.mutate({ 
-      userIds, 
-      action: 'activate' 
-    });
+    setBulkUsers(users);
+    setBulkOperation("activate");
+    setBulkDialogOpen(true);
   };
 
   const handleBulkDeactivate = (users: UserWithStats[]) => {
-    const userIds = users.map(user => user.id);
-    bulkUpdateMutation.mutate({ 
-      userIds, 
-      action: 'deactivate' 
-    });
+    setBulkUsers(users);
+    setBulkOperation("deactivate");
+    setBulkDialogOpen(true);
+  };
+
+  const handleBulkClose = () => {
+    setBulkDialogOpen(false);
+    setBulkUsers([]);
+  };
+
+  const handleBulkSuccess = () => {
+    setBulkDialogOpen(false);
+    setBulkUsers([]);
+    refetch();
   };
 
   // Table columns
@@ -194,51 +197,39 @@ export default function UsersPage() {
         onRefresh={refetch}
       />
 
-      {/* TODO: Add dialogs for create, edit, delete, and manage roles */}
-      {/* These will be implemented in the next phase */}
-      
-      {createDialogOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg">
-            <h2 className="text-lg font-semibold mb-4">Create User</h2>
-            <p className="text-muted-foreground mb-4">Create user dialog will be implemented in the next phase.</p>
-            <Button onClick={() => setCreateDialogOpen(false)}>Close</Button>
-          </div>
-        </div>
-      )}
+      {/* User Form Dialog (Create/Edit) */}
+      <UserFormDialog
+        open={createDialogOpen || editDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (createDialogOpen) {
+              setCreateDialogOpen(false);
+            } else {
+              handleEditClose();
+            }
+          }
+        }}
+        onSuccess={createDialogOpen ? handleCreateSuccess : handleEditSuccess}
+        user={selectedUser}
+        mode={createDialogOpen ? "create" : "edit"}
+      />
 
-      {editDialogOpen && selectedUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg">
-            <h2 className="text-lg font-semibold mb-4">Edit User: {selectedUser.name}</h2>
-            <p className="text-muted-foreground mb-4">Edit user dialog will be implemented in the next phase.</p>
-            <Button onClick={handleEditClose}>Close</Button>
-          </div>
-        </div>
-      )}
+      {/* Delete User Dialog */}
+      <DeleteUserDialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteClose}
+        onSuccess={handleDeleteSuccess}
+        user={selectedUser}
+      />
 
-      {deleteDialogOpen && selectedUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg">
-            <h2 className="text-lg font-semibold mb-4">Delete User: {selectedUser.name}</h2>
-            <p className="text-muted-foreground mb-4">Are you sure you want to delete this user?</p>
-            <div className="flex space-x-2">
-              <Button variant="destructive" onClick={handleDeleteSuccess}>Delete</Button>
-              <Button variant="outline" onClick={handleDeleteClose}>Cancel</Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {manageRolesDialogOpen && selectedUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg">
-            <h2 className="text-lg font-semibold mb-4">Manage Roles: {selectedUser.name}</h2>
-            <p className="text-muted-foreground mb-4">Role management dialog will be implemented in the next phase.</p>
-            <Button onClick={handleManageRolesClose}>Close</Button>
-          </div>
-        </div>
-      )}
+      {/* Bulk Operations Dialog */}
+      <BulkUserOperationsDialog
+        open={bulkDialogOpen}
+        onClose={handleBulkClose}
+        onSuccess={handleBulkSuccess}
+        users={bulkUsers}
+        operation={bulkOperation}
+      />
     </div>
   );
 } 

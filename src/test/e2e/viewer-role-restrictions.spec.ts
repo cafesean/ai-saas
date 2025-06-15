@@ -44,7 +44,7 @@ test.describe('Viewer Role Restrictions - Acceptance Criteria', () => {
   test('AC2: Assert Create and Delete buttons are disabled/not present', async ({ page }) => {
     await withAuthScenario(page, 'viewerOnly', async () => {
       // Test Workflow Management Page
-      await page.goto('/admin/workflows');
+      await page.goto('/workflows');
       
       // Create buttons should not be present
       await expect(page.locator('[data-testid="create-workflow"]')).not.toBeVisible();
@@ -65,7 +65,7 @@ test.describe('Viewer Role Restrictions - Acceptance Criteria', () => {
       await expect(page.locator('[data-testid="view-workflow"]')).toBeVisible();
       
       // Test Model Management Page
-      await page.goto('/admin/models');
+      await page.goto('/models');
       
       // Create buttons should not be present
       await expect(page.locator('[data-testid="create-model"]')).not.toBeVisible();
@@ -184,8 +184,8 @@ test.describe('Viewer Role Restrictions - Acceptance Criteria', () => {
     await withAuthScenario(page, 'viewerOnly', async () => {
       // Verify viewer can access read-only pages
       const allowedPages = [
-        '/admin/workflows',
-        '/admin/models',
+        '/workflows',
+        '/models',
         '/admin/decisioning',
         '/admin/documents',
       ];
@@ -201,7 +201,7 @@ test.describe('Viewer Role Restrictions - Acceptance Criteria', () => {
       // Verify viewer cannot access admin pages
       const forbiddenPages = [
         '/admin/roles',
-        '/admin/permissions',
+        '/permissions',
         '/admin/users',
         '/admin/settings',
       ];

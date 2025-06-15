@@ -36,7 +36,7 @@ test.describe('Permission-based Access Control', () => {
 
     test('should access permission catalogue', async ({ page }) => {
       await withAuthScenario(page, 'adminOnly', async () => {
-        await page.goto('/admin/permissions');
+        await page.goto('/permissions');
         
         // Should see permission catalogue
         await expect(page.locator('h1')).toContainText('Permission Catalogue');
@@ -77,7 +77,7 @@ test.describe('Permission-based Access Control', () => {
 
     test('should access allowed workflow features', async ({ page }) => {
       await withAuthScenario(page, 'userOnly', async () => {
-        await page.goto('/admin/workflows');
+        await page.goto('/workflows');
         
         // Should see read-only workflow interface
         await expect(page.locator('text=Workflows')).toBeVisible();
@@ -89,7 +89,7 @@ test.describe('Permission-based Access Control', () => {
   test.describe('Editor User Access', () => {
     test('should access content creation features', async ({ page }) => {
       await withAuthScenario(page, 'editorOnly', async () => {
-        await page.goto('/admin/workflows');
+        await page.goto('/workflows');
         
         // Should see workflow creation options
         await expect(page.locator('[data-testid="create-workflow"]')).toBeVisible();
@@ -136,7 +136,7 @@ test.describe('Permission-based Access Control', () => {
 
     test('admin can view permission details', async ({ page }) => {
       await withAuthScenario(page, 'adminOnly', async () => {
-        await page.goto('/admin/permissions');
+        await page.goto('/permissions');
         
         // Search for specific permission
         await page.fill('[data-testid="permission-search"]', 'workflow:create');
@@ -156,7 +156,7 @@ test.describe('Permission-based Access Control', () => {
   test.describe('Permission Gating in UI', () => {
     test('buttons should be hidden based on permissions', async ({ page }) => {
       await withAuthScenario(page, 'userOnly', async () => {
-        await page.goto('/admin/workflows');
+        await page.goto('/workflows');
         
         // Create button should not be visible
         await expect(page.locator('[data-testid="create-workflow"]')).not.toBeVisible();
@@ -193,14 +193,14 @@ test.describe('Permission-based Access Control', () => {
         await expect(page.locator('h1')).toContainText('Role Management');
         
         // Should not access other admin features
-        await page.goto('/admin/models');
+        await page.goto('/models');
         await expect(page.locator('text=Access Denied')).toBeVisible();
       });
     });
 
     test('workflow manager permissions', async ({ page }) => {
       await withAuthScenario(page, 'workflowManager', async () => {
-        await page.goto('/admin/workflows');
+        await page.goto('/workflows');
         
         // Should have full workflow access
         await expect(page.locator('[data-testid="create-workflow"]')).toBeVisible();

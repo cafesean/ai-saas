@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure, protectedProcedure, withPermission } from "../trpc";
 import { db } from "@/db/config";
-import { roles, permissions, rolePermissions, userRoles } from "@/db/schema";
+import { roles, permissions, rolePermissions, userRoles, tenants } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 
 export const adminRouter = createTRPCRouter({
@@ -252,6 +252,41 @@ export const adminRouter = createTRPCRouter({
 			throw new TRPCError({
 				code: "INTERNAL_SERVER_ERROR",
 				message: "Failed to seed RBAC data",
+			});
+		}
+	}),
+
+	seedTenants: protectedProcedure.mutation(async ({ ctx }) => {
+		try {
+			// Check if any tenants exist
+			const existingTenants = await db.select().from(tenants);
+			
+			if (existingTenants.length === 0) {
+				// Create default tenant
+				const [defaultTenant] = await db.insert(tenants).values({
+					name: 'Default Organization',
+					description: 'Default tenant for initial setup and development',
+					slug: 'default-org',
+					isActive: true,
+				}).returning();
+
+				return {
+					success: true,
+					message: "Default tenant created successfully!",
+					tenant: defaultTenant,
+				};
+			} else {
+				return {
+					success: true,
+					message: "Tenants already exist, no seeding needed",
+					existingCount: existingTenants.length,
+				};
+			}
+		} catch (error) {
+			console.error("❌ Error during tenant seeding:", error);
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Failed to seed tenant data",
 			});
 		}
 	}),

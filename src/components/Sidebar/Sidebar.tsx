@@ -27,7 +27,7 @@ import { useState } from "react";
 import { SampleButton } from "@/components/ui/sample-button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { AdminRoutes } from "@/constants/routes";
+import { AdminRoutes, AppRoutes, BackendRoutes, DemoRoutes } from "@/constants/routes";
 import { WithPermission } from "@/components/auth/WithPermission";
 
 interface NavItem {
@@ -158,13 +158,13 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
       children: [
         {
           title: "All Models",
-          href: AdminRoutes.models,
+          href: AppRoutes.models,
           icon: Brain,
           // permission: "model:read", // Temporarily removed for testing
         },
         {
           title: "Model Registry",
-          href: AdminRoutes.modelRegistry,
+          href: AppRoutes.modelRegistry,
           icon: Database,
           // permission: "model:create", // Temporarily removed for testing
         },
@@ -172,13 +172,13 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
     },
     {
       title: "Workflows",
-      href: AdminRoutes.workflows,
+      href: AppRoutes.workflows,
       icon: GitBranch,
       // permission: "workflow:read", // Temporarily removed for testing
     },
     {
       title: "Decisioning",
-      href: AdminRoutes.decisionTables,
+      href: AppRoutes.decisionTables,
       icon: FileText,
       // permission: "decision_table:read", // Temporarily removed for testing
     },
@@ -190,7 +190,7 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
     },
     {
       title: "Knowledge Bases",
-      href: AdminRoutes.knowledgebase,
+      href: AppRoutes.knowledgebase,
       icon: Database,
       // permission: "knowledge_base:read", // Temporarily removed for testing
     },
@@ -202,19 +202,19 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
     },
     {
       title: "Content Repo",
-      href: "/content-repo",
+      href: AppRoutes.contentRepo,
       icon: File,
       // permission: "admin:full_access", // Temporarily removed for testing
     },
     {
       title: "Widgets",
-      href: "/widgets",
+      href: AppRoutes.widgets,
       icon: Layout,
       // permission: "admin:full_access", // Temporarily removed for testing
     },
     {
       title: "API Docs",
-      href: "/api-docs",
+      href: AppRoutes.apiDocs,
       icon: Code,
       // API docs accessible to all users
     },
@@ -230,7 +230,7 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
     },
     {
       title: "Permissions",
-      href: AdminRoutes.permissions, 
+      href: BackendRoutes.permissions, 
       icon: Key,
       // anyPermissions: ["permission:read", "admin:full_access"], // Temporarily removed for testing
     },
@@ -274,7 +274,7 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
         },
         {
           title: "Templates",
-          href: "/settings/templates",
+          href: DemoRoutes.templates,
           icon: FileText,
           // permission: "workflow:create", // Temporarily removed for testing
         },

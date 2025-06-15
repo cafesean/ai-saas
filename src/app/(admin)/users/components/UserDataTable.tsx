@@ -47,15 +47,11 @@ import {
   ChevronsRight,
   Search,
   Download,
-  MoreHorizontal,
   Trash2,
   UserCheck,
   UserX,
   RefreshCw,
   Settings,
-  Eye,
-  EyeOff,
-  Filter,
   X
 } from "lucide-react";
 import { type UserWithStats } from "@/types/user";
@@ -125,7 +121,7 @@ export function UserDataTable({
       .map(col => col.id);
     
     const csvData = table.getFilteredRowModel().rows.map(row => {
-      const rowData: Record<string, any> = {};
+      const rowData: Record<string, string | number | boolean> = {};
       headers.forEach(header => {
         const cell = row.getValue(header);
         if (header === 'isActive') {
@@ -133,7 +129,7 @@ export function UserDataTable({
         } else if (header === 'createdAt' || header === 'updatedAt') {
           rowData[header] = cell ? new Date(cell as Date).toISOString() : '';
         } else {
-          rowData[header] = typeof cell === 'object' ? JSON.stringify(cell) : cell || '';
+          rowData[header] = typeof cell === 'object' ? JSON.stringify(cell) : String(cell || '');
         }
       });
       return rowData;
@@ -156,6 +152,8 @@ export function UserDataTable({
   const exportToJSON = () => {
     const exportData = table.getFilteredRowModel().rows.map(row => {
       const { password, ...userWithoutPassword } = row.original;
+      // Exclude password from export for security
+      void password;
       return userWithoutPassword;
     });
     const jsonContent = JSON.stringify(exportData, null, 2);
