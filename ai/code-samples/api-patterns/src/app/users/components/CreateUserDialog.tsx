@@ -27,7 +27,7 @@ export function CreateUserDialog({ isOpen, onClose }: CreateUserDialogProps) {
   })
 
   const utils = api.useContext()
-  const { mutate: createUser, isLoading } = api.user.create.useMutation({
+  const { mutate: createUser, isPending } = api.user.create.useMutation({
     onSuccess: () => {
       utils.user.list.invalidate()
       onClose()
@@ -79,12 +79,12 @@ export function CreateUserDialog({ isOpen, onClose }: CreateUserDialogProps) {
               type="button"
               variant="outline"
               onClick={onClose}
-              disabled={isLoading}
+              disabled={isPending}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Creating..." : "Create"}
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Creating..." : "Create"}
             </Button>
           </DialogFooter>
         </form>

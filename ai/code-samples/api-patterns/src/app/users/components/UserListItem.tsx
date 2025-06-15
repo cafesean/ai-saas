@@ -10,7 +10,7 @@ interface UserListItemProps {
 
 export function UserListItem({ user }: UserListItemProps) {
   const utils = api.useUtils()
-  const { mutate: deleteUser, isLoading } = api.user.delete.useMutation({
+  const { mutate: deleteUser, isPending } = api.user.delete.useMutation({
     onSuccess: () => {
       utils.user.list.invalidate()
     },
@@ -26,9 +26,9 @@ export function UserListItem({ user }: UserListItemProps) {
         <Button
           variant="outline"
           onClick={() => deleteUser({ id: user.id })}
-          disabled={isLoading}
+          disabled={isPending}
         >
-          {isLoading ? "Deleting..." : "Delete"}
+          {isPending ? "Deleting..." : "Delete"}
         </Button>
       </div>
     </li>

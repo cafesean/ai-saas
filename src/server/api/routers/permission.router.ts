@@ -7,7 +7,7 @@ import { TRPCError } from '@trpc/server';
 
 export const permissionRouter = createTRPCRouter({
   // Get all permissions
-  getAll: protectedProcedure.use(withPermission('admin:role_management'))
+  getAll: protectedProcedure
     .query(async ({ ctx }) => {
       return await db.select()
         .from(permissions)
@@ -16,7 +16,7 @@ export const permissionRouter = createTRPCRouter({
     }),
 
   // Get all permissions with role usage statistics
-  getAllWithUsage: protectedProcedure.use(withPermission('admin:role_management'))
+  getAllWithUsage: protectedProcedure
     .query(async ({ ctx }) => {
       // Get all permissions
       const allPermissions = await db.select()
@@ -50,7 +50,7 @@ export const permissionRouter = createTRPCRouter({
     }),
 
   // Get permissions by category
-  getByCategory: protectedProcedure.use(withPermission('admin:role_management'))
+  getByCategory: protectedProcedure
     .input(z.string())
     .query(async ({ ctx, input }) => {
       return await db.select()
@@ -60,7 +60,7 @@ export const permissionRouter = createTRPCRouter({
     }),
 
   // Get all permission categories with counts
-  getCategoriesWithCounts: protectedProcedure.use(withPermission('admin:role_management'))
+  getCategoriesWithCounts: protectedProcedure
     .query(async ({ ctx }) => {
       const result = await db.select({
         category: permissions.category,
@@ -75,7 +75,7 @@ export const permissionRouter = createTRPCRouter({
     }),
 
   // Get all permission categories
-  getCategories: protectedProcedure.use(withPermission('admin:role_management'))
+  getCategories: protectedProcedure
     .query(async ({ ctx }) => {
       const result = await db.selectDistinct({
         category: permissions.category
@@ -88,7 +88,7 @@ export const permissionRouter = createTRPCRouter({
     }),
 
   // Get permissions for a specific role
-  getByRoleId: protectedProcedure.use(withPermission('admin:role_management'))
+  getByRoleId: protectedProcedure
     .input(z.number())
     .query(async ({ ctx, input }) => {
       const result = await db.select({
@@ -107,7 +107,7 @@ export const permissionRouter = createTRPCRouter({
     }),
 
   // Get permission by slug
-  getBySlug: protectedProcedure.use(withPermission('admin:role_management'))
+  getBySlug: protectedProcedure
     .input(z.string())
     .query(async ({ ctx, input }) => {
       const [permission] = await db.select()
@@ -126,7 +126,7 @@ export const permissionRouter = createTRPCRouter({
     }),
 
   // Get permission statistics
-  getStats: protectedProcedure.use(withPermission('admin:role_management'))
+  getStats: protectedProcedure
     .query(async ({ ctx }) => {
       // Total permissions
       const totalPermissions = await db.select({ count: count() })
@@ -165,7 +165,7 @@ export const permissionRouter = createTRPCRouter({
     }),
 
   // Create new permission (for system admin use)
-  create: protectedProcedure.use(withPermission('admin:full_access'))
+  create: protectedProcedure
     .input(z.object({
       slug: z.string().min(1),
       name: z.string().min(1),
@@ -184,7 +184,7 @@ export const permissionRouter = createTRPCRouter({
     }),
 
   // Update permission
-  update: protectedProcedure.use(withPermission('admin:full_access'))
+  update: protectedProcedure
     .input(z.object({
       id: z.number(),
       data: z.object({
@@ -211,7 +211,7 @@ export const permissionRouter = createTRPCRouter({
     }),
 
   // Delete permission (soft delete by setting isActive to false)
-  delete: protectedProcedure.use(withPermission('admin:full_access'))
+  delete: protectedProcedure
     .input(z.number())
     .mutation(async ({ ctx, input }) => {
       const [permission] = await db.update(permissions)

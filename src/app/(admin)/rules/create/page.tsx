@@ -40,7 +40,7 @@ const CreateRule = () => {
           {isClient && <RuleFormBase handleCreateRule={handleCreateRule} />}
         </div>
       </div>
-      {createRule.isLoading && <FullScreenLoading />}
+      {createRule.isPending && <FullScreenLoading />}
     </div>
   );
 };
