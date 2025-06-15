@@ -7,7 +7,7 @@ import { Menu, Brain, LogOut, User, Settings } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 
 import { SampleButton } from "@/components/ui/sample-button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/Sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -40,8 +40,13 @@ export function MobileNav() {
             <span className="sr-only">Toggle Menu</span>
           </SampleButton>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-0 pt-6">
-          <Sidebar setOpen={setOpen} />
+        <SheetContent side="left" className="w-64 p-0">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Navigation Menu</SheetTitle>
+          </SheetHeader>
+          <div className="pt-6">
+            <Sidebar setOpen={setOpen} />
+          </div>
         </SheetContent>
       </Sheet>
 
@@ -80,12 +85,6 @@ export function MobileNav() {
               <Link href={"/profile" as Route} className="flex items-center">
                 <User className="mr-2 h-4 w-4" />
                 Profile
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href={"/settings/general" as Route} className="flex items-center">
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

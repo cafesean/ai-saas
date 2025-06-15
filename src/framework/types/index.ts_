@@ -1,12 +1,12 @@
 import type { InferSelectModel } from 'drizzle-orm';
-import type { roles, levels, level_roles, level_rates, rate_cards } from '@/db/schema';
+import type { roles } from '@/db/schema';
 
 // DB Types
-export type DbRole = InferSelectModel<typeof roles>;
-export type DbLevel = InferSelectModel<typeof levels>;
-export type DbLevelRole = InferSelectModel<typeof level_roles>;
-export type DbLevelRate = InferSelectModel<typeof level_rates>;
-export type DbRateCard = InferSelectModel<typeof rate_cards>;
+// export type DbRole = InferSelectModel<typeof roles>;
+// export type DbLevel = InferSelectModel<typeof levels>;
+// export type DbLevelRole = InferSelectModel<typeof level_roles>;
+// export type DbLevelRate = InferSelectModel<typeof level_rates>;
+// export type DbRateCard = InferSelectModel<typeof rate_cards>;
 
 // View Types
 export interface RoleView {

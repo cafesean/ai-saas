@@ -26,14 +26,14 @@ export default function AppLayout({
       >
         <div className="flex min-h-screen flex-col">
           <MobileNav />
-          <div className="flex flex-1">
-            <aside className="hidden w-64 border-r md:block">
-              <ClientSidebar />
-            </aside>
-            <main className="flex-1">
-              {children}
-            </main>
+          {/* Fixed sidebar - only show on desktop */}
+          <div className="hidden md:block">
+            <ClientSidebar />
           </div>
+          {/* Main content with left margin for fixed sidebar */}
+          <main className="flex-1 md:ml-64">
+            {children}
+          </main>
         </div>
       </Suspense>
     </AuthGuard>

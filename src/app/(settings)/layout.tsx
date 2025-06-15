@@ -3,7 +3,7 @@ import { MobileNav } from "@/components/mobile-nav";
 import { ClientSidebar } from "@/components/client-sidebar";
 import { AuthGuard } from "@/components/auth/auth-guard";
 
-export default function BackendLayout({
+export default function SettingsLayout({
   children,
 }: {
   children: React.ReactNode;

@@ -61,9 +61,12 @@ export function DeleteUserDialog({
     } catch (error: unknown) {
       console.error("Error deleting user:", error);
       
-      if (error.message?.includes("not found")) {
+      // Properly handle unknown error type
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      if (errorMessage.includes("not found")) {
         toast.error("User not found. It may have already been deleted.");
-      } else if (error.message?.includes("cannot delete")) {
+      } else if (errorMessage.includes("cannot delete")) {
         toast.error("Cannot delete this user. They may have active assignments.");
       } else {
         toast.error("Failed to delete user. Please try again.");
