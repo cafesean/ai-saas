@@ -77,6 +77,26 @@ import {
   auditLogs,
   auditLogsRelations,
 } from "./audit";
+import {
+  variables,
+  variablesRelations,
+} from "./variable";
+import {
+  lookup_tables,
+  lookup_table_rows,
+  lookupTablesRelations,
+  lookupTableRowsRelations,
+} from "./lookup_table";
+import {
+  rule_sets,
+  rule_set_steps,
+  ruleSetsRelations,
+  ruleSetStepsRelations,
+} from "./rule_set";
+import {
+  test_scenarios,
+  testScenariosRelations,
+} from "./test_scenario";
 
 export {
   templates,
@@ -144,6 +164,19 @@ export {
   userRolesRelations,
   auditLogs,
   auditLogsRelations,
+  // Decision Engine schemas
+  variables,
+  variablesRelations,
+  lookup_tables,
+  lookup_table_rows,
+  lookupTablesRelations,
+  lookupTableRowsRelations,
+  rule_sets,
+  rule_set_steps,
+  ruleSetsRelations,
+  ruleSetStepsRelations,
+  test_scenarios,
+  testScenariosRelations,
 };
 
 export default {
@@ -212,4 +245,17 @@ export default {
   userRolesRelations,
   auditLogs,
   auditLogsRelations,
+  // Decision Engine schemas
+  variables,
+  variablesRelations,
+  lookup_tables,
+  lookup_table_rows,
+  lookupTablesRelations,
+  lookupTableRowsRelations,
+  rule_sets,
+  rule_set_steps,
+  ruleSetsRelations,
+  ruleSetStepsRelations,
+  test_scenarios,
+  testScenariosRelations,
 };

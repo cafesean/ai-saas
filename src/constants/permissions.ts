@@ -234,6 +234,160 @@ export const KNOWLEDGE_BASE_PERMISSIONS: Permission[] = [
   },
 ];
 
+// Decision Engine Variable Permissions
+export const VARIABLE_PERMISSIONS: Permission[] = [
+  {
+    slug: "decisioning:variable:create",
+    name: "Create Variable",
+    description: "Create new decision variables",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:variable:read",
+    name: "View Variable",
+    description: "View variable definitions and configurations",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:variable:update",
+    name: "Edit Variable",
+    description: "Edit variable logic and configurations",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:variable:delete",
+    name: "Delete Variable",
+    description: "Delete decision variables",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:variable:publish",
+    name: "Publish Variable",
+    description: "Publish variables to make them available for use",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:variable:deprecate",
+    name: "Deprecate Variable",
+    description: "Deprecate published variables",
+    category: "decisioning",
+  },
+];
+
+// Decision Engine Lookup Table Permissions
+export const LOOKUP_TABLE_PERMISSIONS: Permission[] = [
+  {
+    slug: "decisioning:lookup:create",
+    name: "Create Lookup Table",
+    description: "Create new lookup tables",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:lookup:read",
+    name: "View Lookup Table",
+    description: "View lookup table structure and mappings",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:lookup:update",
+    name: "Edit Lookup Table",
+    description: "Edit lookup table mappings and configurations",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:lookup:delete",
+    name: "Delete Lookup Table",
+    description: "Delete lookup tables",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:lookup:publish",
+    name: "Publish Lookup Table",
+    description: "Publish lookup tables to make them available for use",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:lookup:deprecate",
+    name: "Deprecate Lookup Table",
+    description: "Deprecate published lookup tables",
+    category: "decisioning",
+  },
+];
+
+// Decision Engine Rule Set Permissions
+export const RULE_SET_PERMISSIONS: Permission[] = [
+  {
+    slug: "decisioning:ruleset:create",
+    name: "Create Rule Set",
+    description: "Create new rule sets for orchestrating decision logic",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:ruleset:read",
+    name: "View Rule Set",
+    description: "View rule set configurations and step mappings",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:ruleset:update",
+    name: "Edit Rule Set",
+    description: "Edit rule set steps and orchestration logic",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:ruleset:delete",
+    name: "Delete Rule Set",
+    description: "Delete rule sets",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:ruleset:publish",
+    name: "Publish Rule Set",
+    description: "Publish rule sets to make them available for execution",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:ruleset:deprecate",
+    name: "Deprecate Rule Set",
+    description: "Deprecate published rule sets",
+    category: "decisioning",
+  },
+];
+
+// Decision Engine Testing Permissions
+export const DECISION_TESTING_PERMISSIONS: Permission[] = [
+  {
+    slug: "decisioning:test:create",
+    name: "Create Test Scenario",
+    description: "Create test scenarios for decision artifacts",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:test:read",
+    name: "View Test Scenario",
+    description: "View test scenarios and test results",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:test:update",
+    name: "Edit Test Scenario",
+    description: "Edit test scenarios and expected outcomes",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:test:delete",
+    name: "Delete Test Scenario",
+    description: "Delete test scenarios",
+    category: "decisioning",
+  },
+  {
+    slug: "decisioning:test:execute",
+    name: "Execute Tests",
+    description: "Run test scenarios against decision artifacts",
+    category: "decisioning",
+  },
+];
+
 // User Management Permissions
 export const USER_PERMISSIONS: Permission[] = [
   {
@@ -460,6 +614,11 @@ export const ALL_PERMISSIONS: Permission[] = [
   ...MODEL_PERMISSIONS,
   ...DECISION_TABLE_PERMISSIONS,
   ...RULE_PERMISSIONS,
+  // Decision Engine Permissions
+  ...VARIABLE_PERMISSIONS,
+  ...LOOKUP_TABLE_PERMISSIONS,
+  ...RULE_SET_PERMISSIONS,
+  ...DECISION_TESTING_PERMISSIONS,
   ...KNOWLEDGE_BASE_PERMISSIONS,
   ...USER_PERMISSIONS,
   ...TENANT_PERMISSIONS,

@@ -15,6 +15,7 @@ import { permissionRouter } from "./routers/permission.router";
 import { authRouter } from "./routers/auth.router";
 import { userRouter } from "./routers/user.router";
 import { tenantRouter } from "./routers/tenant.router";
+import { variableRouter } from "./routers/variable.router";
 /**
  *
 /**
@@ -45,6 +46,7 @@ export const appRouter = createTRPCRouter({
   auth: authRouter,
   user: userRouter,
   tenant: tenantRouter,
+  variable: variableRouter,
 });
 
 // Export type definition of API

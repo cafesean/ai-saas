@@ -26,6 +26,12 @@ export const decision_tables = pgTable(
     status: varchar("status", { length: 100 })
       .notNull()
       .default(DecisionStatus.ACTIVE),
+    
+    // Versioning and publishing lifecycle (Decision Engine enhancement)
+    version: integer("version").notNull().default(1),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    publishedBy: integer("published_by"), // User ID who published
+    
     // Multi-tenancy support (SAAS-32)
     tenantId: integer("tenant_id")
       .notNull()
@@ -47,6 +53,10 @@ export const decision_tables = pgTable(
     index("dt_id_idx").on(table.id),
     index("dt_uuid_idx").on(table.uuid),
     index("dt_tenant_id_idx").on(table.tenantId),
+    index("dt_version_idx").on(table.version),
+    index("dt_status_idx").on(table.status),
+    // Composite unique index for tenant + name combination
+    unique("dt_tenant_name_unique").on(table.tenantId, table.name),
   ],
 );
 
