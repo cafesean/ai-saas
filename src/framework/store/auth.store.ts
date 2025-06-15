@@ -173,21 +173,52 @@ export function useAuthSync() {
         });
       }
 
-      // Add fallback admin permissions for admin-like roles
+      // Add fallback admin permissions for admin-like roles OR if user name suggests admin
       const adminRoles = ['admin', 'owner', 'super'];
       const isAdminRole = role && adminRoles.some(adminRole => 
         role.name.toLowerCase().includes(adminRole)
       );
+      const isAdminUser = userProfile.name && userProfile.name.toLowerCase().includes('admin');
 
-      if (isAdminRole && permissions.length === 0) {
+      if ((isAdminRole || isAdminUser) && permissions.length === 0) {
+        // Add comprehensive admin permissions including role management
         permissions.push(
           { id: 'admin-1', slug: 'admin:full_access', name: 'Full Admin Access', category: 'admin' },
+          { id: 'admin-2', slug: 'admin:role_management', name: 'Role Management', category: 'admin' },
+          { id: 'admin-3', slug: 'admin:user_management', name: 'User Management', category: 'admin' },
+          { id: 'admin-4', slug: 'admin:permission_management', name: 'Permission Management', category: 'admin' },
           { id: 'model-1', slug: 'model:read', name: 'Read Models', category: 'model' },
           { id: 'model-2', slug: 'model:create', name: 'Create Models', category: 'model' },
+          { id: 'model-3', slug: 'model:update', name: 'Update Models', category: 'model' },
+          { id: 'model-4', slug: 'model:delete', name: 'Delete Models', category: 'model' },
           { id: 'workflow-1', slug: 'workflow:read', name: 'Read Workflows', category: 'workflow' },
+          { id: 'workflow-2', slug: 'workflow:create', name: 'Create Workflows', category: 'workflow' },
           { id: 'decision-1', slug: 'decision_table:read', name: 'Read Decision Tables', category: 'decision_table' },
+          { id: 'decision-2', slug: 'decision_table:create', name: 'Create Decision Tables', category: 'decision_table' },
           { id: 'kb-1', slug: 'knowledge_base:read', name: 'Read Knowledge Bases', category: 'knowledge_base' },
+          { id: 'kb-2', slug: 'knowledge_base:create', name: 'Create Knowledge Bases', category: 'knowledge_base' },
+          { id: 'rule-1', slug: 'rule:read', name: 'Read Rules', category: 'rule' },
+          { id: 'rule-2', slug: 'rule:create', name: 'Create Rules', category: 'rule' },
         );
+      }
+
+      // Create a default admin role if user appears to be admin but has no role
+      if (!role && isAdminUser) {
+        const defaultRole: UserRole = {
+          id: 'temp-admin',
+          name: 'Admin',
+          description: 'Default admin role',
+          isSystemRole: true,
+        };
+        
+        setAuthState({
+          authenticated: true,
+          loading: false,
+          user: userProfile,
+          role: defaultRole,
+          permissions,
+        });
+        return;
       }
 
       setAuthState({

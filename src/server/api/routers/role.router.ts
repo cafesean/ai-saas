@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { createTRPCRouter, publicProcedure, protectedProcedure, withPermission } from "../trpc";
 import { db } from '@/db/config';
-import { roles, permissions, rolePermissions } from '@/db/schema';
+import { roles, permissions, rolePermissions, userRoles } from '@/db/schema';
 import { eq, asc, inArray } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import type { DbRole } from '@/db/types';
@@ -225,7 +225,7 @@ export const roleRouter = createTRPCRouter({
       return { success: true };
     }),
 
-  // Get all roles with permission counts
+  // Get all roles with permission counts and user counts
   getAllWithStats: protectedProcedure
     .query(async ({ ctx }) => {
       const rolesData = await db.select()
@@ -233,16 +233,22 @@ export const roleRouter = createTRPCRouter({
         .where(eq(roles.isActive, true))
         .orderBy(asc(roles.name));
 
-      // Get permission counts for each role
+      // Get permission counts and user counts for each role
       const roleStats = await Promise.all(
         rolesData.map(async (role) => {
-          const permissionCount = await db.select()
-            .from(rolePermissions)
-            .where(eq(rolePermissions.roleId, role.id));
+          const [permissionCount, userCount] = await Promise.all([
+            db.select()
+              .from(rolePermissions)
+              .where(eq(rolePermissions.roleId, role.id)),
+            db.select()
+              .from(userRoles)
+              .where(eq(userRoles.roleId, role.id))
+          ]);
 
           return {
             ...role,
             permissionCount: permissionCount.length,
+            userCount: userCount.length,
           };
         })
       );

@@ -94,6 +94,7 @@ export const rulesRouter = createTRPCRouter({
           const [rule] = await tx
             .insert(rules)
             .values({
+              tenantId: ctx.session?.user?.orgUser?.[0]?.tenantId,
               name: input.name,
               description: input.description,
             })
