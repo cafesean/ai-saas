@@ -110,7 +110,9 @@ export function WithPermission({
     role: userRole, 
     permissions: userPermissions, 
     authenticated, 
-    loading 
+    loading,
+    hasPermission,
+    hasAnyPermission
   } = useAuthStore();
 
   // Handle loading state
@@ -124,17 +126,36 @@ export function WithPermission({
     return fallback ? <div className={className}>{fallback}</div> : null;
   }
 
-  // Check permissions based on provided props
-  const hasAccess = checkPermissions({
-    permission,
-    permissions,
-    anyPermissions,
-    role,
-    customCheck,
-    user,
-    userRole,
-    userPermissions,
-  });
+  // Check permissions using the auth store methods (same as other modules)
+  let hasAccess = true;
+
+  // Custom check takes precedence
+  if (customCheck) {
+    const permissionSlugs = userPermissions.map(p => p.slug);
+    hasAccess = customCheck(user, userRole, permissionSlugs);
+  }
+  // Check single permission
+  else if (permission) {
+    hasAccess = hasPermission(permission);
+  }
+  // Check multiple permissions (user must have ALL)
+  else if (permissions.length > 0) {
+    hasAccess = permissions.every(perm => hasPermission(perm));
+  }
+  // Check any permissions (user must have at least ONE)
+  else if (anyPermissions.length > 0) {
+    hasAccess = hasAnyPermission(anyPermissions);
+  }
+  // Check role(s)
+  else if (role) {
+    if (!userRole) {
+      hasAccess = false;
+    } else if (Array.isArray(role)) {
+      hasAccess = role.includes(userRole.name);
+    } else {
+      hasAccess = userRole.name === role;
+    }
+  }
 
   // Render based on access
   if (hasAccess) {
@@ -171,7 +192,9 @@ export function useWithPermission(props: Omit<WithPermissionProps, 'children' | 
     role: userRole, 
     permissions: userPermissions, 
     authenticated,
-    loading 
+    loading,
+    hasPermission,
+    hasAnyPermission
   } = useAuthStore();
 
   // If loading or not authenticated, deny access
@@ -179,12 +202,36 @@ export function useWithPermission(props: Omit<WithPermissionProps, 'children' | 
     return false;
   }
 
-  return checkPermissions({
-    ...props,
-    user,
-    userRole,
-    userPermissions,
-  });
+  const { permission, permissions = [], anyPermissions = [], role, customCheck } = props;
+
+  // Custom check takes precedence
+  if (customCheck) {
+    const permissionSlugs = userPermissions.map(p => p.slug);
+    return customCheck(user, userRole, permissionSlugs);
+  }
+  // Check single permission
+  if (permission) {
+    return hasPermission(permission);
+  }
+  // Check multiple permissions (user must have ALL)
+  if (permissions.length > 0) {
+    return permissions.every(perm => hasPermission(perm));
+  }
+  // Check any permissions (user must have at least ONE)
+  if (anyPermissions.length > 0) {
+    return hasAnyPermission(anyPermissions);
+  }
+  // Check role(s)
+  if (role) {
+    if (!userRole) return false;
+    if (Array.isArray(role)) {
+      return role.includes(userRole.name);
+    }
+    return userRole.name === role;
+  }
+
+  // If no specific criteria provided, default to authenticated
+  return true;
 }
 
 /**
@@ -209,62 +256,7 @@ export function withPermission<P extends object>(
   };
 }
 
-/**
- * Internal function to check permissions based on various criteria
- */
-function checkPermissions({
-  permission,
-  permissions = [],
-  anyPermissions = [],
-  role,
-  customCheck,
-  user,
-  userRole,
-  userPermissions,
-}: {
-  permission?: string;
-  permissions?: string[];
-  anyPermissions?: string[];
-  role?: string | string[];
-  customCheck?: (user: any, role: any, permissions: string[]) => boolean;
-  user: any;
-  userRole: any;
-  userPermissions: string[];
-}): boolean {
-  // Custom check takes precedence
-  if (customCheck) {
-    return customCheck(user, userRole, userPermissions);
-  }
 
-  // Check single permission
-  if (permission) {
-    return userPermissions.includes(permission);
-  }
-
-  // Check multiple permissions (user must have ALL)
-  if (permissions.length > 0) {
-    return permissions.every(perm => userPermissions.includes(perm));
-  }
-
-  // Check any permissions (user must have at least ONE)
-  if (anyPermissions.length > 0) {
-    return anyPermissions.some(perm => userPermissions.includes(perm));
-  }
-
-  // Check role(s)
-  if (role) {
-    if (!userRole) return false;
-    
-    if (Array.isArray(role)) {
-      return role.includes(userRole.name);
-    }
-    
-    return userRole.name === role;
-  }
-
-  // If no specific criteria provided, default to authenticated
-  return true;
-}
 
 /**
  * Utility components for common use cases
