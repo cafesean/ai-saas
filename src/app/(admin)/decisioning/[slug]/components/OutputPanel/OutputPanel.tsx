@@ -78,6 +78,11 @@ const OutputPanel = ({
   };
 
   const doAddNewOutput = () => {
+    const error = validateName(newOutput.name);
+    if (error) {
+      setNameError(error);
+      return;
+    }
     // Check whether have same name
     const isSameName = outputs.some((output) => output.name === newOutput.name);
     if (isSameName) {
@@ -94,6 +99,9 @@ const OutputPanel = ({
 
   const doOpenChange = (isOpen: boolean) => {
     setIsAddOutputDialogOpen(isOpen);
+    if (!isOpen) {
+      resetForm();
+    }
   };
 
   const resetForm = () => {

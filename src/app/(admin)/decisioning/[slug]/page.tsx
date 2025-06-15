@@ -85,13 +85,19 @@ const DecisionTableDetailPage = () => {
       if (decisionTableData) {
         setTable(decisionTableData);
         setInputs(
-          decisionTableData.decisionTableInputs?.map((input: any) => ({
+          decisionTableData.inputs?.map((input: any) => ({
             ...input,
             dt_id: decisionTableData.uuid,
           })) || [],
         );
-        setOutputs(decisionTableData.decisionTableOutputs || []);
-        setRows(decisionTableData.decisionTableRows || []);
+        setOutputs(decisionTableData.outputs || []);
+        setRows(
+          decisionTableData.rows?.map((row: any) => ({
+            ...row,
+            decisionTableInputConditions: row.inputConditions || [],
+            decisionTableOutputResults: row.outputResults || [],
+          })) || [],
+        );
       }
     }
   }, [decisionTable?.isLoading, decisionTable?.data]);

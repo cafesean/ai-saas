@@ -95,27 +95,28 @@ export const decisionTableRouter = createTRPCRouter({
     }),
 
   getByUUID: publicProcedure.input(z.string()).query(async ({ input }) => {
-    try {
-      const decisionTable = await db.select()
-        .from(decision_tables)
-        .where(eq(decision_tables.uuid, input))
-        .limit(1);
+    const decisionTable = await db.query.decision_tables.findFirst({
+      where: eq(decision_tables.uuid, input),
+      with: {
+        rows: {
+          with: {
+            inputConditions: true,
+            outputResults: true,
+          },
+        },
+        inputs: true,
+        outputs: true,
+      },
+    });
 
-      if (!decisionTable || decisionTable.length === 0) {
-        throw new TRPCError({
-          code: `${NOT_FOUND}` as TRPCError["code"],
-          message: DECISION_TABLE_NOT_FOUND_ERROR,
-        });
-      }
-
-      return decisionTable[0];
-    } catch (error) {
-      console.error('Error fetching decision table:', error);
+    if (!decisionTable) {
       throw new TRPCError({
         code: `${NOT_FOUND}` as TRPCError["code"],
         message: DECISION_TABLE_NOT_FOUND_ERROR,
       });
     }
+
+    return decisionTable;
   }),
 
   create: publicProcedure
