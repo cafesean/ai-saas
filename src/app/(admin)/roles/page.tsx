@@ -12,12 +12,14 @@ import { useRoleTableColumns } from "./hooks/useRoleTableColumns";
 import { CreateRoleDialog } from "./components/CreateRoleDialog";
 import { EditRoleDialog } from "./components/EditRoleDialog";
 import { DeleteRoleDialog } from "./components/DeleteRoleDialog";
+import { ManagePermissionsDialog } from "./components/ManagePermissionsDialog";
 import { type RoleWithStats } from "@/types/role";
 
 export default function RolesPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [managePermissionsDialogOpen, setManagePermissionsDialogOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<RoleWithStats | null>(null);
 
   // Get auth state for debugging
@@ -38,8 +40,8 @@ export default function RolesPage() {
   };
 
   const handleManagePermissions = (role: RoleWithStats) => {
-    toast.info(`Manage permissions for: ${role.name}`);
-    // TODO: Implement permission management (SAAS-66)
+    setSelectedRole(role);
+    setManagePermissionsDialogOpen(true);
   };
 
   const handleCreateRole = () => {
@@ -65,6 +67,15 @@ export default function RolesPage() {
 
   const handleDeleteClose = () => {
     setDeleteDialogOpen(false);
+    setSelectedRole(null);
+  };
+
+  const handleManagePermissionsSuccess = () => {
+    refetch();
+  };
+
+  const handleManagePermissionsClose = () => {
+    setManagePermissionsDialogOpen(false);
     setSelectedRole(null);
   };
 
@@ -147,6 +158,14 @@ export default function RolesPage() {
           open={deleteDialogOpen}
           onClose={handleDeleteClose}
           onSuccess={handleDeleteSuccess}
+          role={selectedRole}
+        />
+
+        {/* Manage Permissions Dialog */}
+        <ManagePermissionsDialog
+          open={managePermissionsDialogOpen}
+          onClose={handleManagePermissionsClose}
+          onSuccess={handleManagePermissionsSuccess}
           role={selectedRole}
         />
       </div>
