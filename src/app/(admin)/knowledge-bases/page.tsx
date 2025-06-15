@@ -139,6 +139,7 @@ export default function KnowledgeBasesPage() {
           data: {
             keys: documentsKeysToDelete,
           },
+          withCredentials: true,
         });
         // Delete embeddings from vector db
         if (deleteDocuments.data.success) {
@@ -149,6 +150,7 @@ export default function KnowledgeBasesPage() {
                 kbId: selectedKnowledgeBase?.uuid,
                 documents: documentIds,
               },
+              withCredentials: true,
             },
           );
           if (deleteEmbeddings.data.success) {

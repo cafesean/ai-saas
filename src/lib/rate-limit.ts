@@ -141,6 +141,12 @@ export async function checkTRPCRateLimit(
   userId?: number,
   procedure?: string
 ): Promise<void> {
+  // TEMPORARILY DISABLED: Rate limiting disabled due to missing Redis setup
+  // TODO: Enable rate limiting once Redis is properly configured
+  console.log(`Rate limiting disabled for tRPC procedure: ${procedure}, user: ${userId}`);
+  return;
+  
+  /*
   const identifier = userId ? `user:${userId}` : 'anonymous';
   
   try {
@@ -170,6 +176,7 @@ export async function checkTRPCRateLimit(
     console.error(`tRPC rate limit check failed for ${identifier}:`, error);
     // Allow on other errors
   }
+  */
 }
 
 // Generic rate limit check function
@@ -178,6 +185,12 @@ export async function checkGenericRateLimit(
   identifier: string,
   type: string
 ): Promise<{ success: boolean; retryAfter?: number }> {
+  // TEMPORARILY DISABLED: Rate limiting disabled due to missing Redis setup
+  // TODO: Enable rate limiting once Redis is properly configured
+  console.log(`Rate limiting disabled for ${type}:${identifier}`);
+  return { success: true };
+  
+  /* 
   try {
     const result = await rateLimit.limit(identifier);
 
@@ -202,4 +215,5 @@ export async function checkGenericRateLimit(
     console.error(`Rate limit check failed for ${type}:${identifier}:`, error);
     return { success: true }; // Allow on error
   }
+  */
 } 

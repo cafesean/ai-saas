@@ -243,6 +243,7 @@ export default function KnowledgeBaseChatPage() {
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: 'include',
           body: JSON.stringify({
             ...payload,
           }),
@@ -287,7 +288,9 @@ export default function KnowledgeBaseChatPage() {
           }
         }
       } else {
-        const askQuery = await axios.post(KNOWLEDGE_BASE_API.chat, payload);
+        const askQuery = await axios.post(KNOWLEDGE_BASE_API.chat, payload, {
+          withCredentials: true,
+        });
         if (askQuery.data.success) {
           const aiResponse = {
             id: `msg-${Date.now() + 1}`,

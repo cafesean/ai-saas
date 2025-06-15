@@ -7,7 +7,7 @@ import {
 } from "./knowledge-bases/mockData";
 import type { EmbeddingModel } from "@/types/knowledge-base";
 import { db } from "@/db/config";
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure } from "../trpc";
 import schema, { knowledge_bases } from "@/db/schema";
 import { KnowledgeBaseEmbeddingModels } from "@/constants/knowledgeBase";
 
@@ -125,7 +125,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
   /**
    * Create a new knowledge base
    */
-  createKnowledgeBase: publicProcedure
+  createKnowledgeBase: protectedProcedure
     .input(
       z.object({
         name: z.string().min(1),
@@ -159,7 +159,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
   /**
    * Update a knowledge base by ID
    */
-  updateKnowledgeBase: publicProcedure
+  updateKnowledgeBase: protectedProcedure
     .input(
       z.object({
         uuid: z.string(),
@@ -193,7 +193,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
         throw new Error("Failed to update knowledge base");
       }
     }),
-  updateKnowledgeBaseStatus: publicProcedure
+  updateKnowledgeBaseStatus: protectedProcedure
     .input(
       z.object({
         uuid: z.string(),
@@ -215,7 +215,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
       }
     }),
 
-  deleteKnowledgeBase: publicProcedure
+  deleteKnowledgeBase: protectedProcedure
     .input(
       z.object({
         uuid: z.string(),
@@ -234,7 +234,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
       }
     }),
 
-  addKnowledgeBaseDocuments: publicProcedure
+  addKnowledgeBaseDocuments: protectedProcedure
     .input(
       z.object({
         kbId: z.string(),
@@ -278,7 +278,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
       }
     }),
 
-  deleteKnowledgeBaseDocuments: publicProcedure
+  deleteKnowledgeBaseDocuments: protectedProcedure
     .input(
       z.object({
         kbId: z.string(),
@@ -331,7 +331,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
       }
     }),
 
-  createConversation: publicProcedure
+  createConversation: protectedProcedure
     .input(
       z.object({
         name: z.string(),
@@ -356,7 +356,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
       }
     }),
 
-  createConversationMessage: publicProcedure
+  createConversationMessage: protectedProcedure
     .input(
       z.object({
         conversationId: z.string(),
@@ -404,7 +404,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
       }
     }),
 
-  updateConversationById: publicProcedure
+  updateConversationById: protectedProcedure
     .input(
       z.object({
         uuid: z.string(),
@@ -426,6 +426,35 @@ export const knowledgeBasesRouter = createTRPCRouter({
       } catch (error) {
         console.error(error);
         throw new Error("Failed to update conversation from knowledge base");
+      }
+    }),
+
+  updateDocumentStatus: protectedProcedure
+    .input(
+      z.object({
+        documentIds: z.array(z.string()),
+        status: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const updatedDocuments = await db
+          .update(schema.knowledge_base_documents)
+          .set({
+            status: input.status,
+            updatedAt: new Date(),
+          })
+          .where(inArray(schema.knowledge_base_documents.uuid, input.documentIds))
+          .returning();
+        return {
+          success: true,
+          data: {
+            documents: updatedDocuments,
+          },
+        };
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to update document status");
       }
     }),
   /**
