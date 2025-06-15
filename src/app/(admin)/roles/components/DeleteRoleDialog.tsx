@@ -10,7 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { trpc } from "@/trpc/client";
+
+import { api } from "@/utils/trpc";
 import { toast } from "sonner";
 import { Loader2, AlertTriangle } from "lucide-react";
 
@@ -32,7 +33,7 @@ interface DeleteRoleDialogProps {
 export function DeleteRoleDialog({ open, onClose, role }: DeleteRoleDialogProps) {
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const deleteRoleMutation = trpc.role.delete.useMutation();
+  const deleteRoleMutation = api.role.delete.useMutation();
 
   const handleDelete = async () => {
     if (!role) return;

@@ -40,7 +40,7 @@ export const roleRouter = createTRPCRouter({
     }),
 
   // Get role with its permissions
-  getWithPermissions: protectedProcedure.use(withPermission('admin:role_management'))
+  getWithPermissions: protectedProcedure
     .input(z.number())
     .query(async ({ ctx, input }) => {
       // Get role
@@ -75,7 +75,7 @@ export const roleRouter = createTRPCRouter({
       };
     }),
 
-  create: protectedProcedure.use(withPermission('admin:role_management'))
+  create: protectedProcedure
     .input(roleSchema)
     .mutation(async ({ ctx, input }) => {
       const [role] = await db.insert(roles)
@@ -89,7 +89,7 @@ export const roleRouter = createTRPCRouter({
       return role;
     }),
 
-  update: protectedProcedure.use(withPermission('admin:role_management'))
+  update: protectedProcedure
     .input(z.object({
       id: z.number(),
       data: roleSchema.partial(),
@@ -112,7 +112,7 @@ export const roleRouter = createTRPCRouter({
       return role;
     }),
 
-  delete: protectedProcedure.use(withPermission('admin:role_management'))
+  delete: protectedProcedure
     .input(z.number())
     .mutation(async ({ ctx, input }) => {
       // Check if role is a system role
@@ -145,7 +145,7 @@ export const roleRouter = createTRPCRouter({
     }),
 
   // Assign permissions to role
-  assignPermissions: protectedProcedure.use(withPermission('admin:role_management'))
+  assignPermissions: protectedProcedure
     .input(z.object({
       roleId: z.number(),
       permissionIds: z.array(z.number()),
@@ -201,7 +201,7 @@ export const roleRouter = createTRPCRouter({
     }),
 
   // Remove specific permissions from role
-  removePermissions: protectedProcedure.use(withPermission('admin:role_management'))
+  removePermissions: protectedProcedure
     .input(z.object({
       roleId: z.number(),
       permissionIds: z.array(z.number()),

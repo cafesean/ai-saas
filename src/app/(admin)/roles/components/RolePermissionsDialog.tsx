@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import Checkbox from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { trpc } from "@/trpc/client";
+import { api } from "@/utils/trpc";
 import { toast } from "sonner";
 import { Loader2, Search, Shield } from "lucide-react";
 
@@ -34,7 +34,7 @@ interface Permission {
   slug: string;
   name: string;
   description: string | null;
-  category: string;
+  category: string | null;
 }
 
 interface RolePermissionsDialogProps {
@@ -49,15 +49,15 @@ export function RolePermissionsDialog({ open, onClose, role }: RolePermissionsDi
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch all permissions
-  const { data: allPermissions = [], isLoading: loadingPermissions } = trpc.permission.getAll.useQuery();
+  const { data: allPermissions = [], isLoading: loadingPermissions } = api.permission.getAll.useQuery();
   
   // Fetch role permissions
-  const { data: roleData, isLoading: loadingRole } = trpc.role.getWithPermissions.useQuery(
+  const { data: roleData, isLoading: loadingRole } = api.role.getWithPermissions.useQuery(
     role?.id || 0,
     { enabled: !!role?.id }
   );
 
-  const assignPermissionsMutation = trpc.role.assignPermissions.useMutation();
+  const assignPermissionsMutation = api.role.assignPermissions.useMutation();
 
   // Initialize selected permissions when role data loads
   useEffect(() => {
@@ -71,15 +71,16 @@ export function RolePermissionsDialog({ open, onClose, role }: RolePermissionsDi
   const filteredPermissions = allPermissions.filter(permission =>
     permission.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     permission.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    permission.category.toLowerCase().includes(searchTerm.toLowerCase())
+    (permission.category?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
   );
 
   // Group permissions by category
   const permissionsByCategory = filteredPermissions.reduce((acc, permission) => {
-    if (!acc[permission.category]) {
-      acc[permission.category] = [];
+    const category = permission.category || 'Uncategorized';
+    if (!acc[category]) {
+      acc[category] = [];
     }
-    acc[permission.category].push(permission);
+    acc[category].push(permission);
     return acc;
   }, {} as Record<string, Permission[]>);
 
@@ -189,11 +190,8 @@ export function RolePermissionsDialog({ open, onClose, role }: RolePermissionsDi
                           <CardTitle className="text-base capitalize flex items-center gap-2">
                             <Checkbox
                               checked={allSelected}
-                              ref={(el) => {
-                                if (el) el.indeterminate = someSelected;
-                              }}
-                              onCheckedChange={(checked) => 
-                                handleSelectAll(categoryPermissions, checked as boolean)
+                              onChange={(e) => 
+                                handleSelectAll(categoryPermissions, e.target.checked)
                               }
                             />
                             {category}
@@ -208,8 +206,8 @@ export function RolePermissionsDialog({ open, onClose, role }: RolePermissionsDi
                           <div key={permission.id} className="flex items-start space-x-3 p-2 rounded-lg hover:bg-muted/50">
                             <Checkbox
                               checked={selectedPermissions.has(permission.id)}
-                              onCheckedChange={(checked) => 
-                                handlePermissionToggle(permission.id, checked as boolean)
+                              onChange={(e) => 
+                                handlePermissionToggle(permission.id, e.target.checked)
                               }
                               className="mt-1"
                             />

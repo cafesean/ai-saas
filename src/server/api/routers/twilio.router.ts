@@ -1,12 +1,11 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { withPermission } from "../trpc";
+// import { withPermission } from "../trpc";
 import axios from "axios";
 import { TRPCError } from "@trpc/server";
 
 export const twilioRouter = createTRPCRouter({
   getTemplates: protectedProcedure
-    .use(withPermission('workflow:manage_templates'))
     .input(z.object({
       pageSize: z.number().min(1).max(200).default(200),
       page: z.number().min(0).default(0),

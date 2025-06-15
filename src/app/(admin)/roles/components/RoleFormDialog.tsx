@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { trpc } from "@/trpc/client";
+import { api } from "@/utils/trpc";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -38,8 +38,8 @@ export function RoleFormDialog({ open, onClose, mode, role }: RoleFormDialogProp
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const createRoleMutation = trpc.role.create.useMutation();
-  const updateRoleMutation = trpc.role.update.useMutation();
+  const createRoleMutation = api.role.create.useMutation();
+  const updateRoleMutation = api.role.update.useMutation();
 
   // Reset form when dialog opens/closes or role changes
   useEffect(() => {
