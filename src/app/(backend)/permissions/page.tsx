@@ -73,7 +73,7 @@ export default function PermissionsPage() {
             View and analyze system permissions and their role assignments
           </p>
         </div>
-        <WithPermission slug="permission:export">
+        <WithPermission permission="permission:export">
           <Button onClick={handleExport} variant="outline" className="gap-2">
             <Download className="h-4 w-4" />
             Export CSV
@@ -112,7 +112,7 @@ export default function PermissionsPage() {
             >
               <option value="all">All Categories</option>
               {categories?.map(cat => (
-                <option key={cat.category} value={cat.category}>
+                <option key={cat.category || ''} value={cat.category || ''}>
                   {cat.category} ({cat.count})
                 </option>
               ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense, memo } from "react";
+import { useState, useEffect, Suspense, memo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Edit, Trash2, Upload, Download, Plus, Save, X } from "lucide-react";
 import { toast } from "sonner";
@@ -158,18 +158,18 @@ const LookupTableDetailPage = () => {
   });
 
   // Initialize form data when lookup table loads
-  useState(() => {
+  useEffect(() => {
     if (lookupTable.data) {
       setFormData({
-        name: lookupTable.data.name,
+        name: lookupTable.data.name || "",
         description: lookupTable.data.description || "",
-        inputVariableId: lookupTable.data.inputVariableId,
-        outputName: lookupTable.data.outputName,
+        inputVariableId: lookupTable.data.inputVariableId || "",
+        outputName: lookupTable.data.outputName || "",
         outputDataType: lookupTable.data.outputDataType as any,
         defaultValue: lookupTable.data.defaultValue || "",
       });
     }
-  });
+  }, [lookupTable.data]);
 
   const resetRowForm = () => {
     setRowFormData({
@@ -311,12 +311,12 @@ const LookupTableDetailPage = () => {
                 Back
               </Button>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">{table.name}</h1>
+                <h1 className="text-3xl font-bold tracking-tight">{table.name || "Unnamed Table"}</h1>
                 <div className="flex items-center gap-2 mt-1">
-                  <Badge variant={getStatusBadgeVariant(table.status)} className="capitalize">
-                    {table.status}
+                  <Badge variant={getStatusBadgeVariant(table.status || "unknown")} className="capitalize">
+                    {table.status || "Unknown Status"}
                   </Badge>
-                  <span className="text-sm text-muted-foreground">v{table.version}</span>
+                  <span className="text-sm text-muted-foreground">v{table.version || "N/A"}</span>
                 </div>
               </div>
             </div>
@@ -512,13 +512,13 @@ const LookupTableDetailPage = () => {
                     <div>
                       <Label className="text-sm font-medium">Created</Label>
                       <p className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(table.createdAt), { addSuffix: true })}
+                        {table.createdAt ? formatDistanceToNow(new Date(table.createdAt), { addSuffix: true }) : "Unknown"}
                       </p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Last Updated</Label>
                       <p className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(table.updatedAt), { addSuffix: true })}
+                        {table.updatedAt ? formatDistanceToNow(new Date(table.updatedAt), { addSuffix: true }) : "Unknown"}
                       </p>
                     </div>
                     {table.publishedAt && (

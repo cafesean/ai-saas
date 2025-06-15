@@ -164,7 +164,7 @@ const VariableCard = ({ variable, onDelete }: VariableCardProps) => {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <Button variant="outline" size="sm" className="h-8 w-8 p-0">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -244,7 +244,7 @@ const VariableCard = ({ variable, onDelete }: VariableCardProps) => {
               : `Updated ${getTimeAgo(variable.updatedAt)}`}
           </span>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
             onClick={handleView}

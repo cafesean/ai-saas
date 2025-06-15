@@ -19,6 +19,8 @@ import {
   Shield,
   Users,
   Key,
+  Calculator,
+  Table,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -155,6 +157,7 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     models: false,
     workflows: false,
+    decisioning: false,
     organizations: false,
     settings: false,
   });
@@ -197,9 +200,34 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
     },
     {
       title: "Decisioning",
-      href: "/decisioning",
       icon: FileText,
       // permission: "decision_table:read", // Temporarily removed for testing
+      children: [
+        {
+          title: "Decision Tables",
+          href: "/decisioning",
+          icon: FileText,
+          // permission: "decision_table:read", // Temporarily removed for testing
+        },
+        {
+          title: "Variables",
+          href: "/decisioning/variables",
+          icon: Calculator,
+          // permission: "variable:read", // Temporarily removed for testing
+        },
+        {
+          title: "Lookup Tables",
+          href: "/decisioning/lookup-tables",
+          icon: Table,
+          // permission: "lookup_table:read", // Temporarily removed for testing
+        },
+        {
+          title: "Rule Sets",
+          href: "/decisioning/rule-sets",
+          icon: GitBranch,
+          // permission: "rule_set:read", // Temporarily removed for testing
+        },
+      ],
     },
     {
       title: "Knowledge Bases",

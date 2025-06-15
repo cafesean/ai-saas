@@ -32,8 +32,8 @@ interface RuleSet {
   uuid: string;
   name: string;
   description: string | null;
-  inputSchema: any[] | null;
-  outputSchema: any[] | null;
+  inputSchema: unknown;
+  outputSchema: unknown;
   version: number;
   status: string;
   publishedAt: Date | null;
