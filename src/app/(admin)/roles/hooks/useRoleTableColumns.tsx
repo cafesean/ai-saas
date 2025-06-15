@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SampleCheckbox as Checkbox } from "@/components/ui/sample-checkbox";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -34,6 +35,26 @@ export function useRoleTableColumns({
   onManagePermissions,
 }: UseRoleTableColumnsProps = {}) {
   const columns = useMemo<ColumnDef<RoleWithStats>[]>(() => [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(checked: boolean) => table.toggleAllPageRowsSelected(checked)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(checked: boolean) => row.toggleSelected(checked)}
+          aria-label="Select row"
+          disabled={row.original.isSystemRole}
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       accessorKey: "name",
       header: "Role Name",
@@ -167,6 +188,7 @@ export function useRoleTableColumns({
         );
       },
       enableSorting: false,
+      enableHiding: false,
     },
   ], [onEdit, onDelete, onManagePermissions]);
 

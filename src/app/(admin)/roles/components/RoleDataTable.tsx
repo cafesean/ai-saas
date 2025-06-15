@@ -11,6 +11,7 @@ import {
   type ColumnDef,
   type SortingState,
   type ColumnFiltersState,
+  type RowSelectionState,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -29,29 +30,63 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import { 
   ChevronLeft, 
   ChevronRight, 
   ChevronsLeft, 
   ChevronsRight,
-  Search
+  Search,
+  Download,
+  MoreHorizontal,
+  Trash2,
+  ToggleLeft,
+  ToggleRight,
+  RefreshCw,
+  Settings,
+  Eye,
+  EyeOff,
+  Filter,
+  X
 } from "lucide-react";
 import { type RoleWithStats } from "@/types/role";
+import { toast } from "sonner";
+import { BulkDeleteDialog } from "./BulkDeleteDialog";
 
 interface RoleDataTableProps {
   data: RoleWithStats[];
   columns: ColumnDef<RoleWithStats>[];
   isLoading?: boolean;
+  onBulkDelete?: (roles: RoleWithStats[]) => void;
+  onBulkActivate?: (roles: RoleWithStats[]) => void;
+  onBulkDeactivate?: (roles: RoleWithStats[]) => void;
+  onRefresh?: () => void;
 }
 
 export function RoleDataTable({ 
   data, 
   columns, 
-  isLoading 
+  isLoading,
+  onBulkDelete,
+  onBulkActivate,
+  onBulkDeactivate,
+  onRefresh
 }: RoleDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [columnVisibility, setColumnVisibility] = useState({});
+  const [density, setDensity] = useState<"compact" | "comfortable" | "spacious">("comfortable");
   
   const table = useReactTable({
     data,
@@ -60,10 +95,15 @@ export function RoleDataTable({
       sorting,
       columnFilters,
       globalFilter,
+      rowSelection,
+      columnVisibility,
     },
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
+    onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -75,15 +115,107 @@ export function RoleDataTable({
     },
   });
 
+  const selectedRows = table.getFilteredSelectedRowModel().rows;
+  const selectedRoles = selectedRows.map(row => row.original);
+  const hasSelection = selectedRows.length > 0;
+
+  // Export functions
+  const exportToCSV = () => {
+    const headers = table.getVisibleFlatColumns()
+      .filter(col => col.id !== 'select' && col.id !== 'actions')
+      .map(col => col.id);
+    
+    const csvData = table.getFilteredRowModel().rows.map(row => {
+      const rowData: Record<string, any> = {};
+      headers.forEach(header => {
+        const cell = row.getValue(header);
+        rowData[header] = typeof cell === 'object' ? JSON.stringify(cell) : cell;
+      });
+      return rowData;
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => headers.map(header => `"${row[header] || ''}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `roles-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    
+    toast.success('Roles exported to CSV');
+  };
+
+  const exportToJSON = () => {
+    const exportData = table.getFilteredRowModel().rows.map(row => row.original);
+    const jsonContent = JSON.stringify(exportData, null, 2);
+    
+    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `roles-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    
+    toast.success('Roles exported to JSON');
+  };
+
+  // Bulk operations
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  
+  const handleBulkDelete = () => {
+    if (selectedRoles.length === 0) return;
+    setBulkDeleteDialogOpen(true);
+  };
+
+  const handleBulkDeleteConfirm = () => {
+    onBulkDelete?.(selectedRoles);
+    setRowSelection({});
+    setBulkDeleteDialogOpen(false);
+  };
+
+  const handleBulkActivate = () => {
+    if (selectedRoles.length === 0) return;
+    onBulkActivate?.(selectedRoles);
+    setRowSelection({});
+  };
+
+  const handleBulkDeactivate = () => {
+    if (selectedRoles.length === 0) return;
+    onBulkDeactivate?.(selectedRoles);
+    setRowSelection({});
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setGlobalFilter("");
+    setColumnFilters([]);
+    table.resetColumnFilters();
+  };
+
+  // Get density classes
+  const getDensityClasses = () => {
+    switch (density) {
+      case "compact":
+        return "text-xs";
+      case "spacious":
+        return "text-base py-4";
+      default:
+        return "text-sm py-2";
+    }
+  };
+
   if (isLoading) {
     return <RoleTableSkeleton />;
   }
 
   return (
     <div className="space-y-4">
-      {/* Search and Filters */}
+      {/* Toolbar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
+          {/* Search */}
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -93,6 +225,8 @@ export function RoleDataTable({
               className="pl-8 max-w-sm"
             />
           </div>
+
+          {/* Status Filter */}
           <Select
             value={(table.getColumn("isActive")?.getFilterValue() as string) ?? "all"}
             onValueChange={(value) =>
@@ -108,6 +242,8 @@ export function RoleDataTable({
               <SelectItem value="false">Inactive</SelectItem>
             </SelectContent>
           </Select>
+
+          {/* Type Filter */}
           <Select
             value={(table.getColumn("isSystemRole")?.getFilterValue() as string) ?? "all"}
             onValueChange={(value) =>
@@ -123,11 +259,153 @@ export function RoleDataTable({
               <SelectItem value="false">Custom</SelectItem>
             </SelectContent>
           </Select>
+
+          {/* Clear Filters */}
+          {(globalFilter || columnFilters.length > 0) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearFilters}
+              className="h-8 px-2 lg:px-3"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Clear
+            </Button>
+          )}
         </div>
-        <div className="text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} of {data.length} roles
+
+        <div className="flex items-center space-x-2">
+          {/* Results Count */}
+          <div className="text-sm text-muted-foreground">
+            {table.getFilteredRowModel().rows.length} of {data.length} roles
+          </div>
+
+          {/* Refresh */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRefresh}
+            className="h-8 w-8 p-0"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+
+          {/* Export */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8">
+                <Download className="h-4 w-4 mr-1" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Export Options</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={exportToCSV}>
+                Export as CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToJSON}>
+                Export as JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Column Visibility */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8">
+                <Settings className="h-4 w-4 mr-1" />
+                View
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[200px]">
+              <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {table
+                .getAllColumns()
+                .filter(
+                  (column) =>
+                    typeof column.accessorFn !== "undefined" && column.getCanHide()
+                )
+                .map((column) => {
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      className="capitalize"
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(value) =>
+                        column.toggleVisibility(!!value)
+                      }
+                    >
+                      {column.id}
+                    </DropdownMenuCheckboxItem>
+                  )
+                })}
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Table Density</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => setDensity("compact")}>
+                {density === "compact" && "✓ "}Compact
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDensity("comfortable")}>
+                {density === "comfortable" && "✓ "}Comfortable
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDensity("spacious")}>
+                {density === "spacious" && "✓ "}Spacious
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
+
+      {/* Bulk Actions Bar */}
+      {hasSelection && (
+        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
+          <div className="flex items-center space-x-2">
+            <Badge variant="secondary">
+              {selectedRows.length} selected
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              {selectedRoles.filter(r => !r.isSystemRole).length} can be modified
+            </span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBulkActivate}
+              disabled={selectedRoles.every(r => r.isActive)}
+            >
+              <ToggleRight className="h-4 w-4 mr-1" />
+              Activate
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBulkDeactivate}
+              disabled={selectedRoles.every(r => !r.isActive)}
+            >
+              <ToggleLeft className="h-4 w-4 mr-1" />
+              Deactivate
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBulkDelete}
+              disabled={selectedRoles.every(r => r.isSystemRole)}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRowSelection({})}
+            >
+              Clear Selection
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="rounded-md border">
@@ -136,7 +414,7 @@ export function RoleDataTable({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead key={header.id} className={getDensityClasses()}>
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -154,9 +432,10 @@ export function RoleDataTable({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className={getDensityClasses()}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className={getDensityClasses()}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -240,6 +519,14 @@ export function RoleDataTable({
           </div>
         </div>
       </div>
+
+      {/* Bulk Delete Dialog */}
+      <BulkDeleteDialog
+        open={bulkDeleteDialogOpen}
+        onClose={() => setBulkDeleteDialogOpen(false)}
+        onConfirm={handleBulkDeleteConfirm}
+        roles={selectedRoles}
+      />
     </div>
   );
 }
