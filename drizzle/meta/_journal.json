@@ -19,15 +19,8 @@
     {
       "idx": 2,
       "version": "7",
-      "when": 1749878229217,
-      "tag": "0002_young_mandroid",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1749882869864,
-      "tag": "0003_wild_wrecking_crew",
+      "when": 1749998369594,
+      "tag": "0002_serious_wildside",
       "breakpoints": true
     }
   ]
