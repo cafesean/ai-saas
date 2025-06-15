@@ -16,6 +16,7 @@ import { authRouter } from "./routers/auth.router";
 import { userRouter } from "./routers/user.router";
 import { tenantRouter } from "./routers/tenant.router";
 import { variableRouter } from "./routers/variable.router";
+import { lookupTableRouter } from "./routers/lookup-table.router";
 /**
  *
 /**
@@ -47,6 +48,7 @@ export const appRouter = createTRPCRouter({
   user: userRouter,
   tenant: tenantRouter,
   variable: variableRouter,
+  lookupTable: lookupTableRouter,
 });
 
 // Export type definition of API
