@@ -28,6 +28,10 @@ export default function RolesPage() {
   // Fetch roles with stats
   const { data: roles = [], isLoading, refetch } = api.role.getAllWithStats.useQuery();
 
+  // Bulk operations mutations
+  const deleteMutation = api.role.delete.useMutation();
+  const updateMutation = api.role.update.useMutation();
+
   // Table action handlers
   const handleEdit = (role: RoleWithStats) => {
     setSelectedRole(role);
@@ -77,6 +81,32 @@ export default function RolesPage() {
   const handleManagePermissionsClose = () => {
     setManagePermissionsDialogOpen(false);
     setSelectedRole(null);
+  };
+
+  // Bulk operation handlers
+  const handleBulkDelete = async (rolesToDelete: RoleWithStats[]) => {
+    try {
+      await Promise.all(
+        rolesToDelete.map(role => 
+          deleteMutation.mutateAsync(role.id)
+        )
+      );
+      toast.success(`Successfully deleted ${rolesToDelete.length} role(s)`);
+      refetch();
+    } catch (error) {
+      toast.error("Failed to delete some roles");
+      console.error("Bulk delete error:", error);
+    }
+  };
+
+  const handleBulkActivate = async (rolesToActivate: RoleWithStats[]) => {
+    // For now, we'll show a message that this feature needs API enhancement
+    toast.info("Bulk activate feature requires API enhancement. Please use individual role actions.");
+  };
+
+  const handleBulkDeactivate = async (rolesToDeactivate: RoleWithStats[]) => {
+    // For now, we'll show a message that this feature needs API enhancement  
+    toast.info("Bulk deactivate feature requires API enhancement. Please use individual role actions.");
   };
 
   // Table columns
@@ -136,6 +166,10 @@ export default function RolesPage() {
           data={roles} 
           columns={columns} 
           isLoading={isLoading}
+          onBulkDelete={handleBulkDelete}
+          onBulkActivate={handleBulkActivate}
+          onBulkDeactivate={handleBulkDeactivate}
+          onRefresh={refetch}
         />
 
         {/* Create Role Dialog */}
