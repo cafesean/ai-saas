@@ -195,6 +195,13 @@ export const adminRouter = createTRPCRouter({
 					category: "knowledge_base",
 					isActive: true,
 				},
+				{
+					slug: "permission:export", //this should be named something else
+					name: "Export Permissions",
+					description: "Export permissions data to CSV",
+					category: "permission",
+					isActive: true,
+				},
 			];
 
 			for (const permData of permissionsData) {
