@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 import { db } from '@/db/config';
 import { users, userRoles, roles, tenants, userTenants } from '@/db/schema';
-import { eq, asc, desc, and, or, like, count, sql } from 'drizzle-orm';
+import { eq, asc, desc, and, or, like, count, sql, not } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
@@ -232,7 +232,7 @@ export const userRouter = createTRPCRouter({
           .from(users)
           .where(and(
             eq(users.email, updateData.email),
-            eq(users.id, id)
+            not(eq(users.id, id))
           ))
           .limit(1);
 

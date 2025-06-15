@@ -16,7 +16,7 @@ import { SampleButton } from "@/components/ui/sample-button";
 import { KnowledgeBase } from "@/types/knowledge-base";
 import { DefaultSkeleton } from "@/components/skeletons/default-skeleton";
 import { getTimeAgo } from "@/utils/func";
-import { AdminRoutes } from "@/constants/routes";
+import { AppRoutes } from "@/constants/routes";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -94,7 +94,7 @@ function KnowledgeBaseCard({
           <CardTitle className="text-xl truncate">
             <Link
               href={`${
-                AdminRoutes.knowledgebaseDetail.replace(
+                AppRoutes.knowledgebaseDetail.replace(
                   ":uuid",
                   knowledgeBase.uuid,
                 ) as Route
@@ -141,7 +141,7 @@ function KnowledgeBaseCard({
               <DropdownMenuItem className="cursor-pointer" asChild>
                 <Link
                   href={`${
-                    AdminRoutes.knowledgebaseDetail.replace(
+                    AppRoutes.knowledgebaseDetail.replace(
                       ":uuid",
                       knowledgeBase.uuid,
                     ) as Route

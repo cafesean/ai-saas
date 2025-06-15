@@ -4,8 +4,8 @@ import bcrypt from 'bcrypt';
 
 async function createTestUser() {
   try {
-    const email = 'test@example.com';
-    const password = 'password123';
+    const email = 'sliao01@hotmail.com';
+    const password = 'gYu8D-REQHq3';
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Check if user already exists

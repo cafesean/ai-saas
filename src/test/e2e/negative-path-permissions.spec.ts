@@ -10,7 +10,7 @@ test.describe('Negative Path Permission Tests', () => {
   test.describe('Viewer Role Restrictions', () => {
     test('should not show create/delete buttons in workflow management', async ({ page }) => {
       await withAuthScenario(page, 'viewerOnly', async () => {
-        await page.goto('/admin/workflows');
+        await page.goto('/workflows');
         
         // Should see workflows but not creation/deletion options
         await expect(page.locator('h1')).toContainText('Workflows');
@@ -35,7 +35,7 @@ test.describe('Negative Path Permission Tests', () => {
 
     test('should not show create/delete buttons in model management', async ({ page }) => {
       await withAuthScenario(page, 'viewerOnly', async () => {
-        await page.goto('/admin/models');
+        await page.goto('/models');
         
         // Should see models but not creation/deletion options
         await expect(page.locator('h1')).toContainText('Models');
@@ -62,7 +62,7 @@ test.describe('Negative Path Permission Tests', () => {
         await expect(page.locator('text=Access Denied')).toBeVisible();
         
         // Permission catalogue should be denied
-        await page.goto('/admin/permissions');
+        await page.goto('/permissions');
         await expect(page.locator('text=Access Denied')).toBeVisible();
         
         // User management should be denied
@@ -175,14 +175,14 @@ test.describe('Negative Path Permission Tests', () => {
         await expect(page.locator('text=Access Denied')).toBeVisible();
         
         // Permission catalogue should be denied
-        await page.goto('/admin/permissions');
+        await page.goto('/permissions');
         await expect(page.locator('text=Access Denied')).toBeVisible();
       });
     });
 
     test('should not show workflow creation options', async ({ page }) => {
       await withAuthScenario(page, 'userOnly', async () => {
-        await page.goto('/admin/workflows');
+        await page.goto('/workflows');
         
         // Should see workflows but limited actions
         await expect(page.locator('h1')).toContainText('Workflows');
@@ -249,7 +249,7 @@ test.describe('Negative Path Permission Tests', () => {
     test('should enforce permission boundaries between roles', async ({ page }) => {
       // Test viewer cannot access editor features
       await withAuthScenario(page, 'viewerOnly', async () => {
-        await page.goto('/admin/workflows');
+        await page.goto('/workflows');
         await expect(page.locator('[data-testid="create-workflow"]')).not.toBeVisible();
       });
       
@@ -305,7 +305,7 @@ test.describe('Negative Path Permission Tests', () => {
         // Try to navigate to restricted pages
         const restrictedPages = [
           '/admin/roles',
-          '/admin/permissions',
+          '/permissions',
           '/admin/users',
           '/admin/settings',
         ];

@@ -8,7 +8,7 @@ import { dbToTemplateBlock } from "@/framework/types/template";
 import { TemplateStatus } from "@/constants/general";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
 import { useRouter } from "next/navigation";
-import { AdminRoutes } from "@/constants/routes";
+import { AppRoutes } from "@/constants/routes";
 import { Route } from "next";
 const SelectTemplatePage: React.FC = () => {
   const [isClient, setIsClient] = React.useState(false);
@@ -19,7 +19,7 @@ const SelectTemplatePage: React.FC = () => {
   const createWorkflow = api.workflow.create.useMutation({
     onSuccess: (data) => {
       utils.workflow.getAll.invalidate();
-      router.push((`${AdminRoutes.workflows}/${data?.uuid}`) as Route);
+      router.push((`${AppRoutes.workflows}/${data?.uuid}`) as Route);
     },
   });
 

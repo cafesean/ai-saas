@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { SampleButton } from "@/components/ui/sample-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatNumber, getTimeAgo } from "@/utils/func";
-import { AdminRoutes } from "@/constants/routes";
+import { AdminRoutes, AppRoutes } from "@/constants/routes";
 // import { AuthDebug } from "@/components/debug/AuthDebug";
 
 // Prevent static prerendering to fix TRPC issues
@@ -191,7 +191,7 @@ export default function Home() {
                             </Badge>
                             <Link
                               href={
-                                AdminRoutes.workflowDetail.replace(
+                                AppRoutes.workflowDetail.replace(
                                   ":uuid",
                                   workflow.uuid,
                                 ) as Route
@@ -212,7 +212,7 @@ export default function Home() {
                     )}
 
                     <Link
-                      href={AdminRoutes.workflows as Route}
+                      href={AppRoutes.workflows as Route}
                       className="flex items-center justify-center text-sm text-primary"
                     >
                       View all workflows
