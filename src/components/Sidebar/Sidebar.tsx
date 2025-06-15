@@ -241,7 +241,7 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
       children: [
         {
           title: "Organizations",
-          href: "/settings/organizations",
+          href: "/organizations",
           icon: Building,
           // permission: "admin:full_access", // Temporarily removed for testing
         },
