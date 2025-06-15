@@ -4,7 +4,7 @@ import { useState, Suspense, memo } from "react";
 import { Search, Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { SampleButton } from "@/components/ui/sample-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,9 +32,7 @@ import { useViewToggle } from "@/framework/hooks/useViewToggle";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { DefaultSkeleton } from "@/components/skeletons/default-skeleton";
 import { VariableStatus, VariableLogicTypes, VariableDataTypes } from "@/db/schema/variable";
-import VariableCard from "./components/VariableCard";
-import VariablesList from "./components/VariablesList";
-import VariablesSummary from "./components/VariablesSummary";
+import { VariablesList, VariablesSummary } from "./components";
 
 interface Variable {
   id: number;
@@ -162,11 +160,11 @@ const VariablesPage = () => {
       };
 
       // Add logic-specific fields
-      if (formData.logicType === "formula") {
+      if (formData.logicType === VariableLogicTypes.FORMULA) {
         payload.formula = formData.formula;
-      } else if (formData.logicType === "lookup") {
+      } else if (formData.logicType === VariableLogicTypes.LOOKUP) {
         payload.lookupTableId = formData.lookupTableId;
-      } else if (formData.logicType === "direct_map") {
+      } else if (formData.logicType === VariableLogicTypes.DIRECT_MAP) {
         payload.defaultValue = formData.defaultValue;
       }
 
@@ -205,18 +203,18 @@ const VariablesPage = () => {
               </p>
             </div>
             <div className="flex flex-col lg:flex-row gap-2 w-full md:w-auto">
-              <Button
+              <SampleButton
                 onClick={() => window.location.reload()}
                 variant="outline"
                 size="sm"
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Refresh
-              </Button>
-              <Button onClick={handleCreateClick} size="sm">
+              </SampleButton>
+              <SampleButton onClick={handleCreateClick} size="sm">
                 <Plus className="mr-2 h-4 w-4" />
                 New Variable
-              </Button>
+              </SampleButton>
               <ViewToggle viewMode={viewMode} onChange={setViewMode} />
             </div>
           </div>
@@ -435,7 +433,7 @@ const VariablesPage = () => {
                   <DialogFooter className="modal-footer">
                     {isConfirming ? (
                       <>
-                        <Button
+                        <SampleButton
                           type="button"
                           variant="outline"
                           className="modal-button"
@@ -443,33 +441,33 @@ const VariablesPage = () => {
                           disabled={creating}
                         >
                           Back
-                        </Button>
-                        <Button
+                        </SampleButton>
+                        <SampleButton
                           type="button"
                           className="modal-button"
                           onClick={handleConfirm}
                           disabled={creating}
                         >
                           {creating ? "Creating..." : "Create Variable"}
-                        </Button>
+                        </SampleButton>
                       </>
                     ) : (
                       <>
-                        <Button
+                        <SampleButton
                           type="button"
                           variant="outline"
                           className="modal-button"
                           onClick={handleCancel}
                         >
                           Cancel
-                        </Button>
-                        <Button
+                        </SampleButton>
+                        <SampleButton
                           type="button"
                           className="modal-button"
                           onClick={handleNext}
                         >
                           Next
-                        </Button>
+                        </SampleButton>
                       </>
                     )}
                   </DialogFooter>
@@ -489,15 +487,15 @@ const VariablesPage = () => {
                     </p>
                   </div>
                   <DialogFooter className="modal-footer">
-                    <Button
+                    <SampleButton
                       type="button"
                       variant="outline"
                       className="modal-button"
                       onClick={closeDeleteConfirm}
                     >
                       Cancel
-                    </Button>
-                    <Button
+                    </SampleButton>
+                    <SampleButton
                       type="button"
                       variant="destructive"
                       className="modal-button"
@@ -505,7 +503,7 @@ const VariablesPage = () => {
                       disabled={deleteVariable.isPending}
                     >
                       {deleteVariable.isPending ? "Deleting..." : "Delete"}
-                    </Button>
+                    </SampleButton>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
