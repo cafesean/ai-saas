@@ -10,10 +10,15 @@ import { useAuthStore } from "@/framework/store/auth.store";
 import { RoleDataTable } from "./components/RoleDataTable";
 import { useRoleTableColumns } from "./hooks/useRoleTableColumns";
 import { CreateRoleDialog } from "./components/CreateRoleDialog";
+import { EditRoleDialog } from "./components/EditRoleDialog";
+import { DeleteRoleDialog } from "./components/DeleteRoleDialog";
 import { type RoleWithStats } from "@/types/role";
 
 export default function RolesPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<RoleWithStats | null>(null);
 
   // Get auth state for debugging
   const { user, permissions, authenticated, role } = useAuthStore();
@@ -23,13 +28,13 @@ export default function RolesPage() {
 
   // Table action handlers
   const handleEdit = (role: RoleWithStats) => {
-    toast.info(`Edit role: ${role.name}`);
-    // TODO: Implement edit dialog (SAAS-64)
+    setSelectedRole(role);
+    setEditDialogOpen(true);
   };
 
   const handleDelete = (role: RoleWithStats) => {
-    toast.info(`Delete role: ${role.name}`);
-    // TODO: Implement delete confirmation (SAAS-65)
+    setSelectedRole(role);
+    setDeleteDialogOpen(true);
   };
 
   const handleManagePermissions = (role: RoleWithStats) => {
@@ -43,6 +48,24 @@ export default function RolesPage() {
 
   const handleCreateSuccess = () => {
     refetch();
+  };
+
+  const handleEditSuccess = () => {
+    refetch();
+  };
+
+  const handleEditClose = () => {
+    setEditDialogOpen(false);
+    setSelectedRole(null);
+  };
+
+  const handleDeleteSuccess = () => {
+    refetch();
+  };
+
+  const handleDeleteClose = () => {
+    setDeleteDialogOpen(false);
+    setSelectedRole(null);
   };
 
   // Table columns
@@ -109,6 +132,22 @@ export default function RolesPage() {
           open={createDialogOpen}
           onClose={() => setCreateDialogOpen(false)}
           onSuccess={handleCreateSuccess}
+        />
+
+        {/* Edit Role Dialog */}
+        <EditRoleDialog
+          open={editDialogOpen}
+          onClose={handleEditClose}
+          onSuccess={handleEditSuccess}
+          role={selectedRole}
+        />
+
+        {/* Delete Role Dialog */}
+        <DeleteRoleDialog
+          open={deleteDialogOpen}
+          onClose={handleDeleteClose}
+          onSuccess={handleDeleteSuccess}
+          role={selectedRole}
         />
       </div>
     </WithPermission>
