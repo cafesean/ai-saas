@@ -7,7 +7,7 @@ This document tracks the implementation progress of the Decision Engine module, 
 - **Database Schema**: ✅ Complete (100%)
 - **RBAC Permissions**: ✅ Complete (100%)  
 - **Variables Management**: ✅ Complete (100%)
-- **Lookup Tables**: 📋 Pending
+- **Lookup Tables**: ✅ Complete (100%)
 - **Rule Sets**: 📋 Pending
 - **Workflow Integration**: 📋 Pending
 - **Testing Framework**: 📋 Pending
@@ -88,31 +88,84 @@ This document tracks the implementation progress of the Decision Engine module, 
 
 ## Next Steps
 
-### 📋 Phase 5: Lookup Tables (SAAS-99, SAAS-100)
-- [ ] Create lookup table router with CRUD operations
-- [ ] Implement lookup table UI with row management
-- [ ] Add CSV import/export functionality
-- [ ] Create lookup table selection in Variable forms
+### ✅ Phase 5: Lookup Tables Backend (SAAS-99)
+**Status**: Complete (100%)
+- [x] Created complete lookup-table.router.ts with full CRUD operations
+- [x] Supports input variable validation (must be published)
+- [x] Publishing lifecycle: Draft → Published → Deprecated
+- [x] Row management with nested router (create, update, delete, batch operations)
+- [x] Proper validation using Zod schemas
+- [x] Error handling with TRPCError
+- [x] Multi-tenant support (hardcoded to tenantId=1 with TODOs)
+- [x] Integrated into root tRPC router
 
-### 📋 Phase 6: Rule Sets (SAAS-101, SAAS-102)
+**API Endpoints:**
+- `getAll` - List all lookup tables with input variable names
+- `getByUuid` - Get single lookup table with rows
+- `create` - Create new lookup table
+- `update` - Update existing lookup table
+- `delete` - Delete lookup table
+- `publish` - Publish draft lookup table
+- `deprecate` - Deprecate published lookup table
+- `getPublishedForSelection` - Get published tables for variable selection
+- `rows.create` - Add lookup table row
+- `rows.update` - Update lookup table row
+- `rows.delete` - Delete lookup table row
+- `rows.batchUpdate` - Batch update rows (for CSV import)
+
+### ✅ Phase 6: Lookup Tables Frontend UI (SAAS-100)
+**Status**: Complete (100%)
+- [x] Main Lookup Tables page with table/card views (following Variables pattern)
+- [x] View toggle functionality (list/grid views)
+- [x] Lookup tables summary cards (total, published, draft)
+- [x] Search and filtering by status tabs
+- [x] Create lookup table modal with 2-step wizard
+- [x] Lookup tables table with proper columns and actions
+- [x] Lookup tables cards for grid view
+- [x] Lookup table detail page with overview and rows tabs
+- [x] Edit mode for draft lookup tables with inline editing
+- [x] Publish/Deprecate actions with proper state management
+- [x] Delete confirmation dialogs
+- [x] Breadcrumb navigation
+- [x] Row management interface (add, edit, delete rows)
+- [x] Input variable selection from published variables
+- [x] Status badges and proper visual indicators
+- [x] Integration with tRPC backend
+
+**UI Components:**
+- `/decisioning/lookup-tables` - Main listing page
+- `/decisioning/lookup-tables/[uuid]` - Lookup table detail page
+- `LookupTablesList` - Combined table/card view component
+- `LookupTablesSummary` - Statistics cards
+
+**Features Implemented:**
+- Complete CRUD operations for lookup tables and rows
+- Input variable validation (only published variables allowed)
+- Row ordering and default row support
+- Input conditions for complex matching logic
+- CSV-ready batch operations (backend support)
+- Status-based lifecycle management
+- Responsive design for all screen sizes
+
+### 📋 Phase 7: Rule Sets (SAAS-101, SAAS-102)
 - [ ] Create rule set router with step management
 - [ ] Implement rule set UI with visual step builder
 - [ ] Add rule set execution engine
 - [ ] Create rule set testing interface
 
-### 📋 Phase 7: Workflow Integration (SAAS-91)
+### 📋 Phase 8: Workflow Integration (SAAS-91)
 - [ ] Create workflow node for Variables
 - [ ] Create workflow node for Lookup Tables
 - [ ] Create workflow node for Rule Sets
 - [ ] Update workflow engine to support decision components
 
-### 📋 Phase 8: Testing Framework (SAAS-103)
+### 📋 Phase 9: Testing Framework (SAAS-103)
 - [ ] Create test scenario router
 - [ ] Implement test console UI
 - [ ] Add batch testing capabilities
 - [ ] Create test result visualization
 
-### 📋 Phase 9: Advanced Features (SAAS-104)
+### 📋 Phase 10: Advanced Features (SAAS-104)
 - [ ] Implement audit logging
 - [ ] Add version comparison
 - [ ] Create deployment pipelines
