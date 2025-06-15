@@ -208,6 +208,15 @@ export default function KnowledgeBaseDetail() {
         toast.error(error.message);
       },
     });
+  const updateDocumentStatus =
+    api.knowledgeBases.updateDocumentStatus.useMutation({
+      onSuccess: () => {
+        utils.knowledgeBases.getKnowledgeBaseById.invalidate({ uuid: slug });
+      },
+      onError: (error) => {
+        toast.error(error.message);
+      },
+    });
   const deleteKnowledgeBaseDocuments =
     api.knowledgeBases.deleteKnowledgeBaseDocuments.useMutation({
       onSuccess: () => {
@@ -404,6 +413,7 @@ export default function KnowledgeBaseDetail() {
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        withCredentials: true,
       });
     });
 
@@ -413,6 +423,12 @@ export default function KnowledgeBaseDetail() {
         return result.data.success;
       });
       if (allSuccess) {
+        // Update document status to "Processed" after successful embedding
+        const documentIds = payload.documents.map((doc: any) => doc.uuid);
+        await updateDocumentStatus.mutateAsync({
+          documentIds,
+          status: KnowledgeBaseDocumentStatus.processed,
+        });
         return true;
       }
     } catch (error) {
@@ -490,6 +506,7 @@ export default function KnowledgeBaseDetail() {
                 kbId: knowledgeBaseItem?.uuid,
                 documents: documentsToDelete,
               },
+              withCredentials: true,
             },
           );
           if (deleteEmbeddings.data.success) {
