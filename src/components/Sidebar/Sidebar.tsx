@@ -27,7 +27,6 @@ import { useState } from "react";
 import { SampleButton } from "@/components/ui/sample-button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { AdminRoutes, AppRoutes, BackendRoutes, DemoRoutes } from "@/constants/routes";
 import { WithPermission } from "@/components/auth/WithPermission";
 
 interface NavItem {
@@ -45,11 +44,12 @@ interface NavItem {
 }
 
 // Helper component to render navigation item with permission gating
-function NavItemComponent({ item, pathname, expanded, toggleExpanded }: {
+function NavItemComponent({ item, pathname, expanded, toggleExpanded, isBottomMenu = false }: {
   item: NavItem;
   pathname: string;
   expanded: Record<string, boolean>;
   toggleExpanded: (key: string) => void;
+  isBottomMenu?: boolean;
 }) {
   const permissionProps = {
     permission: item.permission,
@@ -59,7 +59,24 @@ function NavItemComponent({ item, pathname, expanded, toggleExpanded }: {
   };
 
   const content = item.children ? (
-    <div className="flex flex-col">
+    <div className={cn("flex flex-col", isBottomMenu && "relative")}>
+      {/* For bottom menu, render submenu first (above the button) */}
+      {isBottomMenu && expanded[item.title.toLowerCase()] && (
+        <div className="absolute bottom-full left-0 right-0 mb-1 bg-background border rounded-md shadow-lg">
+          <div className="p-2 flex flex-col gap-1">
+            {item.children.map((child, childIndex) => (
+              <NavItemComponent
+                key={childIndex}
+                item={child}
+                pathname={pathname}
+                expanded={expanded}
+                toggleExpanded={toggleExpanded}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      
       <SampleButton
         variant="ghost"
         className={cn(
@@ -75,11 +92,13 @@ function NavItemComponent({ item, pathname, expanded, toggleExpanded }: {
         <ChevronDown
           className={cn(
             "ml-auto h-4 w-4 transition-transform",
-            expanded[item.title.toLowerCase()] && "rotate-180",
+            expanded[item.title.toLowerCase()] && (isBottomMenu ? "rotate-0" : "rotate-180"),
           )}
         />
       </SampleButton>
-      {expanded[item.title.toLowerCase()] && (
+      
+      {/* For top/regular menu, render submenu after the button (below) */}
+      {!isBottomMenu && expanded[item.title.toLowerCase()] && (
         <div className="ml-4 mt-1 flex flex-col gap-1">
           {item.children.map((child, childIndex) => (
             <NavItemComponent
@@ -158,13 +177,13 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
       children: [
         {
           title: "All Models",
-          href: AppRoutes.models,
+          href: "/models",
           icon: Brain,
           // permission: "model:read", // Temporarily removed for testing
         },
         {
           title: "Model Registry",
-          href: AppRoutes.modelRegistry,
+          href: "/models/registry",
           icon: Database,
           // permission: "model:create", // Temporarily removed for testing
         },
@@ -172,25 +191,19 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
     },
     {
       title: "Workflows",
-      href: AppRoutes.workflows,
+      href: "/workflows",
       icon: GitBranch,
       // permission: "workflow:read", // Temporarily removed for testing
     },
     {
       title: "Decisioning",
-      href: AppRoutes.decisionTables,
+      href: "/decisioning",
       icon: FileText,
       // permission: "decision_table:read", // Temporarily removed for testing
     },
     {
-      title: "Analytics",
-      href: "/analytics",
-      icon: BarChart3,
-      // anyPermissions: ["admin:full_access"], // Temporarily removed for testing
-    },
-    {
       title: "Knowledge Bases",
-      href: AppRoutes.knowledgebase,
+      href: "/knowledge-bases",
       icon: Database,
       // permission: "knowledge_base:read", // Temporarily removed for testing
     },
@@ -202,43 +215,21 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
     },
     {
       title: "Content Repo",
-      href: AppRoutes.contentRepo,
+      href: "/content-repo",
       icon: File,
       // permission: "admin:full_access", // Temporarily removed for testing
     },
     {
       title: "Widgets",
-      href: AppRoutes.widgets,
+      href: "/widgets",
       icon: Layout,
       // permission: "admin:full_access", // Temporarily removed for testing
     },
     {
       title: "API Docs",
-      href: AppRoutes.apiDocs,
+      href: "/api-docs",
       icon: Code,
       // API docs accessible to all users
-    },
-  ];
-
-  // Add role management to main nav for admins
-  const adminNavItems: NavItem[] = [
-    {
-      title: "Role Management",
-      href: AdminRoutes.roles,
-      icon: Shield,
-      // anyPermissions: ["role:read", "admin:full_access"], // Temporarily removed for testing
-    },
-    {
-      title: "Permissions",
-      href: BackendRoutes.permissions, 
-      icon: Key,
-      // anyPermissions: ["permission:read", "admin:full_access"], // Temporarily removed for testing
-    },
-    {
-      title: "User Management", 
-      href: "/users",
-      icon: Users,
-      // permission: "admin:full_access", // Temporarily removed for testing
     },
   ];
 
@@ -249,47 +240,40 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
       icon: Settings,
       children: [
         {
-          title: "General",
-          href: "/settings/general",
-          icon: Settings,
-          // General settings accessible to all users
-        },
-        {
           title: "Organizations",
           href: "/settings/organizations",
           icon: Building,
           // permission: "admin:full_access", // Temporarily removed for testing
         },
         {
-          title: "Users",
-          href: "/settings/users",
-          icon: User,
-          // permission: "admin:full_access", // Temporarily removed for testing
+          title: "Role Management",
+          href: "/roles",
+          icon: Shield,
+          // anyPermissions: ["role:read", "admin:full_access"], // Temporarily removed for testing
         },
         {
-          title: "API Keys",
-          href: "/settings/api-keys",
-          icon: Code,
-          // permission: "admin:full_access", // Temporarily removed for testing
+          title: "Permissions",
+          href: "/permissions", 
+          icon: Key,
+          // anyPermissions: ["permission:read", "admin:full_access"], // Temporarily removed for testing
         },
         {
-          title: "Templates",
-          href: DemoRoutes.templates,
-          icon: FileText,
-          // permission: "workflow:create", // Temporarily removed for testing
+          title: "User Management", 
+          href: "/users",
+          icon: Users,
+          // permission: "admin:full_access", // Temporarily removed for testing
         },
       ],
     },
   ];
 
   return (
-    // Restore the outer flex container to serve as the single parent element
-    <div className="flex h-full flex-col">
-      {/* Keep the top empty div removed */}
-      {/* <div className="flex h-14 items-center border-b px-4"> ... </div> */}
+    // Make sidebar fixed/sticky and full height - hide on mobile when setOpen is available (mobile context)
+    <div className={cn(
+      "w-64 flex flex-col border-r bg-background",
+      setOpen ? "relative h-screen" : "fixed top-16 bottom-0 left-0 z-40 h-[calc(100vh-4rem)]"
+    )}>
       <ScrollArea className="flex-1 px-2 py-4">
-        {" "}
-        {/* Use flex-1 for ScrollArea */}
         <nav className="flex flex-col gap-1">
           {navItems.map((item, index) => (
             <NavItemComponent
@@ -300,24 +284,6 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
               toggleExpanded={toggleExpanded}
             />
           ))}
-          
-          {/* Admin navigation section with visual separator */}
-          <div className="my-2 border-t border-border pt-2">
-            <div className="px-3 pb-2">
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                Administration
-              </h4>
-            </div>
-            {adminNavItems.map((item, index) => (
-              <NavItemComponent
-                key={`admin-${index}`}
-                item={item}
-                pathname={pathname}
-                expanded={expanded}
-                toggleExpanded={toggleExpanded}
-              />
-            ))}
-          </div>
         </nav>
       </ScrollArea>
       <div className="mt-auto border-t">
@@ -330,13 +296,12 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
                 pathname={pathname}
                 expanded={expanded}
                 toggleExpanded={toggleExpanded}
+                isBottomMenu={true}
               />
             ))}
           </nav>
         </div>
-        {/* Remove the user profile section from the bottom */}
-        {/* <div className="flex items-center gap-2 p-4 border-t"> ... </div> */}
       </div>
-    </div> // Restore outer div closing tag
+    </div>
   );
 }
