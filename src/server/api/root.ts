@@ -13,6 +13,7 @@ import { twilioRouter } from "./routers/twilio.router";
 import { roleRouter } from "./routers/role.router";
 import { permissionRouter } from "./routers/permission.router";
 import { authRouter } from "./routers/auth.router";
+import { userRouter } from "./routers/user.router";
 /**
  *
 /**
@@ -41,6 +42,7 @@ export const appRouter = createTRPCRouter({
   role: roleRouter,
   permission: permissionRouter,
   auth: authRouter,
+  user: userRouter,
 });
 
 // Export type definition of API
