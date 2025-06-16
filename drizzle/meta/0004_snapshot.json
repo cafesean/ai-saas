@@ -1,6 +1,6 @@
 {
-  "id": "88d011f2-5bcb-4a84-a4a0-3e58155a2453",
-  "prevId": "301acf7a-34c9-49b3-b96d-c6769ba14994",
+  "id": "bfe5fd27-dcbb-415e-b22b-a4dd6f0ad025",
+  "prevId": "88d011f2-5bcb-4a84-a4a0-3e58155a2453",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2080,7 +2080,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "bigserial",
+          "type": "serial",
           "primaryKey": true,
           "notNull": true
         },
@@ -2103,21 +2103,15 @@
           "primaryKey": false,
           "notNull": true
         },
-        "row_1_bin_id": {
-          "name": "row_1_bin_id",
-          "type": "integer",
+        "input_coordinates": {
+          "name": "input_coordinates",
+          "type": "json",
           "primaryKey": false,
           "notNull": true
         },
-        "row_2_bin_id": {
-          "name": "row_2_bin_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "output_value": {
-          "name": "output_value",
-          "type": "text",
+        "output_values": {
+          "name": "output_values",
+          "type": "json",
           "primaryKey": false,
           "notNull": true
         },
@@ -2168,7 +2162,21 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "lookup_table_cells_lookup_table_id_lookup_tables_id_fk": {
+          "name": "lookup_table_cells_lookup_table_id_lookup_tables_id_fk",
+          "tableFrom": "lookup_table_cells",
+          "tableTo": "lookup_tables",
+          "columnsFrom": [
+            "lookup_table_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "lookup_table_cells_uuid_unique": {
@@ -2189,7 +2197,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "bigserial",
+          "type": "serial",
           "primaryKey": true,
           "notNull": true
         },
@@ -2212,8 +2220,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "dimension": {
-          "name": "dimension",
+        "dimension_order": {
+          "name": "dimension_order",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -2313,9 +2321,44 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "dimension_bins_dimension_order_idx": {
+          "name": "dimension_bins_dimension_order_idx",
+          "columns": [
+            {
+              "expression": "lookup_table_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "dimension_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "lookup_table_dimension_bins_lookup_table_id_lookup_tables_id_fk": {
+          "name": "lookup_table_dimension_bins_lookup_table_id_lookup_tables_id_fk",
+          "tableFrom": "lookup_table_dimension_bins",
+          "tableTo": "lookup_tables",
+          "columnsFrom": [
+            "lookup_table_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "lookup_table_dimension_bins_uuid_unique": {
@@ -2336,7 +2379,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "bigserial",
+          "type": "serial",
           "primaryKey": true,
           "notNull": true
         },
@@ -2362,24 +2405,6 @@
         "description": {
           "name": "description",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "output_variable_id": {
-          "name": "output_variable_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "input_variable_1_id": {
-          "name": "input_variable_1_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "input_variable_2_id": {
-          "name": "input_variable_2_id",
-          "type": "integer",
           "primaryKey": false,
           "notNull": false
         },
@@ -5576,6 +5601,294 @@
       "uniqueConstraints": {
         "workflows_uuid_unique": {
           "name": "workflows_uuid_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uuid"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.lookup_table_inputs": {
+      "name": "lookup_table_inputs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "uuid": {
+          "name": "uuid",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lookup_table_id": {
+          "name": "lookup_table_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "variable_id": {
+          "name": "variable_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dimension_order": {
+          "name": "dimension_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "lookup_inputs_lookup_table_idx": {
+          "name": "lookup_inputs_lookup_table_idx",
+          "columns": [
+            {
+              "expression": "lookup_table_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "lookup_inputs_tenant_id_idx": {
+          "name": "lookup_inputs_tenant_id_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "lookup_inputs_unique_dimension_idx": {
+          "name": "lookup_inputs_unique_dimension_idx",
+          "columns": [
+            {
+              "expression": "lookup_table_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "dimension_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "lookup_table_inputs_lookup_table_id_lookup_tables_id_fk": {
+          "name": "lookup_table_inputs_lookup_table_id_lookup_tables_id_fk",
+          "tableFrom": "lookup_table_inputs",
+          "tableTo": "lookup_tables",
+          "columnsFrom": [
+            "lookup_table_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "lookup_table_inputs_variable_id_variables_id_fk": {
+          "name": "lookup_table_inputs_variable_id_variables_id_fk",
+          "tableFrom": "lookup_table_inputs",
+          "tableTo": "variables",
+          "columnsFrom": [
+            "variable_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "lookup_table_inputs_uuid_unique": {
+          "name": "lookup_table_inputs_uuid_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uuid"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.lookup_table_outputs": {
+      "name": "lookup_table_outputs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "uuid": {
+          "name": "uuid",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lookup_table_id": {
+          "name": "lookup_table_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "variable_id": {
+          "name": "variable_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "output_order": {
+          "name": "output_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "lookup_outputs_lookup_table_idx": {
+          "name": "lookup_outputs_lookup_table_idx",
+          "columns": [
+            {
+              "expression": "lookup_table_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "lookup_outputs_tenant_id_idx": {
+          "name": "lookup_outputs_tenant_id_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "lookup_outputs_unique_output_idx": {
+          "name": "lookup_outputs_unique_output_idx",
+          "columns": [
+            {
+              "expression": "lookup_table_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "output_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "lookup_table_outputs_lookup_table_id_lookup_tables_id_fk": {
+          "name": "lookup_table_outputs_lookup_table_id_lookup_tables_id_fk",
+          "tableFrom": "lookup_table_outputs",
+          "tableTo": "lookup_tables",
+          "columnsFrom": [
+            "lookup_table_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "lookup_table_outputs_variable_id_variables_id_fk": {
+          "name": "lookup_table_outputs_variable_id_variables_id_fk",
+          "tableFrom": "lookup_table_outputs",
+          "tableTo": "variables",
+          "columnsFrom": [
+            "variable_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "lookup_table_outputs_uuid_unique": {
+          "name": "lookup_table_outputs_uuid_unique",
           "nullsNotDistinct": false,
           "columns": [
             "uuid"
