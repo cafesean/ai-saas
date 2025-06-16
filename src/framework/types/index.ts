@@ -2,7 +2,8 @@ import type { InferSelectModel } from 'drizzle-orm';
 import type { roles } from '@/db/schema';
 
 // DB Types
-// export type DbRole = InferSelectModel<typeof roles>;
+export type DbRole = InferSelectModel<typeof roles>;
+// Note: The following types are commented out because the tables don't exist yet
 // export type DbLevel = InferSelectModel<typeof levels>;
 // export type DbLevelRole = InferSelectModel<typeof level_roles>;
 // export type DbLevelRate = InferSelectModel<typeof level_rates>;
@@ -13,9 +14,24 @@ export interface RoleView {
   id: number;
   name: string;
   description: string | null;
-  roleCode: string;
+  isSystemRole: boolean;
+  isActive: boolean;
 }
 
+// Conversion functions
+export function dbToAppRole(dbRole: DbRole): RoleView {
+  return {
+    id: dbRole.id,
+    name: dbRole.name,
+    description: dbRole.description,
+    isSystemRole: dbRole.isSystemRole,
+    isActive: dbRole.isActive,
+  };
+}
+
+// Note: The following interfaces and functions are commented out because 
+// the corresponding database tables don't exist yet (levels, level_rates, rate_cards)
+/*
 export interface LevelView {
   id: number;
   name: string;
@@ -38,16 +54,6 @@ export interface RateCardView {
   effectiveDate: Date;
   expireDate: Date | null;
   levelRates: LevelRateView[];
-}
-
-// Conversion functions
-export function dbToAppRole(dbRole: DbRole): RoleView {
-  return {
-    id: dbRole.id,
-    name: dbRole.name,
-    description: dbRole.description,
-    roleCode: dbRole.role_code,
-  };
 }
 
 export function dbToAppLevel(dbLevel: DbLevel & { roles?: DbRole[] }): LevelView {
@@ -86,3 +92,4 @@ export function dbToAppRateCard(card: DbRateCard & { level_rates?: Array<DbLevel
     levelRates: card.level_rates?.map(rate => dbToAppLevelRate(rate)) ?? [],
   };
 }
+*/
