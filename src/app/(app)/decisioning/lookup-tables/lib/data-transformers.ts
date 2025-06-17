@@ -14,7 +14,7 @@ interface DimensionBin {
   validationError?: string
 }
 
-interface LookupTableData {
+export interface LookupTableData {
   id?: number
   name: string
   description: string
@@ -51,7 +51,7 @@ interface BackendLookupTableInput {
   }>
 }
 
-interface BackendLookupTableOutput {
+export interface BackendLookupTableOutput {
   id: number
   uuid: string
   name: string
@@ -80,11 +80,11 @@ interface BackendLookupTableOutput {
     binIndex: number
     label: string
     binType: string
-    exactValue?: string
-    rangeMin?: string
-    rangeMax?: string
-    isMinInclusive?: boolean
-    isMaxInclusive?: boolean
+    exactValue?: string | null
+    rangeMin?: string | null
+    rangeMax?: string | null
+    isMinInclusive?: boolean | null
+    isMaxInclusive?: boolean | null
   }>
   cells: Array<{
     id: number
@@ -197,11 +197,11 @@ export function backendToFrontend(backendData: BackendLookupTableOutput): Lookup
         id: bin.id.toString(),
         label: bin.label,
         binType: bin.binType as "exact" | "range",
-        exactValue: bin.exactValue,
+        exactValue: bin.exactValue ?? undefined,
         rangeMin: bin.rangeMin ? parseFloat(bin.rangeMin) : undefined,
         rangeMax: bin.rangeMax ? parseFloat(bin.rangeMax) : undefined,
-        isMinInclusive: bin.isMinInclusive,
-        isMaxInclusive: bin.isMaxInclusive,
+        isMinInclusive: bin.isMinInclusive ?? undefined,
+        isMaxInclusive: bin.isMaxInclusive ?? undefined,
         isValid: true,
       }
 

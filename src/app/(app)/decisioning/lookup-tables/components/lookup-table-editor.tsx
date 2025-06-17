@@ -1,21 +1,14 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { Plus, Save, Play, Settings, Trash2 } from "lucide-react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { Plus, Save, Settings, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -78,19 +71,26 @@ interface CellValidation {
 
 interface LookupTableEditorProps {
   initialData?: Partial<LookupTableData>
+  currentData?: LookupTableData
   onSave: (data: LookupTableData) => void
   onTest?: (data: LookupTableData) => void
+  onChange?: (data: LookupTableData) => void
   isLoading?: boolean
   errors?: Record<string, string>
+  hasChanges?: boolean
 }
 
 // Remove mockVariables - will use real variables from API
 
-export function LookupTableEditor({ initialData, onSave, onTest, isLoading, errors }: LookupTableEditorProps) {
+export function LookupTableEditor({ initialData, currentData, onSave, onTest, onChange, isLoading, errors, hasChanges }: LookupTableEditorProps) {
   // Fetch variables from API
   const { data: variables, isLoading: isLoadingVariables } = api.variable.getAll.useQuery()
   
-  const [data, setData] = useState<LookupTableData>({
+  // Track if this is the initial load to avoid triggering onChange on mount
+  const isInitialLoad = useRef(true)
+  
+  // Use currentData if provided, otherwise use internal state
+  const [internalData, setInternalData] = useState<LookupTableData>({
     name: initialData?.name || "",
     description: initialData?.description || "",
     inputVariable1: initialData?.inputVariable1 || (variables?.[0] ? { id: variables[0].id, name: variables[0].name, dataType: variables[0].dataType } : { id: 0, name: "", dataType: "string" }),
@@ -109,25 +109,31 @@ export function LookupTableEditor({ initialData, onSave, onTest, isLoading, erro
     cells: initialData?.cells || {},
     status: initialData?.status || "draft",
   })
+
+  // Use currentData if provided, otherwise use internal state
+  const data = currentData || internalData
+  const setData = currentData ? (updater: any) => {
+    const newData = typeof updater === 'function' ? updater(data) : updater
+    onChange?.(newData)
+  } : setInternalData
   
-  // Update default variables when variables are loaded
+  // Update default variables when variables are loaded (only for internal state)
   useEffect(() => {
-    if (variables && variables.length > 0 && !initialData?.inputVariable1) {
+    if (!currentData && variables && variables.length > 0 && !initialData?.inputVariable1) {
       const firstVariable = variables[0]
       const secondVariable = variables.length > 1 ? variables[1] : null
       
       if (firstVariable) {
-        setData(prev => ({
+        setInternalData(prev => ({
           ...prev,
           inputVariable1: { id: firstVariable.id, name: firstVariable.name, dataType: firstVariable.dataType },
           outputVariable: secondVariable ? { id: secondVariable.id, name: secondVariable.name, dataType: secondVariable.dataType } : prev.outputVariable,
         }))
       }
     }
-  }, [variables, initialData?.inputVariable1])
+  }, [variables, initialData?.inputVariable1, currentData])
 
   const [cellValidations, setCellValidations] = useState<Record<string, CellValidation>>({})
-  const [isTestDialogOpen, setIsTestDialogOpen] = useState(false)
   const [editingBinId, setEditingBinId] = useState<string | null>(null)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
@@ -185,6 +191,17 @@ export function LookupTableEditor({ initialData, onSave, onTest, isLoading, erro
     })
     setCellValidations(newValidations)
   }, [data.cells, data.outputVariable, validateCell])
+
+  // Notify parent of data changes - only when internal data actually changes, not on initial load
+  useEffect(() => {
+    if (!currentData && onChange) {
+      if (isInitialLoad.current) {
+        isInitialLoad.current = false
+        return
+      }
+      onChange(internalData)
+    }
+  }, [internalData, onChange, currentData])
 
   const addRow = () => {
     const newBin: DimensionBin = {
@@ -294,7 +311,7 @@ export function LookupTableEditor({ initialData, onSave, onTest, isLoading, erro
         }
       }
     })
-  }, [])
+  }, [validateBin])
 
 
 
@@ -682,217 +699,30 @@ export function LookupTableEditor({ initialData, onSave, onTest, isLoading, erro
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Save Button and Errors */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{data.id ? `Edit: ${data.name}` : "New Lookup Table"}</h1>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge variant={data.status === "published" ? "default" : "secondary"}>{data.status}</Badge>
-            {is2D ? <Badge variant="outline">2D Matrix</Badge> : <Badge variant="outline">1D Lookup</Badge>}
-          </div>
-        </div>
+        <div></div>
         <div className="flex items-center gap-2">
-          <Dialog open={isTestDialogOpen} onOpenChange={setIsTestDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Play className="h-4 w-4 mr-2" />
-                Test
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Test Lookup Table</DialogTitle>
-                <DialogDescription>Enter input values to test your lookup table logic</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">Test interface will be implemented here</p>
-              </div>
-            </DialogContent>
-          </Dialog>
-          <Button onClick={handleSave} disabled={isLoading}>
+          <Button onClick={handleSave} disabled={isLoading || (hasChanges !== undefined && !hasChanges)}>
             <Save className="h-4 w-4 mr-2" />
             {isLoading ? "Saving..." : "Save"}
           </Button>
-          {Object.keys(formErrors).length > 0 && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertDescription>
-                Please fix the following errors before saving:
-                <ul className="list-disc list-inside mt-2">
-                  {Object.entries(formErrors).map(([field, error]) => (
-                    <li key={field}>{error}</li>
-                  ))}
-                </ul>
-              </AlertDescription>
-            </Alert>
-          )}
         </div>
       </div>
+      {Object.keys(formErrors).length > 0 && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            Please fix the following errors before saving:
+            <ul className="list-disc list-inside mt-2">
+              {Object.entries(formErrors).map(([field, error]) => (
+                <li key={field}>{error}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
 
-      {/* Basic Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Basic Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={data.name}
-                onChange={(e) => setData((prev) => ({ ...prev, name: e.target.value }))}
-                placeholder="Enter table name"
-                className={cn((errors?.name || formErrors.name) && "border-destructive")}
-              />
-              {(errors?.name || formErrors.name) && (
-                <p className="text-sm text-destructive mt-1">
-                  {(errors?.name === "String must contain at least 1 character(s)" 
-                    ? "Table name is required" 
-                    : errors?.name) || formErrors.name}
-                </p>
-              )}
-            </div>
-            <div>
-              <Label>Output Variable</Label>
-              <Select
-                value={data.outputVariable.id.toString()}
-                onValueChange={(value) => {
-                  const variable = variables?.find((v) => v.id.toString() === value)
-                  if (variable) {
-                    setData((prev) => ({ ...prev, outputVariable: { id: variable.id, name: variable.name, dataType: variable.dataType } }))
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {variables?.map((variable) => (
-                    <SelectItem key={variable.id} value={variable.id.toString()}>
-                      {variable.name} ({variable.dataType})
-                    </SelectItem>
-                  )) || []}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={data.description}
-              onChange={(e) => setData((prev) => ({ ...prev, description: e.target.value }))}
-              placeholder="Describe what this table does"
-              rows={2}
-            />
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Variable Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Input Variables</CardTitle>
-          <CardDescription>Configure the variables that will be used as inputs to this lookup table</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Row Variable (Primary Input)</Label>
-              <Select
-                value={data.inputVariable1.id.toString()}
-                onValueChange={(value) => {
-                  const variable = variables?.find((v) => v.id.toString() === value)
-                  if (variable) {
-                    setData((prev) => ({
-                      ...prev,
-                      inputVariable1: { id: variable.id, name: variable.name, dataType: variable.dataType },
-                      dimension1Bins: prev.dimension1Bins.map((bin) => ({
-                        ...bin,
-                        binType: variable.dataType === "number" ? "range" : "exact",
-                        isValid: false,
-                        validationError: "Reconfigure after variable change",
-                      })),
-                    }))
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {variables?.map((variable) => (
-                    <SelectItem key={variable.id} value={variable.id.toString()}>
-                      {variable.name} ({variable.dataType})
-                    </SelectItem>
-                  )) || []}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Secondary Dimension Variable - Optional</Label>
-              <p className="text-sm text-muted-foreground mb-2">
-                Select a secondary input variable to create dimension bins for 2D lookup tables. This defines the second axis for your lookup matrix.
-              </p>
-              <Select
-                value={data.inputVariable2?.id.toString() || "none"}
-                onValueChange={(value) => {
-                  if (value === "none") {
-                    // Clear secondary variable and switch back to 1D
-                    setData((prev) => ({
-                      ...prev,
-                      inputVariable2: undefined,
-                      dimension2Bins: [],
-                      cells: Object.fromEntries(
-                        Object.entries(prev.cells).map(([key, cellValue]) => [key.split("-")[0], cellValue])
-                      ),
-                    }))
-                  } else {
-                    const variable = variables?.find((v) => v.id.toString() === value)
-                    if (variable) {
-                      setData((prev) => ({
-                        ...prev,
-                        inputVariable2: { id: variable.id, name: variable.name, dataType: variable.dataType },
-                        dimension2Bins: prev.dimension2Bins.length > 0 ? prev.dimension2Bins.map((bin) => ({
-                          ...bin,
-                          binType: variable.dataType === "number" ? "range" : "exact",
-                          isValid: false,
-                          validationError: "Reconfigure after variable change",
-                        })) : [{
-                          id: `col-${Date.now()}`,
-                          label: "Column 1",
-                          binType: variable.dataType === "number" ? "range" : "exact",
-                          exactValue: variable.dataType === "string" ? "" : variable.dataType === "number" ? "" : "",
-                          rangeMin: variable.dataType === "number" ? 0 : undefined,
-                          rangeMax: variable.dataType === "number" ? 100 : undefined,
-                          isMinInclusive: true,
-                          isMaxInclusive: false,
-                          isValid: false,
-                          validationError: "Configuration required",
-                        }],
-                      }))
-                    }
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a variable to enable dimension bins..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None (1D Table)</SelectItem>
-                  {variables
-                    ?.filter((v) => v.id !== data.inputVariable1.id)
-                    .map((variable) => (
-                      <SelectItem key={variable.id} value={variable.id.toString()}>
-                        {variable.name} ({variable.dataType})
-                      </SelectItem>
-                    )) || []}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Matrix Editor */}
       <Card>

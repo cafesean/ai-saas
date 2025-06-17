@@ -61,7 +61,15 @@ const VariablesPage = () => {
   const { viewMode, setViewMode } = useViewToggle("medium-grid");
   
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    dataType: typeof VariableDataTypes[keyof typeof VariableDataTypes];
+    logicType: typeof VariableLogicTypes[keyof typeof VariableLogicTypes];
+    formula: string;
+    lookupTableId: string;
+    defaultValue: string;
+  }>({
     name: "",
     description: "",
     dataType: VariableDataTypes.STRING,
@@ -152,7 +160,15 @@ const VariablesPage = () => {
   const handleConfirm = async () => {
     setCreating(true);
     try {
-      const payload: any = {
+      const payload: {
+        name: string;
+        description?: string;
+        dataType: typeof VariableDataTypes[keyof typeof VariableDataTypes];
+        logicType: typeof VariableLogicTypes[keyof typeof VariableLogicTypes];
+        formula?: string;
+        lookupTableId?: string;
+        defaultValue?: string;
+      } = {
         name: formData.name,
         description: formData.description || undefined,
         dataType: formData.dataType,
@@ -355,7 +371,7 @@ const VariablesPage = () => {
                           <Label htmlFor="dataType">Data Type *</Label>
                           <Select
                             value={formData.dataType}
-                            onValueChange={(value) => setFormData({ ...formData, dataType: value as any })}
+                            onValueChange={(value) => setFormData({ ...formData, dataType: value as typeof VariableDataTypes[keyof typeof VariableDataTypes] })}
                           >
                             <SelectTrigger>
                               <SelectValue />
@@ -372,7 +388,7 @@ const VariablesPage = () => {
                           <Label htmlFor="logicType">Logic Type *</Label>
                           <Select
                             value={formData.logicType}
-                            onValueChange={(value) => setFormData({ ...formData, logicType: value as any })}
+                            onValueChange={(value) => setFormData({ ...formData, logicType: value as typeof VariableLogicTypes[keyof typeof VariableLogicTypes] })}
                           >
                             <SelectTrigger>
                               <SelectValue />
@@ -482,7 +498,7 @@ const VariablesPage = () => {
                   </DialogHeader>
                   <div className="modal-section">
                     <p className="modal-text">
-                      Are you sure you want to delete the variable "{selectedVariable?.name}"? 
+                      Are you sure you want to delete the variable &ldquo;{selectedVariable?.name}&rdquo;? 
                       This action cannot be undone.
                     </p>
                   </div>
