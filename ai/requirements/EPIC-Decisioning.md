@@ -1,6 +1,3 @@
-Of course. Based on the detailed requirements and leveraging the best practices from our previous planning sessions (like explicit dependencies, separating foundational epics, and slicing stories), here is the complete, Jira-ready plan for the Decision Engine.
-
----
 ## **Decision Engine: Complete Epics, User Stories, and Technical Stories**
 
 ### **1. Introduction**

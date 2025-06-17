@@ -1,169 +1,111 @@
-'use client';
+"use client"
 
-import React, { Suspense, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { api } from '@/utils/trpc';
-import { LookupTableEditor } from '../../components/LookupTableEditor';
+import { useState, use } from "react"
+import { useRouter } from "next/navigation"
+import { LookupTableEditor } from "../../components/lookup-table-editor"
+import { api } from "@/utils/trpc"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { AlertCircle, Loader2 } from "lucide-react"
+import { backendToFrontend, frontendToBackend } from "../../lib/data-transformers"
 
-export default function EditLookupTablePage() {
-  const router = useRouter();
-  const params = useParams();
-  const uuid = params.uuid as string;
+export default function EditLookupTablePage({ params }: { params: Promise<{ uuid: string }> }) {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+  const { uuid } = use(params)
 
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch lookup table data
+  // Fetch lookup table from API
   const {
     data: lookupTable,
-    isLoading: isLoadingTable,
-    error: tableError,
-  } = api.lookupTable.getByUuid.useQuery({ uuid });
-
-  // Fetch variables for dropdowns
-  const {
-    data: variables,
-    isLoading: isLoadingVariables,
-    error: variablesError,
-  } = api.variable.getAll.useQuery();
+    isLoading: isFetching,
+    error,
+    refetch,
+  } = api.newLookupTable.getByUuid.useQuery({ uuid })
 
   // Update mutation
-  const updateMutation = api.lookupTable.update.useMutation({
+  const updateMutation = api.newLookupTable.update.useMutation({
     onSuccess: () => {
-      router.push(`/decisioning/lookup-tables/${uuid}`);
+      router.push(`/decisioning/lookup-tables/${uuid}`)
     },
     onError: (error) => {
-      setError(error.message);
+      console.error("Failed to update lookup table:", error)
+      setIsLoading(false)
     },
-  });
+  })
 
   const handleSave = async (data: any) => {
+    if (!lookupTable) return
+    
+    setIsLoading(true)
     try {
-      setError(null);
+      // Convert frontend data to backend format
+      const backendData = frontendToBackend(data)
+      
       await updateMutation.mutateAsync({
         id: lookupTable.id,
-        data: {
-          name: data.name,
-          description: data.description,
-          outputVariableId: data.outputVariableId,
-          inputVariable1Id: data.inputVariable1Id,
-          inputVariable2Id: data.inputVariable2Id,
-          dimensionBins: data.dimensionBins.map((bin: any) => ({
-            dimension: bin.dimension,
-            binIndex: bin.binIndex,
-            label: bin.label,
-            binType: bin.binType,
-            exactValue: bin.exactValue,
-            rangeMin: bin.rangeMin,
-            rangeMax: bin.rangeMax,
-            isMinInclusive: bin.isMinInclusive,
-            isMaxInclusive: bin.isMaxInclusive,
-          })),
-          cells: data.cells.map((cell: any) => ({
-            row1BinId: cell.row1BinId,
-            row2BinId: cell.row2BinId,
-            outputValue: cell.outputValue,
-          })),
-        },
-      });
+        ...backendData,
+      })
     } catch (error) {
-      // Error handled by onError
+      console.error("Failed to save lookup table:", error)
+      setIsLoading(false)
     }
-  };
-
-  const handleCancel = () => {
-    router.push(`/decisioning/lookup-tables/${uuid}`);
-  };
-
-  if (isLoadingTable || isLoadingVariables) {
-    return (
-      <div className="container mx-auto py-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Button variant="ghost" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-2xl font-bold">Edit Lookup Table</h1>
-        </div>
-        <Card>
-          <CardContent className="py-8">
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
   }
 
-  if (tableError || variablesError) {
+  const handleTest = (data: any) => {
+    console.log("Testing lookup table:", data)
+    // Test logic would go here
+  }
+
+  if (error) {
     return (
       <div className="container mx-auto py-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Button variant="ghost" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-2xl font-bold">Edit Lookup Table</h1>
-        </div>
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {tableError?.message || variablesError?.message || 'Failed to load data'}
+            Failed to load lookup table: {error.message}
           </AlertDescription>
         </Alert>
       </div>
-    );
+    )
   }
 
-  if (!lookupTable || !variables) {
+  if (isFetching) {
     return (
       <div className="container mx-auto py-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Button variant="ghost" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-2xl font-bold">Edit Lookup Table</h1>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Loading lookup table...</span>
         </div>
-        <Alert variant="destructive">
+      </div>
+    )
+  }
+
+  if (!lookupTable) {
+    return (
+      <div className="container mx-auto py-6">
+        <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Lookup table not found or variables not available
+            Lookup table not found
           </AlertDescription>
         </Alert>
       </div>
-    );
+    )
   }
+
+  // Convert backend data to frontend format for editing
+  const frontendData = backendToFrontend({
+    ...lookupTable,
+    description: lookupTable.description || undefined
+  })
 
   return (
     <div className="container mx-auto py-6">
-      <div className="flex items-center gap-2 mb-6">
-        <Button variant="ghost" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Edit Lookup Table</h1>
-          <p className="text-muted-foreground">
-            Modify the matrix configuration and values
-          </p>
-        </div>
-      </div>
-
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
       <LookupTableEditor
-        lookupTable={lookupTable}
-        variables={variables}
+        initialData={frontendData}
         onSave={handleSave}
-        onCancel={handleCancel}
-        isEditing={true}
+        onTest={handleTest}
+        isLoading={isLoading}
       />
     </div>
-  );
-} 
+  )
+}

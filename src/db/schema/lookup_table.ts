@@ -101,6 +101,7 @@ export const lookup_table_dimension_bins = pgTable(
     lookupTableId: integer("lookup_table_id")
       .notNull()
       .references(() => lookup_tables.id, { onDelete: "cascade" }),
+    dimension: integer("dimension"), // DEPRECATED: Use dimensionOrder instead, kept for backward compatibility
     dimensionOrder: integer("dimension_order").notNull(), // matches lookup_table_inputs.dimensionOrder
     binIndex: integer("bin_index").notNull(), // Order within the dimension
     label: varchar("label", { length: 255 }).notNull(),
@@ -133,10 +134,13 @@ export const lookup_table_cells = pgTable(
     lookupTableId: integer("lookup_table_id")
       .notNull()
       .references(() => lookup_tables.id, { onDelete: "cascade" }),
-    // JSON mapping: {"dim1": binId, "dim2": binId, "dim3": binId, ...}
-    inputCoordinates: json("input_coordinates").notNull(),
-    // JSON mapping: {"output1": "value1", "output2": "value2", ...}
-    outputValues: json("output_values").notNull(),
+    // DEPRECATED: Legacy 2D columns, kept for backward compatibility
+    row1BinId: integer("row_1_bin_id"), // DEPRECATED: Use inputCoordinates instead
+    row2BinId: integer("row_2_bin_id"), // DEPRECATED: Use inputCoordinates instead
+    outputValue: text("output_value"), // DEPRECATED: Use outputValues instead
+    // NEW: JSON mapping for N-dimensional support
+    inputCoordinates: json("input_coordinates"), // {"dim1": binId, "dim2": binId, "dim3": binId, ...}
+    outputValues: json("output_values"), // {"output1": "value1", "output2": "value2", ...}
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
