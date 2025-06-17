@@ -1,57 +1,54 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { ArrowLeft, AlertCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { LookupTableEditor } from "../components/lookup-table-editor"
-import { frontendToBackend, createEmptyLookupTable } from "../lib/data-transformers"
-import { api } from "@/utils/trpc"
-
-// Remove mockVariables - will use real variables from API
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { api } from '@/utils/trpc';
 
 export default function CreateLookupTablePage() {
-  const router = useRouter()
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch variables for dropdowns
-  const { data: variables, isLoading: isLoadingVariables, error: variablesError } = api.variable.getAll.useQuery()
+  const {
+    data: variables,
+    isLoading: isLoadingVariables,
+    error: variablesError,
+  } = api.variable.getAll.useQuery();
 
-  // Create mutation using the new lookup table router
-  const createMutation = api.newLookupTable.create.useMutation({
+  // Create mutation
+  const createMutation = api.lookupTable.create.useMutation({
     onSuccess: (result) => {
-      router.push(`/decisioning/lookup-tables/${result.uuid}` as any)
+      router.push(`/decisioning/lookup-tables/${result.uuid}`);
     },
     onError: (error) => {
-      setError(error.message)
+      setError(error.message);
     },
-  })
+  });
 
   const handleSave = async (data: any) => {
     try {
-      setError(null)
-      
-      // Convert frontend data to backend format
-      const backendData = frontendToBackend(data)
-      
-      // Call the API
-      await createMutation.mutateAsync(backendData)
+      setError(null);
+      await createMutation.mutateAsync({
+        name: data.name,
+        description: data.description,
+        outputVariableId: data.outputVariableId,
+        inputVariable1Id: data.inputVariable1Id,
+        inputVariable2Id: data.inputVariable2Id,
+        dimensionBins: data.dimensionBins || [],
+        cells: data.cells || [],
+      });
     } catch (error) {
       // Error handled by onError
-      console.error('Failed to create lookup table:', error)
     }
-  }
-
-  const handleTest = (data: any) => {
-    console.log("Testing lookup table:", data)
-    // TODO: Implement test functionality
-  }
+  };
 
   const handleCancel = () => {
-    router.push('/decisioning/lookup-tables')
-  }
+    router.push('/decisioning/lookup-tables');
+  };
 
   if (isLoadingVariables) {
     return (
@@ -70,7 +67,7 @@ export default function CreateLookupTablePage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   if (variablesError) {
@@ -85,11 +82,11 @@ export default function CreateLookupTablePage() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Failed to load variables
+            {variablesError?.message || 'Failed to load variables'}
           </AlertDescription>
         </Alert>
       </div>
-    )
+    );
   }
 
   if (!variables || variables.length === 0) {
@@ -108,14 +105,8 @@ export default function CreateLookupTablePage() {
           </AlertDescription>
         </Alert>
       </div>
-    )
+    );
   }
-
-  // Create initial data for the editor
-  const initialData = variables && variables.length >= 2 && variables[0] && variables[1] ? createEmptyLookupTable(
-    { id: variables[0].id, name: variables[0].name, dataType: variables[0].dataType },
-    { id: variables[1].id, name: variables[1].name, dataType: variables[1].dataType },
-  ) : undefined
 
   return (
     <div className="container mx-auto py-6">
@@ -138,12 +129,19 @@ export default function CreateLookupTablePage() {
         </Alert>
       )}
 
-      <LookupTableEditor
-        initialData={initialData}
-        onSave={handleSave}
-        onTest={handleTest}
-        isLoading={createMutation.isPending}
-      />
+      <Card>
+        <CardContent className="py-6">
+          <p className="text-center text-muted-foreground">
+            Matrix editor implementation in progress. 
+            Basic functionality will be available once the editor component is completed.
+          </p>
+          <div className="flex justify-center mt-4">
+            <Button onClick={handleCancel}>
+              Back to Lookup Tables
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
-  )
+  );
 } 

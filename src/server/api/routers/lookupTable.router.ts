@@ -2,9 +2,120 @@ import { z } from "zod"
 import { eq, and, desc } from "drizzle-orm"
 import { createTRPCRouter, protectedProcedure } from "../trpc"
 import { 
-  lookup_tables
+  lookup_tables,
+  lookup_table_inputs,
+  lookup_table_outputs,
+  lookup_table_dimension_bins,
+  lookup_table_cells
 } from "@/db/schema/lookup_table"
 import { TRPCError } from "@trpc/server"
+
+// N-Dimensional Input Schema
+const dimensionInputSchema = z.object({
+  variableId: z.number(),
+  dimensionOrder: z.number(),
+})
+
+// N-Dimensional Output Schema  
+const outputVariableSchema = z.object({
+  variableId: z.number(),
+  outputOrder: z.number(),
+})
+
+// N-Dimensional Dimension Bin Schema
+const dimensionBinSchema = z.object({
+  dimensionOrder: z.number(),
+  binIndex: z.number(),
+  label: z.string(),
+  binType: z.enum(["exact", "range"]),
+  exactValue: z.string().optional(),
+  rangeMin: z.number().optional(),
+  rangeMax: z.number().optional(),
+  isMinInclusive: z.boolean().default(true),
+  isMaxInclusive: z.boolean().default(false),
+})
+
+// N-Dimensional Cell Schema with JSON coordinates
+const cellDataSchema = z.object({
+  inputCoordinates: z.record(z.string(), z.number()), // {"dim1": binId, "dim2": binId, ...}
+  outputValues: z.record(z.string(), z.any()), // {"output1": value1, "output2": value2, ...}
+})
+
+// Legacy 2D Cell Schema (for backward compatibility)
+const legacyCellSchema = z.object({
+  row1BinIndex: z.number(),
+  row2BinIndex: z.number().optional(),
+  outputValue: z.string(),
+})
+
+// Backward Compatible Schema (supports both old and new formats)
+const createLookupTableSchema = z.object({
+  name: z.string().min(1).max(255),
+  description: z.string().optional(),
+  
+  // NEW N-dimensional format (optional for backward compatibility)
+  inputs: z.array(dimensionInputSchema).optional(),
+  outputs: z.array(outputVariableSchema).optional(),
+  
+  // LEGACY 2D format (for backward compatibility)
+  outputVariableId: z.number().optional(),
+  inputVariable1Id: z.number().optional(),
+  inputVariable2Id: z.number().optional(),
+  
+  dimensionBins: z.array(dimensionBinSchema).default([]),
+  cells: z.union([
+    z.array(cellDataSchema),
+    z.array(legacyCellSchema)
+  ]).default([]),
+})
+
+const updateLookupTableSchema = createLookupTableSchema.extend({
+  id: z.number(),
+})
+
+// Helper function to convert legacy format to N-dimensional
+function convertLegacyToNDimensional(input: any) {
+  const converted = { ...input }
+  
+  // Convert legacy inputs/outputs to N-dimensional format
+  if (input.outputVariableId || input.inputVariable1Id) {
+    converted.inputs = []
+    converted.outputs = []
+    
+    if (input.inputVariable1Id) {
+      converted.inputs.push({ variableId: input.inputVariable1Id, dimensionOrder: 1 })
+    }
+    if (input.inputVariable2Id) {
+      converted.inputs.push({ variableId: input.inputVariable2Id, dimensionOrder: 2 })
+    }
+    if (input.outputVariableId) {
+      converted.outputs.push({ variableId: input.outputVariableId, outputOrder: 1 })
+    }
+  }
+  
+  // Convert legacy cells to N-dimensional format if needed
+  if (input.cells && input.cells.length > 0 && input.cells[0].row1BinIndex !== undefined) {
+    converted.cells = input.cells.map((cell: any) => ({
+      inputCoordinates: {
+        "1": cell.row1BinIndex,
+        ...(cell.row2BinIndex ? { "2": cell.row2BinIndex } : {})
+      },
+      outputValues: {
+        "1": cell.outputValue
+      }
+    }))
+  }
+  
+  // Convert legacy dimensionBins to use dimensionOrder
+  if (input.dimensionBins) {
+    converted.dimensionBins = input.dimensionBins.map((bin: any) => ({
+      ...bin,
+      dimensionOrder: bin.dimensionOrder || (bin.dimension ? bin.dimension : 1)
+    }))
+  }
+  
+  return converted
+}
 
 export const lookupTableRouter = createTRPCRouter({
   getAll: protectedProcedure
@@ -18,7 +129,6 @@ export const lookupTableRouter = createTRPCRouter({
         })
       }
 
-      // TEMPORARY FIX: Only select existing columns from current database schema
       const tables = await ctx.db
         .select({
           id: lookup_tables.id,
@@ -30,6 +140,8 @@ export const lookupTableRouter = createTRPCRouter({
           tenantId: lookup_tables.tenantId,
           createdAt: lookup_tables.createdAt,
           updatedAt: lookup_tables.updatedAt,
+          createdBy: lookup_tables.createdBy,
+          updatedBy: lookup_tables.updatedBy,
         })
         .from(lookup_tables)
         .where(eq(lookup_tables.tenantId, tenantId))
@@ -61,7 +173,6 @@ export const lookupTableRouter = createTRPCRouter({
         conditions.push(eq(lookup_tables.status, input.status))
       }
 
-      // TEMPORARY FIX: Only select existing columns
       const tables = await ctx.db
         .select({
           id: lookup_tables.id,
@@ -86,69 +197,383 @@ export const lookupTableRouter = createTRPCRouter({
       )
     }),
 
-  // TEMPORARILY DISABLED: Create/Update/Delete operations until database migration is complete
-  // These will be re-enabled with N-dimensional support once schema is migrated
-
   getById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
-      throw new TRPCError({
-        code: "NOT_IMPLEMENTED",
-        message: "CRUD operations temporarily disabled during N-dimensional migration",
+      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
+      const tenantId = 1;
+      if (!tenantId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "No tenant access",
+        })
+      }
+
+      const table = await ctx.db.query.lookup_tables.findFirst({
+        where: and(eq(lookup_tables.id, input.id), eq(lookup_tables.tenantId, tenantId)),
+        with: {
+          inputs: true,
+          outputs: true,
+          dimensionBins: {
+            orderBy: [lookup_table_dimension_bins.dimensionOrder, lookup_table_dimension_bins.binIndex],
+          },
+          cells: true,
+        },
       })
+
+      if (!table) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Lookup table not found",
+        })
+      }
+
+      return table
     }),
 
   getByUuid: protectedProcedure
-    .input(z.object({ uuid: z.string() }))
+    .input(z.union([
+      z.object({ uuid: z.string() }),
+      z.string()
+    ]))
     .query(async ({ ctx, input }) => {
-      throw new TRPCError({
-        code: "NOT_IMPLEMENTED", 
-        message: "CRUD operations temporarily disabled during N-dimensional migration",
+      // Handle both object and string formats
+      const uuid = typeof input === 'string' ? input : input.uuid
+      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
+      const tenantId = 1;
+      if (!tenantId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "No tenant access",
+        })
+      }
+
+      const table = await ctx.db.query.lookup_tables.findFirst({
+        where: and(eq(lookup_tables.uuid, uuid), eq(lookup_tables.tenantId, tenantId)),
+        with: {
+          inputs: true,
+          outputs: true,
+          dimensionBins: {
+            orderBy: [lookup_table_dimension_bins.dimensionOrder, lookup_table_dimension_bins.binIndex],
+          },
+          cells: true,
+        },
       })
+
+      if (!table) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Lookup table not found",
+        })
+      }
+
+      return table
     }),
 
   create: protectedProcedure
-    .input(z.object({ name: z.string() }))
+    .input(createLookupTableSchema)
     .mutation(async ({ ctx, input }) => {
-      throw new TRPCError({
-        code: "NOT_IMPLEMENTED",
-        message: "Create operations temporarily disabled during N-dimensional migration",
+      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
+      const tenantId = 1;
+      const userId = ctx.session?.user?.id
+      if (!tenantId || !userId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "No tenant access",
+        })
+      }
+
+      // Convert legacy format to N-dimensional if needed
+      const convertedInput = convertLegacyToNDimensional(input)
+
+      return await ctx.db.transaction(async (tx) => {
+        // Create the lookup table
+        const [newTable] = await tx
+          .insert(lookup_tables)
+          .values({
+            tenantId: tenantId,
+            name: convertedInput.name,
+            description: convertedInput.description,
+            createdBy: userId,
+            updatedBy: userId,
+          })
+          .returning()
+
+        if (!newTable) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create lookup table",
+          })
+        }
+
+        // Create N-dimensional inputs
+        if (convertedInput.inputs && convertedInput.inputs.length > 0) {
+          const inputInserts = convertedInput.inputs.map((inputVar: any) => ({
+            tenantId: tenantId,
+            lookupTableId: newTable.id,
+            variableId: inputVar.variableId,
+            dimensionOrder: inputVar.dimensionOrder,
+          }))
+          await tx.insert(lookup_table_inputs).values(inputInserts)
+        }
+
+        // Create N-dimensional outputs
+        if (convertedInput.outputs && convertedInput.outputs.length > 0) {
+          const outputInserts = convertedInput.outputs.map((outputVar: any) => ({
+            tenantId: tenantId,
+            lookupTableId: newTable.id,
+            variableId: outputVar.variableId,
+            outputOrder: outputVar.outputOrder,
+          }))
+          await tx.insert(lookup_table_outputs).values(outputInserts)
+        }
+
+        // Create dimension bins
+        if (convertedInput.dimensionBins && convertedInput.dimensionBins.length > 0) {
+          const binInserts = convertedInput.dimensionBins.map((bin: any) => ({
+            tenantId: tenantId,
+            lookupTableId: newTable.id,
+            dimensionOrder: bin.dimensionOrder,
+            binIndex: bin.binIndex,
+            label: bin.label,
+            binType: bin.binType,
+            exactValue: bin.exactValue,
+            rangeMin: bin.rangeMin?.toString(),
+            rangeMax: bin.rangeMax?.toString(),
+            isMinInclusive: bin.isMinInclusive,
+            isMaxInclusive: bin.isMaxInclusive,
+          }))
+          await tx.insert(lookup_table_dimension_bins).values(binInserts)
+        }
+
+        // Create cells with N-dimensional coordinates
+        if (convertedInput.cells && convertedInput.cells.length > 0) {
+          const cellInserts = convertedInput.cells.map((cell: any) => ({
+            tenantId: tenantId,
+            lookupTableId: newTable.id,
+            inputCoordinates: cell.inputCoordinates,
+            outputValues: cell.outputValues,
+          }))
+          await tx.insert(lookup_table_cells).values(cellInserts)
+        }
+
+        return newTable
       })
     }),
 
   update: protectedProcedure
-    .input(z.object({ id: z.number(), name: z.string() }))
+    .input(updateLookupTableSchema)
     .mutation(async ({ ctx, input }) => {
-      throw new TRPCError({
-        code: "NOT_IMPLEMENTED",
-        message: "Update operations temporarily disabled during N-dimensional migration", 
+      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
+      const tenantId = 1;
+      const userId = ctx.session?.user?.id
+      if (!tenantId || !userId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "No tenant access",
+        })
+      }
+
+      // Convert legacy format to N-dimensional if needed
+      const convertedInput = convertLegacyToNDimensional(input)
+
+      return await ctx.db.transaction(async (tx) => {
+        // Update the lookup table
+        const [updatedTable] = await tx
+          .update(lookup_tables)
+          .set({
+            name: convertedInput.name,
+            description: convertedInput.description,
+            updatedBy: userId,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(lookup_tables.id, convertedInput.id), eq(lookup_tables.tenantId, tenantId)))
+          .returning()
+
+        if (!updatedTable) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Lookup table not found",
+          })
+        }
+
+        // Delete existing related data
+        await tx.delete(lookup_table_cells).where(eq(lookup_table_cells.lookupTableId, convertedInput.id))
+        await tx.delete(lookup_table_dimension_bins).where(eq(lookup_table_dimension_bins.lookupTableId, convertedInput.id))
+        await tx.delete(lookup_table_inputs).where(eq(lookup_table_inputs.lookupTableId, convertedInput.id))
+        await tx.delete(lookup_table_outputs).where(eq(lookup_table_outputs.lookupTableId, convertedInput.id))
+
+        // Recreate inputs, outputs, bins, and cells
+        if (convertedInput.inputs && convertedInput.inputs.length > 0) {
+          const inputInserts = convertedInput.inputs.map((inputVar: any) => ({
+            tenantId: tenantId,
+            lookupTableId: updatedTable.id,
+            variableId: inputVar.variableId,
+            dimensionOrder: inputVar.dimensionOrder,
+          }))
+          await tx.insert(lookup_table_inputs).values(inputInserts)
+        }
+
+        if (convertedInput.outputs && convertedInput.outputs.length > 0) {
+          const outputInserts = convertedInput.outputs.map((outputVar: any) => ({
+            tenantId: tenantId,
+            lookupTableId: updatedTable.id,
+            variableId: outputVar.variableId,
+            outputOrder: outputVar.outputOrder,
+          }))
+          await tx.insert(lookup_table_outputs).values(outputInserts)
+        }
+
+        if (convertedInput.dimensionBins && convertedInput.dimensionBins.length > 0) {
+          const binInserts = convertedInput.dimensionBins.map((bin: any) => ({
+            tenantId: tenantId,
+            lookupTableId: updatedTable.id,
+            dimensionOrder: bin.dimensionOrder,
+            binIndex: bin.binIndex,
+            label: bin.label,
+            binType: bin.binType,
+            exactValue: bin.exactValue,
+            rangeMin: bin.rangeMin?.toString(),
+            rangeMax: bin.rangeMax?.toString(),
+            isMinInclusive: bin.isMinInclusive,
+            isMaxInclusive: bin.isMaxInclusive,
+          }))
+          await tx.insert(lookup_table_dimension_bins).values(binInserts)
+        }
+
+        if (convertedInput.cells && convertedInput.cells.length > 0) {
+          const cellInserts = convertedInput.cells.map((cell: any) => ({
+            tenantId: tenantId,
+            lookupTableId: updatedTable.id,
+            inputCoordinates: cell.inputCoordinates,
+            outputValues: cell.outputValues,
+          }))
+          await tx.insert(lookup_table_cells).values(cellInserts)
+        }
+
+        return updatedTable
       })
     }),
 
   publish: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      throw new TRPCError({
-        code: "NOT_IMPLEMENTED",
-        message: "Publish operations temporarily disabled during N-dimensional migration",
-      })
+      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
+      const tenantId = 1;
+      const userId = ctx.session?.user?.id
+      if (!tenantId || !userId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "No tenant access",
+        })
+      }
+
+      // First get the current table to increment version
+      const currentTable = await ctx.db
+        .select()
+        .from(lookup_tables)
+        .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.tenantId, tenantId)))
+        .limit(1)
+      
+      if (!currentTable[0]) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Lookup table not found",
+        })
+      }
+
+      const [updatedTable] = await ctx.db
+        .update(lookup_tables)
+        .set({
+          status: "published",
+          version: currentTable[0].version + 1,
+          updatedBy: userId,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.tenantId, tenantId)))
+        .returning()
+
+      if (!updatedTable) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Lookup table not found",
+        })
+      }
+
+      return updatedTable
     }),
 
   deprecate: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      throw new TRPCError({
-        code: "NOT_IMPLEMENTED",
-        message: "Deprecate operations temporarily disabled during N-dimensional migration",
-      })
+      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
+      const tenantId = 1;
+      const userId = ctx.session?.user?.id
+      if (!tenantId || !userId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "No tenant access",
+        })
+      }
+
+      const [updatedTable] = await ctx.db
+        .update(lookup_tables)
+        .set({
+          status: "deprecated",
+          updatedBy: userId,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.tenantId, tenantId)))
+        .returning()
+
+      if (!updatedTable) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Lookup table not found",
+        })
+      }
+
+      return updatedTable
     }),
 
   delete: protectedProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.union([
+      z.object({ id: z.number() }),
+      z.number()
+    ]))
     .mutation(async ({ ctx, input }) => {
-      throw new TRPCError({
-        code: "NOT_IMPLEMENTED", 
-        message: "Delete operations temporarily disabled during N-dimensional migration",
+      // Handle both object and number formats
+      const id = typeof input === 'number' ? input : input.id
+      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
+      const tenantId = 1;
+      if (!tenantId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "No tenant access",
+        })
+      }
+
+      return await ctx.db.transaction(async (tx) => {
+        // Delete related data first (FK constraints will handle cascade)
+        await tx.delete(lookup_table_cells).where(eq(lookup_table_cells.lookupTableId, id))
+        await tx.delete(lookup_table_dimension_bins).where(eq(lookup_table_dimension_bins.lookupTableId, id))
+        await tx.delete(lookup_table_inputs).where(eq(lookup_table_inputs.lookupTableId, id))
+        await tx.delete(lookup_table_outputs).where(eq(lookup_table_outputs.lookupTableId, id))
+
+        // Delete the table
+        const [deletedTable] = await tx
+          .delete(lookup_tables)
+          .where(and(eq(lookup_tables.id, id), eq(lookup_tables.tenantId, tenantId)))
+          .returning()
+
+        if (!deletedTable) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Lookup table not found",
+          })
+        }
+
+        return deletedTable
       })
     }),
 }) 
