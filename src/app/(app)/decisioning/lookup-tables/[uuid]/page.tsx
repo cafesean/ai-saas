@@ -137,7 +137,7 @@ export default function LookupTableDetailPage({ params }: { params: Promise<{ uu
             <Play className="h-4 w-4 mr-2" />
             Test
           </Button>
-          <Button variant="outline" onClick={() => router.push("/decisioning/lookup-tables/" + uuid + "/edit")}>
+          <Button variant="outline" onClick={() => router.push(`/decisioning/lookup-tables/${uuid}/edit`)}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
@@ -172,7 +172,6 @@ export default function LookupTableDetailPage({ params }: { params: Promise<{ uu
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="matrix">Matrix View</TabsTrigger>
           <TabsTrigger value="history">Version History</TabsTrigger>
         </TabsList>
 
@@ -230,17 +229,6 @@ export default function LookupTableDetailPage({ params }: { params: Promise<{ uu
             </div>
           </div>
         </TabsContent>
-
-        <TabsContent value="matrix" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Full Matrix View</CardTitle>
-              <CardDescription>Complete lookup matrix with all configured values</CardDescription>
-            </CardHeader>
-            <CardContent>{renderMatrix()}</CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="history" className="space-y-6">
           <Card>
             <CardHeader>

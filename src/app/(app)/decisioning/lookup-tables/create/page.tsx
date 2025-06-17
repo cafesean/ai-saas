@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { LookupTableEditor } from "../components/lookup-table-editor"
-import { frontendToBackend, createEmptyLookupTable } from "../lib/data-transformers"
+import { frontendToBackend, createEmptyLookupTable, type LookupTableData } from "../lib/data-transformers"
 import { api } from "@/utils/trpc"
+import Breadcrumbs from "@/components/ui/Breadcrumbs"
 
 // Remove mockVariables - will use real variables from API
 
@@ -29,7 +30,7 @@ export default function CreateLookupTablePage() {
     },
   })
 
-  const handleSave = async (data: any) => {
+  const handleSave = async (data: LookupTableData) => {
     try {
       setError(null)
       
@@ -44,69 +45,98 @@ export default function CreateLookupTablePage() {
     }
   }
 
-  const handleTest = (data: any) => {
+  const handleTest = (data: LookupTableData) => {
     console.log("Testing lookup table:", data)
     // TODO: Implement test functionality
   }
 
-  const handleCancel = () => {
-    router.push('/decisioning/lookup-tables')
-  }
-
   if (isLoadingVariables) {
     return (
-      <div className="container mx-auto py-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-2xl font-bold">Create Lookup Table</h1>
+      <div className="flex min-h-screen w-full flex-col bg-background">
+        <Breadcrumbs
+          items={[
+            {
+              label: "Back to Lookup Tables",
+              link: "/decisioning/lookup-tables",
+            },
+          ]}
+          title="Create Lookup Table"
+          rightChildren={
+            <Button variant="outline" onClick={() => router.back()}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          }
+        />
+        <div className="flex-1 p-4 md:p-6">
+          <Card>
+            <CardContent className="py-8">
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-        <Card>
-          <CardContent className="py-8">
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     )
   }
 
   if (variablesError) {
     return (
-      <div className="container mx-auto py-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-2xl font-bold">Create Lookup Table</h1>
+      <div className="flex min-h-screen w-full flex-col bg-background">
+        <Breadcrumbs
+          items={[
+            {
+              label: "Back to Lookup Tables",
+              link: "/decisioning/lookup-tables",
+            },
+          ]}
+          title="Create Lookup Table"
+          rightChildren={
+            <Button variant="outline" onClick={() => router.back()}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          }
+        />
+        <div className="flex-1 p-4 md:p-6">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Failed to load variables
+            </AlertDescription>
+          </Alert>
         </div>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Failed to load variables
-          </AlertDescription>
-        </Alert>
       </div>
     )
   }
 
   if (!variables || variables.length === 0) {
     return (
-      <div className="container mx-auto py-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-2xl font-bold">Create Lookup Table</h1>
+      <div className="flex min-h-screen w-full flex-col bg-background">
+        <Breadcrumbs
+          items={[
+            {
+              label: "Back to Lookup Tables",
+              link: "/decisioning/lookup-tables",
+            },
+          ]}
+          title="Create Lookup Table"
+          rightChildren={
+            <Button variant="outline" onClick={() => router.back()}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          }
+        />
+        <div className="flex-1 p-4 md:p-6">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              No variables found. Please create variables first before creating lookup tables.
+            </AlertDescription>
+          </Alert>
         </div>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            No variables found. Please create variables first before creating lookup tables.
-          </AlertDescription>
-        </Alert>
       </div>
     )
   }
@@ -118,32 +148,44 @@ export default function CreateLookupTablePage() {
   ) : undefined
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex items-center gap-2 mb-6">
-        <Button variant="outline" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Create Lookup Table</h1>
+    <div className="flex min-h-screen w-full flex-col bg-background">
+      <Breadcrumbs
+        items={[
+          {
+            label: "Back to Lookup Tables",
+            link: "/decisioning/lookup-tables",
+          },
+        ]}
+        title="Create Lookup Table"
+        rightChildren={
+          <Button variant="outline" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+        }
+      />
+      <div className="flex-1 p-4 md:p-6">
+        <div className="space-y-1 mb-6">
+          <h2 className="text-2xl font-bold tracking-tight">Create Lookup Table</h2>
           <p className="text-muted-foreground">
             Configure a new matrix-based decision lookup table
           </p>
         </div>
+
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <LookupTableEditor
+          initialData={initialData}
+          onSave={handleSave}
+          onTest={handleTest}
+          isLoading={createMutation.isPending}
+        />
       </div>
-
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <LookupTableEditor
-        initialData={initialData}
-        onSave={handleSave}
-        onTest={handleTest}
-        isLoading={createMutation.isPending}
-      />
     </div>
   )
 } 

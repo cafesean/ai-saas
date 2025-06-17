@@ -1,0 +1,249 @@
+/**
+ * Shared CSS classes using Tailwind utilities
+ * These complement the shared-styles.ts file for when CSS classes are needed
+ */
+
+/* Page Layout Classes */
+.page-container {
+  @apply flex min-h-screen w-full flex-col bg-background;
+}
+
+.page-main {
+  @apply flex-1 p-6 space-y-8;
+}
+
+.page-content {
+  @apply flex-1 p-4 md:p-6;
+}
+
+.loading-container {
+  @apply flex items-center justify-center py-12;
+}
+
+.error-container {
+  @apply container mx-auto py-6;
+}
+
+/* Header Section Classes */
+.header-section {
+  @apply border-b py-4 md:p-6;
+}
+
+.header-layout {
+  @apply flex flex-col md:flex-row md:items-center justify-between gap-4;
+}
+
+.header-title {
+  @apply text-2xl font-bold;
+}
+
+.header-subtitle {
+  @apply text-muted-foreground mt-1;
+}
+
+.header-actions {
+  @apply flex items-center gap-4;
+}
+
+.status-toggle-section {
+  @apply flex items-center gap-2;
+}
+
+/* Tab Classes */
+.tab-list-responsive {
+  @apply grid w-full md:w-auto grid-cols-3 md:grid-cols-none md:flex;
+}
+
+.tab-content {
+  @apply space-y-6 pt-4;
+}
+
+.tab-section-header {
+  @apply flex justify-between items-center;
+}
+
+.tab-section-title {
+  @apply text-lg font-medium;
+}
+
+/* Card Classes */
+.card-bordered {
+  @apply border rounded-md;
+}
+
+.card-details {
+  @apply space-y-6;
+}
+
+.card-content {
+  @apply lg:col-span-2 space-y-6;
+}
+
+/* Grid Classes */
+.grid-main {
+  @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+}
+
+.grid-two-column {
+  @apply grid gap-6 md:grid-cols-2;
+}
+
+.grid-schema-panel {
+  @apply grid gap-6 md:grid-cols-2;
+}
+
+/* Button Icon Classes */
+.btn-icon {
+  @apply h-4 w-4;
+}
+
+.btn-icon-with-margin {
+  @apply mr-2 h-4 w-4;
+}
+
+.loading-spinner {
+  @apply h-8 w-8 animate-spin;
+}
+
+/* Status Badge Classes */
+.status-published,
+.status-active {
+  @apply bg-green-100 text-green-800;
+}
+
+.status-draft,
+.status-inactive {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.status-deprecated {
+  @apply bg-red-100 text-red-800;
+}
+
+.status-default {
+  @apply bg-gray-100 text-gray-800;
+}
+
+/* Spacing Classes */
+.spacing-section {
+  @apply space-y-6;
+}
+
+.spacing-items {
+  @apply space-y-4;
+}
+
+.spacing-small {
+  @apply space-y-2;
+}
+
+/* Form Classes */
+.form-field {
+  @apply space-y-2;
+}
+
+.form-section {
+  @apply space-y-4;
+}
+
+.form-grid {
+  @apply grid gap-4;
+}
+
+.form-label {
+  @apply text-sm font-medium;
+}
+
+.form-help-text {
+  @apply text-sm text-muted-foreground mt-1;
+}
+
+.form-error-text {
+  @apply text-sm text-destructive mt-1;
+}
+
+/* Table Classes */
+.table-container {
+  @apply border rounded-md;
+}
+
+.table-wrapper {
+  @apply overflow-x-auto;
+}
+
+.table-cell {
+  @apply p-3;
+}
+
+.table-header-cell {
+  @apply p-3 font-medium;
+}
+
+/* Loading Classes */
+.loading-backdrop {
+  @apply fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center;
+}
+
+.loading-text {
+  @apply ml-2;
+}
+
+/* Utility Classes for Common Combinations */
+.page-layout {
+  @apply flex min-h-screen w-full flex-col bg-background;
+}
+
+.header-with-border {
+  @apply border-b py-4 md:p-6;
+}
+
+.content-with-spacing {
+  @apply flex-1 p-6 space-y-8;
+}
+
+.two-column-layout {
+  @apply grid gap-6 md:grid-cols-2;
+}
+
+.three-column-layout {
+  @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+}
+
+.card-grid-layout {
+  @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+}
+
+/* Responsive Breakpoint Utilities */
+.mobile-stack {
+  @apply flex flex-col gap-4;
+}
+
+.desktop-row {
+  @apply md:flex-row md:items-center md:gap-4;
+}
+
+.responsive-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4;
+}
+
+/* Animation Classes */
+.fade-in {
+  @apply animate-in fade-in-0 duration-200;
+}
+
+.slide-up {
+  @apply animate-in slide-in-from-bottom-2 duration-200;
+}
+
+.scale-in {
+  @apply animate-in zoom-in-95 duration-200;
+}
+
+/* Focus States */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+}
+
+.focus-visible-ring {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+} 

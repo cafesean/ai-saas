@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Search, Filter, Grid, List, Eye, Edit, Trash2, Play } from "lucide-react"
+import { Plus, Search, Filter, Grid, List, Eye, Edit, Trash2, Play, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,6 +24,7 @@ import { api } from "@/utils/trpc"
 import Link from "next/link"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, Loader2 } from "lucide-react"
+import Breadcrumbs from "@/components/ui/Breadcrumbs"
 
 export default function LookupTablesPage() {
   const router = useRouter()
@@ -161,12 +162,12 @@ export default function LookupTablesPage() {
           <div className="flex items-center space-x-2">
             <Badge className={getStatusColor(table.status)}>{table.status}</Badge>
             <Badge variant="outline">v{table.version}</Badge>
-                         <DropdownMenu>
-               <DropdownMenuTrigger asChild>
-                 <Button variant="outline" size="sm">
-                   •••
-                 </Button>
-               </DropdownMenuTrigger>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  •••
+                </Button>
+              </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
                   <Link href={`/decisioning/lookup-tables/${table.uuid}`}>
@@ -202,112 +203,169 @@ export default function LookupTablesPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto py-6">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Failed to load lookup tables: {error.message}
-          </AlertDescription>
-        </Alert>
+      <div className="flex min-h-screen w-full flex-col bg-background">
+        <Breadcrumbs
+          items={[
+            {
+              label: "Back to Decisioning",
+              link: "/decisioning",
+            },
+          ]}
+          title="Lookup Tables"
+          rightChildren={
+            <>
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+              </Button>
+              <Button asChild>
+                <Link href="/decisioning/lookup-tables/create">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Table
+                </Link>
+              </Button>
+            </>
+          }
+        />
+        <div className="flex-1 p-4 md:p-6">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Failed to load lookup tables: {error.message}
+            </AlertDescription>
+          </Alert>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Lookup Tables</h1>
-          <p className="text-muted-foreground">Manage your decision matrix lookup tables</p>
-        </div>
-        <Button asChild>
-          <Link href="/decisioning/lookup-tables/create">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Table
-          </Link>
-        </Button>
-      </div>
+    <div className="flex min-h-screen w-full flex-col bg-background">
+      <Breadcrumbs
+        items={[
+          {
+            label: "Back to Decisioning",
+            link: "/decisioning",
+          },
+        ]}
+        title="Lookup Tables"
+        rightChildren={
+          <>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
+            <Button variant="outline" size="sm">
+              <Filter className="mr-2 h-4 w-4" />
+              Filter
+            </Button>
+            <Button asChild>
+              <Link href="/decisioning/lookup-tables/create">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Table
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
-      {/* Filters and Search */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-1">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search lookup tables..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+      <div className="flex-1 p-4 md:p-6 space-y-6">
+        <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+          <div className="space-y-1">
+            <h2 className="text-2xl font-bold tracking-tight">Lookup Tables</h2>
+            <p className="text-muted-foreground">
+              Manage your decision matrix lookup tables
+            </p>
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="published">Published</SelectItem>
-              <SelectItem value="deprecated">Deprecated</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={viewMode === "grid" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("grid")}
-          >
-            <Grid className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === "list" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("list")}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
 
-      {/* Content */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-2">Loading lookup tables...</span>
-        </div>
-      ) : filteredTables.length === 0 ? (
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center space-y-4">
-              <div className="text-muted-foreground">
-                {searchTerm || statusFilter !== "all" 
-                  ? "No lookup tables match your filters" 
-                  : "No lookup tables found"}
-              </div>
-              {!searchTerm && statusFilter === "all" && (
-                <Button asChild>
-                  <Link href="/decisioning/lookup-tables/create">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create your first lookup table
-                  </Link>
-                </Button>
-              )}
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            <div className="relative w-full md:w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search tables..."
+                className="w-full pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
-          {filteredTables.map((table) =>
-            viewMode === "grid" ? (
-              <TableCard key={table.id} table={table} />
-            ) : (
-              <TableRow key={table.id} table={table} />
-            )
-          )}
+          </div>
         </div>
-      )}
+
+        <Tabs defaultValue="all">
+          <TabsList>
+            <TabsTrigger value="all">All Tables</TabsTrigger>
+            <TabsTrigger value="draft">Draft</TabsTrigger>
+            <TabsTrigger value="published">Published</TabsTrigger>
+            <TabsTrigger value="deprecated">Deprecated</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all" className="mt-4">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <span className="ml-2">Loading lookup tables...</span>
+              </div>
+            ) : filteredTables.length === 0 ? (
+              <Card>
+                <CardContent className="py-12">
+                  <div className="text-center space-y-4">
+                    <div className="text-muted-foreground">
+                      {searchTerm || statusFilter !== "all" 
+                        ? "No lookup tables match your filters" 
+                        : "No lookup tables found"}
+                    </div>
+                    {!searchTerm && statusFilter === "all" && (
+                      <Button asChild>
+                        <Link href="/decisioning/lookup-tables/create">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Create your first lookup table
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {filteredTables.map((table) => (
+                  <TableCard key={table.id} table={table} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="draft" className="mt-4">
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {filteredTables
+                .filter((table) => table.status === "draft")
+                .map((table) => (
+                  <TableCard key={table.id} table={table} />
+                ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="published" className="mt-4">
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {filteredTables
+                .filter((table) => table.status === "published")
+                .map((table) => (
+                  <TableCard key={table.id} table={table} />
+                ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="deprecated" className="mt-4">
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {filteredTables
+                .filter((table) => table.status === "deprecated")
+                .map((table) => (
+                  <TableCard key={table.id} table={table} />
+                ))}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 }
