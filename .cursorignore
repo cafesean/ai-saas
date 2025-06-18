@@ -1,0 +1,13 @@
+.*/
+.dockerignore
+.gitignore
+.prettier*
+.cursor*
+env.example
+ai/
+docs/
+n8n/
+prisma/
+scripts/
+*.md
+test-*.js
