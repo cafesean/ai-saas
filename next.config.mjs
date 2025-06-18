@@ -5,6 +5,21 @@ const nextConfig = {
     typedRoutes: true,
     serverActions: {
       bodySizeLimit: '2mb',
+      allowedOrigins: [
+        // Development origins
+        ...(process.env.NODE_ENV === 'development' ? [
+          'localhost:3000',
+          'localhost:3001',
+          '127.0.0.1:3000',
+          '127.0.0.1:3001',
+        ] : []),
+        // Environment-specific origins
+        process.env.NEXT_PUBLIC_BASE_URL,
+        process.env.NEXT_PUBLIC_CDN_BASE_URL,
+        process.env.NEXTAUTH_URL,
+        // Production domains (configure via environment variables)
+        process.env.ALLOWED_ORIGINS?.split(',').map(origin => origin.trim()),
+      ].flat().filter(Boolean),
     },
   },
   webpack: (config, { isServer }) => {

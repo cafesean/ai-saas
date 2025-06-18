@@ -56,7 +56,11 @@ export const createTRPCContextFetch = async (opts: { req: Request; resHeaders: H
  * This is where the tRPC API is initialized, connecting the context and transformer. We also parse
  * ZodErrors so that you get typesafety on the frontend if your procedure fails due to validation
  * errors on the backend.
+ * This is where the tRPC API is initialized, connecting the context and transformer. We also parse
+ * ZodErrors so that you get typesafety on the frontend if your procedure fails due to validation
+ * errors on the backend.
  */
+const t = initTRPC.context<typeof createTRPCContext>().create({
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
   errorFormatter({ shape, error }) {
@@ -79,8 +83,17 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
 export const createCallerFactory = t.createCallerFactory;
 
 /**
+ * Create a server-side caller.
+ *
+ * @see https://trpc.io/docs/server/server-side-calls
+ */
+export const createCallerFactory = t.createCallerFactory;
+
+/**
  * 3. ROUTER & PROCEDURE (THE IMPORTANT BIT)
  *
+ * These are the pieces you use to build your tRPC API. You should import these a lot in the
+ * "/src/server/api/routers" directory.
  * These are the pieces you use to build your tRPC API. You should import these a lot in the
  * "/src/server/api/routers" directory.
  */
@@ -98,9 +111,31 @@ export const createTRPCRouter = t.router;
  * This is the base piece you use to build new queries and mutations on your tRPC API. It does not
  * guarantee that a user querying is authorized, but you can still access user session data if they
  * are logged in.
+ * This is the base piece you use to build new queries and mutations on your tRPC API. It does not
+ * guarantee that a user querying is authorized, but you can still access user session data if they
+ * are logged in.
  */
 export const publicProcedure = t.procedure;
 
+/**
+ * Protected (authenticated) procedure
+ *
+ * If you want a query or mutation to ONLY be accessible to logged in users, use this. It verifies
+ * the session is valid and guarantees `ctx.session.user` is not null.
+ *
+ * @see https://trpc.io/docs/procedures
+ */
+export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+  if (!ctx.session || !ctx.session.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  return next({
+    ctx: {
+      // infers the `session` as non-nullable
+      session: { ...ctx.session, user: ctx.session.user },
+    },
+  });
+});
 /**
  * Protected (authenticated) procedure
  *
@@ -152,7 +187,66 @@ export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
     },
   });
 });
+/**
+ * Admin procedure
+ *
+ * If you want a query or mutation to ONLY be accessible to admin users, use this.
+ * It verifies the session is valid and the user has admin permissions.
+ */
+export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  // Check if user has admin permissions
+  const userPermissions = ctx.session.user.roles?.flatMap(role => 
+    role.policies?.map(policy => policy.name) || []
+  ) || [];
+  
+  const hasAdminAccess = userPermissions.includes('admin:full_access') || 
+                        userPermissions.includes('admin:role_management') ||
+                        ctx.session.user.roles?.some(role => 
+                          ['admin', 'owner', 'super'].includes(role.name.toLowerCase())
+                        );
 
+  if (!hasAdminAccess) {
+    throw new TRPCError({ 
+      code: "FORBIDDEN",
+      message: "Admin access required" 
+    });
+  }
+
+  return next({
+    ctx: {
+      session: ctx.session,
+    },
+  });
+});
+
+/**
+ * Permission-based procedure factory
+ * 
+ * Creates a procedure that checks for specific permissions
+ */
+export const withPermission = (requiredPermission: string) => {
+  return protectedProcedure.use(({ ctx, next }) => {
+    const userPermissions = ctx.session.user.roles?.flatMap(role => 
+      role.policies?.map(policy => policy.name) || []
+    ) || [];
+    
+    const hasPermission = userPermissions.includes(requiredPermission) ||
+                         userPermissions.includes('admin:full_access');
+
+    if (!hasPermission) {
+      throw new TRPCError({ 
+        code: "FORBIDDEN",
+        message: `Permission required: ${requiredPermission}` 
+      });
+    }
+    
+    return next({
+      ctx: {
+        session: ctx.session,
+      },
+    });
+  });
+};
 /**
  * Permission-based procedure factory
  * 
