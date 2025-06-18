@@ -49,3 +49,11 @@ yarn-error.log*
 next-env.d.ts
 
 origin/
+test-*.js
+.*/
+.cursor*
+.prettier*
+.docker*
+n8n/
+scripts/
+docs/
