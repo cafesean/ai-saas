@@ -1,0 +1,10 @@
+# Ignore everything (folders and files) on root only
+/*
+!drizzle
+!src
+!public
+!*.config.*
+!next*.*
+!package.json
+!pnpm-lock.yaml
+!tsconfig.json

@@ -1,31 +1,49 @@
-import { type ClassValue, clsx } from "clsx"
+import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { LevelView, RateCardView } from '@/framework/types';
 
+/**
+ * Utility function to merge Tailwind CSS classes
+ * @param inputs - Class values to merge
+ * @returns Merged class string
+ */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount)
+/**
+ * Utility to format dates consistently
+ */
+export function formatDate(date: Date | string): string {
+  const d = new Date(date);
+  return d.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
 }
 
-export function generateId(): string {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36)
+/**
+ * Utility to truncate text with ellipsis
+ */
+export function truncate(text: string, length: number): string {
+  if (text.length <= length) return text;
+  return text.slice(0, length) + '...';
 }
 
-export function findLevelUsage(levelId: number, rateCards: RateCardView[]): RateCardView[] {
-  return rateCards.filter(rateCard => 
-    rateCard.levelRates.some(rate => rate.level.id === levelId)
-  );
+/**
+ * Utility to capitalize first letter
+ */
+export function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-export function removeLevelFromRateCards(levelId: number, rateCards: RateCardView[]): RateCardView[] {
-  return rateCards.map(rateCard => ({
-    ...rateCard,
-    levelRates: rateCard.levelRates.filter(rate => rate.level.id !== levelId)
-  }));
+/**
+ * Utility to generate initials from a name
+ */
+export function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase())
+    .join('')
+    .slice(0, 2);
 } 

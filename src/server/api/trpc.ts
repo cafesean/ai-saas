@@ -13,7 +13,7 @@ import { getServerSession } from "next-auth/next";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-import { authOptions } from "@/server/auth";
+import { authOptions } from "@/server/auth-simple";
 import { db } from "@/db/config";
 
 /**
@@ -35,6 +35,18 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
     db,
     session,
     ...opts,
+  };
+};
+
+// For fetch adapter compatibility
+export const createTRPCContextFetch = async (opts: { req: Request; resHeaders: Headers }) => {
+  const session = await getServerSession(authOptions);
+
+  return {
+    db,
+    session,
+    headers: opts.req.headers,
+    resHeaders: opts.resHeaders,
   };
 };
 
