@@ -1,0 +1,11 @@
+.*/
+ai/
+docs/
+origin/
+prisma/
+scripts/
+env.example
+n8n/
+*.md
+test-*.js
+.env*
