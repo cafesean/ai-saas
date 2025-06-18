@@ -2,7 +2,8 @@
 
 import React from "react";
 import { usePermission, usePermissions } from "@/framework/hooks/useAuthSession";
-import { useAuthStore } from "@/framework/store/auth.store";
+import { useAuthStore, UserProfile, UserRole } from "@/framework/store/auth.store";
+import { AuthError } from "@/types/auth";
 
 /**
  * Props for the WithPermission component
@@ -30,7 +31,7 @@ export interface WithPermissionProps {
   hideWhenUnauthorized?: boolean;
   
   /** Custom permission check function for complex logic */
-  customCheck?: (user: any, role: any, permissions: string[]) => boolean;
+  customCheck?: (user: UserProfile, role: UserRole | null, permissions: string[]) => boolean;
   
   /** Additional class names for styling */
   className?: string;

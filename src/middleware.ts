@@ -16,8 +16,7 @@ export function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_BASE_URL,
     process.env.NEXT_PUBLIC_CDN_BASE_URL,
     // Add production domains here
-    'https://your-production-domain.com',
-    'wss://your-websocket-domain.com',
+    'https://alpha.jetdevs.ai',
   ].filter(Boolean).join(' ');
   
   // Content Security Policy configuration
@@ -52,6 +51,12 @@ export function middleware(request: NextRequest) {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  
+  // AUTH SECURITY: Additional headers for authentication security
+  response.headers.set('X-Permitted-Cross-Domain-Policies', 'none');
+  response.headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+  response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+  response.headers.set('Cross-Origin-Resource-Policy', 'same-origin');
   
   // Set HSTS in production
   if (!isDevelopment) {

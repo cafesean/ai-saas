@@ -78,11 +78,12 @@ interface LookupTableEditorProps {
   isLoading?: boolean
   errors?: Record<string, string>
   hasChanges?: boolean
+  showBasicInfo?: boolean // Controls whether to show Basic Information and Variables sections
 }
 
 // Remove mockVariables - will use real variables from API
 
-export function LookupTableEditor({ initialData, currentData, onSave, onTest, onChange, isLoading, errors, hasChanges }: LookupTableEditorProps) {
+export function LookupTableEditor({ initialData, currentData, onSave, onTest, onChange, isLoading, errors, hasChanges, showBasicInfo = true }: LookupTableEditorProps) {
   // Fetch variables from API
   const { data: variables, isLoading: isLoadingVariables } = api.variable.getAll.useQuery()
   
@@ -699,6 +700,7 @@ export function LookupTableEditor({ initialData, currentData, onSave, onTest, on
 
   return (
     <div className="space-y-6">
+     
       {/* Save Button and Errors */}
       <div className="flex items-center justify-between">
         <div></div>
@@ -729,9 +731,9 @@ export function LookupTableEditor({ initialData, currentData, onSave, onTest, on
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Lookup Matrix</CardTitle>
+              <CardTitle>Lookup Table</CardTitle>
               <CardDescription>
-                Configure your matrix by adding rows and columns, then fill in the valuess
+                Configure your matrix by adding rows and columns, then fill in the values
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">

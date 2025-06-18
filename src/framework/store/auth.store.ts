@@ -173,14 +173,15 @@ export function useAuthSync() {
         });
       }
 
-      // Add fallback admin permissions for admin-like roles OR if user name suggests admin
+      // Add fallback admin permissions only for proper admin roles (NOT username-based!)
       const adminRoles = ['admin', 'owner', 'super'];
       const isAdminRole = role && adminRoles.some(adminRole => 
         role.name.toLowerCase().includes(adminRole)
       );
-      const isAdminUser = userProfile.name && userProfile.name.toLowerCase().includes('admin');
+      // SECURITY: Removed risky username-based admin detection
+      // const isAdminUser = userProfile.name && userProfile.name.toLowerCase().includes('admin');
 
-      if ((isAdminRole || isAdminUser) && permissions.length === 0) {
+      if (isAdminRole && permissions.length === 0) {
         // Add comprehensive admin permissions including role management
         permissions.push(
           { id: 'admin-1', slug: 'admin:full_access', name: 'Full Admin Access', category: 'admin' },
@@ -202,24 +203,8 @@ export function useAuthSync() {
         );
       }
 
-      // Create a default admin role if user appears to be admin but has no role
-      if (!role && isAdminUser) {
-        const defaultRole: UserRole = {
-          id: 'temp-admin',
-          name: 'Admin',
-          description: 'Default admin role',
-          isSystemRole: true,
-        };
-        
-        setAuthState({
-          authenticated: true,
-          loading: false,
-          user: userProfile,
-          role: defaultRole,
-          permissions,
-        });
-        return;
-      }
+      // SECURITY: Removed risky default admin role creation based on username
+      // Users must have proper roles assigned through the RBAC system
 
       setAuthState({
         authenticated: true,

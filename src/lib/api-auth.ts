@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/server/auth';
+import { authOptions } from '@/server/auth-simple';
 import { db } from '@/db/config';
 import { eq, and, count } from 'drizzle-orm';
 import schema, { userTenants, userRoles, rolePermissions, permissions } from '@/db/schema';
