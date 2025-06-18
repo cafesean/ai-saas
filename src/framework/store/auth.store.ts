@@ -57,6 +57,65 @@ export const useAuthStore = create<AuthState>()(devtools(
     setAuthState: (newState) => {
       set((state) => ({ ...state, ...newState }), false, 'setAuthState');
     },
+import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
+import { useSession } from 'next-auth/react';
+import { useEffect } from 'react';
+import type { SessionRole } from '@/framework/types/role';
+
+// Types
+export interface UserProfile {
+  id: string;
+  email: string;
+  name?: string;
+  image?: string;
+  tenantId?: string;
+}
+
+export interface UserRole {
+  id: string;
+  name: string;
+  description?: string;
+  isSystemRole: boolean;
+}
+
+export interface Permission {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+}
+
+interface AuthState {
+  // Core state
+  authenticated: boolean;
+  loading: boolean;
+  user: UserProfile | null;
+  role: UserRole | null;
+  permissions: Permission[];
+  
+  // Actions
+  setAuthState: (state: Partial<AuthState>) => void;
+  logout: () => void;
+  hasPermission: (permission: string) => boolean;
+  hasAnyPermission: (permissions: string[]) => boolean;
+  hasRole: (roleName: string) => boolean;
+}
+
+// Zustand store
+export const useAuthStore = create<AuthState>()(devtools(
+  (set, get) => ({
+    // Initial state
+    authenticated: false,
+    loading: true,
+    user: null,
+    role: null,
+    permissions: [],
+
+    // Actions
+    setAuthState: (newState) => {
+      set((state) => ({ ...state, ...newState }), false, 'setAuthState');
+    },
 
     logout: () => {
       set({
