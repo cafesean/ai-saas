@@ -48,6 +48,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+origin/
+test-*.js
 .*/
+.cursor*
+.prettier*
+.docker*
+n8n/
+scripts/
+docs/
+
 .env.local*
 .env
