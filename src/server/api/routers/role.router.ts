@@ -12,7 +12,7 @@ const roleSchema = z.object({
 });
 
 export const roleRouter = createTRPCRouter({
-  getAll: protectedProcedure
+  getAll: withPermission('roles:read')
     .query(async ({ ctx }) => {
       return await db.select()
         .from(roles)
@@ -20,7 +20,7 @@ export const roleRouter = createTRPCRouter({
         .orderBy(asc(roles.name));
     }),
 
-  getById: protectedProcedure
+  getById: withPermission('roles:read')
     .input(z.number())
     .query(async ({ ctx, input }) => {
       const [role] = await db.select()
@@ -39,7 +39,7 @@ export const roleRouter = createTRPCRouter({
     }),
 
   // Get role with its permissions
-  getWithPermissions: protectedProcedure
+  getWithPermissions: withPermission('roles:read')
     .input(z.number())
     .query(async ({ ctx, input }) => {
       // Get role
@@ -74,7 +74,7 @@ export const roleRouter = createTRPCRouter({
       };
     }),
 
-  create: protectedProcedure
+  create: withPermission('roles:create')
     .input(roleSchema)
     .mutation(async ({ ctx, input }) => {
       const [role] = await db.insert(roles)
@@ -88,7 +88,7 @@ export const roleRouter = createTRPCRouter({
       return role;
     }),
 
-  update: protectedProcedure
+  update: withPermission('roles:update')
     .input(z.object({
       id: z.number(),
       data: roleSchema.partial(),
@@ -111,7 +111,7 @@ export const roleRouter = createTRPCRouter({
       return role;
     }),
 
-  delete: protectedProcedure
+  delete: withPermission('roles:delete')
     .input(z.number())
     .mutation(async ({ ctx, input }) => {
       // Check if role is a system role
@@ -144,7 +144,7 @@ export const roleRouter = createTRPCRouter({
     }),
 
   // Assign permissions to role
-  assignPermissions: protectedProcedure
+  assignPermissions: withPermission('roles:assign_permissions')
     .input(z.object({
       roleId: z.number(),
       permissionIds: z.array(z.number()),
@@ -200,7 +200,7 @@ export const roleRouter = createTRPCRouter({
     }),
 
   // Remove specific permissions from role
-  removePermissions: protectedProcedure
+  removePermissions: withPermission('roles:assign_permissions')
     .input(z.object({
       roleId: z.number(),
       permissionIds: z.array(z.number()),
@@ -225,7 +225,7 @@ export const roleRouter = createTRPCRouter({
     }),
 
   // Get all roles with permission counts and user counts
-  getAllWithStats: protectedProcedure
+  getAllWithStats: withPermission('roles:read')
     .query(async ({ ctx }) => {
       const rolesData = await db.select()
         .from(roles)

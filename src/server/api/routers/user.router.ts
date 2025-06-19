@@ -33,7 +33,7 @@ const userFiltersSchema = z.object({
 
 export const userRouter = createTRPCRouter({
   // Get all users with stats and role information
-  getAll: protectedProcedure
+  getAll: withPermission('users:read')
     .input(userFiltersSchema)
     .query(async ({ ctx, input }) => {
       const { search, isActive, roleId, tenantId, limit, offset } = input;
@@ -128,7 +128,7 @@ export const userRouter = createTRPCRouter({
     }),
 
   // Get user by ID with full details
-  getById: protectedProcedure
+  getById: withPermission('users:read')
     .input(z.number())
     .query(async ({ ctx, input }) => {
       const user = await db.select()
@@ -165,7 +165,7 @@ export const userRouter = createTRPCRouter({
     }),
 
   // Create new user
-  create: protectedProcedure
+  create: withPermission('users:create')
     .input(userSchema)
     .mutation(async ({ ctx, input }) => {
       const { password, ...userData } = input;
@@ -208,7 +208,7 @@ export const userRouter = createTRPCRouter({
     }),
 
   // Update user
-  update: protectedProcedure
+  update: withPermission('users:update')
     .input(userUpdateSchema)
     .mutation(async ({ ctx, input }) => {
       const { id, password, ...updateData } = input;
@@ -272,7 +272,7 @@ export const userRouter = createTRPCRouter({
     }),
 
   // Delete user
-  delete: protectedProcedure
+  delete: withPermission('users:delete')
     .input(z.number())
     .mutation(async ({ ctx, input }) => {
       // Check if user exists
@@ -306,7 +306,7 @@ export const userRouter = createTRPCRouter({
     }),
 
   // Bulk operations
-  bulkUpdate: protectedProcedure
+  bulkUpdate: withPermission('users:update')
     .input(z.object({
       userIds: z.array(z.number()),
       action: z.enum(['activate', 'deactivate']),
@@ -348,7 +348,7 @@ export const userRouter = createTRPCRouter({
     }),
 
   // Bulk delete
-  bulkDelete: protectedProcedure
+  bulkDelete: withPermission('users:delete')
     .input(z.object({
       userIds: z.array(z.number()),
     }))
@@ -383,7 +383,7 @@ export const userRouter = createTRPCRouter({
     }),
 
   // Assign role to user
-  assignRole: protectedProcedure
+  assignRole: withPermission('users:assign_roles')
     .input(z.object({
       userId: z.number(),
       tenantId: z.number(),
@@ -446,7 +446,7 @@ export const userRouter = createTRPCRouter({
     }),
 
   // Remove role from user
-  removeRole: protectedProcedure
+  removeRole: withPermission('users:assign_roles')
     .input(z.object({
       userId: z.number(),
       tenantId: z.number(),

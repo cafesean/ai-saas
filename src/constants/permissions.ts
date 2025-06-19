@@ -391,34 +391,68 @@ export const DECISION_TESTING_PERMISSIONS: Permission[] = [
 // User Management Permissions
 export const USER_PERMISSIONS: Permission[] = [
   {
-    slug: "user:create",
-    name: "Create User",
+    slug: "users:create",
+    name: "Create Users",
     description: "Create new user accounts",
-    category: "user",
+    category: "users",
   },
   {
-    slug: "user:read",
-    name: "View User",
+    slug: "users:read",
+    name: "View Users",
     description: "View user profiles and information",
-    category: "user",
+    category: "users",
   },
   {
-    slug: "user:update",
-    name: "Edit User",
+    slug: "users:update",
+    name: "Edit Users",
     description: "Edit user profiles and information",
-    category: "user",
+    category: "users",
   },
   {
-    slug: "user:delete",
-    name: "Delete User",
+    slug: "users:delete",
+    name: "Delete Users",
     description: "Delete user accounts",
-    category: "user",
+    category: "users",
   },
   {
-    slug: "user:assign_role",
+    slug: "users:assign_roles",
     name: "Assign User Roles",
-    description: "Assign roles to users within tenant",
-    category: "user",
+    description: "Assign and remove roles from users",
+    category: "users",
+  },
+];
+
+// Role Management Permissions
+export const ROLE_PERMISSIONS: Permission[] = [
+  {
+    slug: "roles:read",
+    name: "View Roles",
+    description: "View roles and their permissions",
+    category: "roles",
+  },
+  {
+    slug: "roles:create",
+    name: "Create Roles",
+    description: "Create new roles",
+    category: "roles",
+  },
+  {
+    slug: "roles:update",
+    name: "Edit Roles",
+    description: "Edit role information and settings",
+    category: "roles",
+  },
+  {
+    slug: "roles:delete",
+    name: "Delete Roles",
+    description: "Delete roles (except system roles)",
+    category: "roles",
+  },
+  {
+    slug: "roles:assign_permissions",
+    name: "Manage Role Permissions",
+    description: "Assign and remove permissions from roles",
+    category: "roles",
   },
 ];
 
@@ -621,6 +655,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   ...DECISION_TESTING_PERMISSIONS,
   ...KNOWLEDGE_BASE_PERMISSIONS,
   ...USER_PERMISSIONS,
+  ...ROLE_PERMISSIONS,
   ...TENANT_PERMISSIONS,
   ...ADMIN_PERMISSIONS,
   ...WIDGET_PERMISSIONS,
@@ -658,7 +693,7 @@ export const DEFAULT_ROLES: RoleConfig[] = [
       ...KNOWLEDGE_BASE_PERMISSIONS.filter(p => !p.slug.includes('delete')).map(p => p.slug),
       "model:read",
       "model:inference",
-      "user:read",
+      "users:read",
     ],
     isSystemRole: true,
   },
@@ -676,7 +711,7 @@ export const DEFAULT_ROLES: RoleConfig[] = [
       "rule:read",
       "knowledge_base:read",
       "knowledge_base:chat",
-      "user:read",
+      "users:read",
     ],
     isSystemRole: true,
   },
@@ -695,7 +730,7 @@ export const DEFAULT_ROLES: RoleConfig[] = [
       "knowledge_base:chat",
       "widget:read",
       "endpoint:read",
-      "user:read",
+      "users:read",
     ],
     isSystemRole: true,
   },
