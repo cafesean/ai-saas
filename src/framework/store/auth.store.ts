@@ -178,8 +178,6 @@ export function useAuthSync() {
       const isAdminRole = role && adminRoles.some(adminRole => 
         role.name.toLowerCase().includes(adminRole)
       );
-      // SECURITY: Removed risky username-based admin detection
-      // const isAdminUser = userProfile.name && userProfile.name.toLowerCase().includes('admin');
 
       if (isAdminRole && permissions.length === 0) {
         // Add comprehensive admin permissions including role management
@@ -194,17 +192,20 @@ export function useAuthSync() {
           { id: 'model-4', slug: 'model:delete', name: 'Delete Models', category: 'model' },
           { id: 'workflow-1', slug: 'workflow:read', name: 'Read Workflows', category: 'workflow' },
           { id: 'workflow-2', slug: 'workflow:create', name: 'Create Workflows', category: 'workflow' },
-          { id: 'decision-1', slug: 'decision_table:read', name: 'Read Decision Tables', category: 'decision_table' },
-          { id: 'decision-2', slug: 'decision_table:create', name: 'Create Decision Tables', category: 'decision_table' },
-          { id: 'kb-1', slug: 'knowledge_base:read', name: 'Read Knowledge Bases', category: 'knowledge_base' },
-          { id: 'kb-2', slug: 'knowledge_base:create', name: 'Create Knowledge Bases', category: 'knowledge_base' },
-          { id: 'rule-1', slug: 'rule:read', name: 'Read Rules', category: 'rule' },
-          { id: 'rule-2', slug: 'rule:create', name: 'Create Rules', category: 'rule' },
+          { id: 'workflow-3', slug: 'workflow:update', name: 'Update Workflows', category: 'workflow' },
+          { id: 'workflow-4', slug: 'workflow:delete', name: 'Delete Workflows', category: 'workflow' },
+          { id: 'knowledge-1', slug: 'knowledge_base:read', name: 'Read Knowledge Bases', category: 'knowledge_base' },
+          { id: 'knowledge-2', slug: 'knowledge_base:create', name: 'Create Knowledge Bases', category: 'knowledge_base' },
+          { id: 'knowledge-3', slug: 'knowledge_base:update', name: 'Update Knowledge Bases', category: 'knowledge_base' },
+          { id: 'knowledge-4', slug: 'knowledge_base:delete', name: 'Delete Knowledge Bases', category: 'knowledge_base' },
+          { id: 'knowledge-5', slug: 'knowledge_base:chat', name: 'Chat with Knowledge Bases', category: 'knowledge_base' },
+          { id: 'knowledge-6', slug: 'knowledge_base:embed', name: 'Embed Documents', category: 'knowledge_base' },
+          { id: 'file-1', slug: 'file:upload', name: 'Upload Files', category: 'file' },
+          { id: 'file-2', slug: 'file:read', name: 'Read Files', category: 'file' },
+          { id: 'file-3', slug: 'file:delete', name: 'Delete Files', category: 'file' },
+          { id: 'file-4', slug: 'file:manage_s3', name: 'Manage S3 Storage', category: 'file' },
         );
       }
-
-      // SECURITY: Removed risky default admin role creation based on username
-      // Users must have proper roles assigned through the RBAC system
 
       setAuthState({
         authenticated: true,
@@ -215,8 +216,6 @@ export function useAuthSync() {
       });
     }
   }, [session, status, setAuthState]);
-
-  return { session, status };
 }
 
 // Utility functions

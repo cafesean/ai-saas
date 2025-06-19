@@ -1,4 +1,4 @@
 import { appRouter } from '@/server/api/root';
-import { createPagesRouterContext } from '@/server/api/trpc';
+import { createTRPCContext } from '@/server/api/trpc';
 
-export const api = appRouter.createCaller(createPagesRouterContext()); 
+export const api = appRouter.createCaller(await createTRPCContext());
