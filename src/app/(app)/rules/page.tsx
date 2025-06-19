@@ -14,6 +14,7 @@ import { api, useUtils } from "@/utils/trpc";
 import { AppRoutes } from "@/constants/routes";
 import { useModalState } from "@/framework/hooks/useModalState";
 import SkeletonLoading from "@/components/ui/skeleton-loading/SkeletonLoading";
+import { RouteGuard } from "@/components/auth/RouteGuard";
 
 export default function RulesPage() {
   const [isClient, setIsClient] = React.useState(false);
@@ -141,8 +142,9 @@ export default function RulesPage() {
   };
 
   return (
-    <div className="flex flex-col grow space-y-4 max-w-[100vw] px-4 md:px-6">
-      <div className="flex justify-between items-center">
+    <RouteGuard permission="rules:read" showAccessDenied={true}>
+      <div className="flex flex-col grow space-y-4 max-w-[100vw] px-4 md:px-6">
+        <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold text-gray-900">Rules Management</h1>
         {isClient && (
           <Button onClick={handleCreateRule} variant="primary">
@@ -189,6 +191,7 @@ export default function RulesPage() {
           />
         </>
       )}
-    </div>
+      </div>
+    </RouteGuard>
   );
 }

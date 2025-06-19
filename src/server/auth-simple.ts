@@ -43,13 +43,133 @@ export const authOptions: NextAuthOptions = {
         session.user.avatar = token.picture as string;
         session.user.firstName = token.firstName as string;
         session.user.lastName = token.lastName as string;
-        session.user.roles = [];
+        
+        // Load user roles and permissions from database
+        try {
+          const userId = token.userId as number;
+          
+          // Get all user roles across all tenants
+          const userRolesData = await db.query.userRoles.findMany({
+            where: (userRoles, { eq, and }) => and(
+              eq(userRoles.userId, userId),
+              eq(userRoles.isActive, true)
+            ),
+            with: {
+              tenant: {
+                columns: { id: true, name: true }
+              },
+              role: {
+                with: {
+                  rolePermissions: {
+                    with: {
+                      permission: true
+                    }
+                  }
+                }
+              }
+            }
+          });
+
+          if (userRolesData.length === 0) {
+            console.warn('No active roles found for user:', userId);
+            session.user.roles = [];
+            session.user.tenantId = null;
+            session.user.availableTenants = [];
+            session.user.currentTenant = null;
+            return session;
+          }
+
+          // Group roles by tenant
+          const tenantRoles = userRolesData.reduce((acc, userRole) => {
+            const tenantId = userRole.tenantId;
+            if (!acc[tenantId]) {
+              acc[tenantId] = {
+                tenant: userRole.tenant,
+                roles: []
+              };
+            }
+            acc[tenantId].roles.push({
+              id: userRole.role.id,
+              name: userRole.role.name,
+              permissions: userRole.role.rolePermissions.map(rp => ({
+                name: rp.permission.slug,
+                description: rp.permission.description
+              }))
+            });
+            return acc;
+          }, {} as Record<number, { tenant: { id: number; name: string }, roles: any[] }>);
+
+          // Determine active tenant (priority: owner role > admin role > first available)
+          let activeTenantId: number;
+          const ownerTenant = Object.entries(tenantRoles).find(([_, data]) => 
+            data.roles.some(role => role.name.toLowerCase() === 'owner')
+          );
+          const adminTenant = Object.entries(tenantRoles).find(([_, data]) => 
+            data.roles.some(role => role.name.toLowerCase() === 'admin')
+          );
+          
+          if (ownerTenant) {
+            activeTenantId = parseInt(ownerTenant[0]);
+          } else if (adminTenant) {
+            activeTenantId = parseInt(adminTenant[0]);
+          } else {
+            activeTenantId = parseInt(Object.keys(tenantRoles)[0]);
+          }
+
+          // Set session data for active tenant
+          const activeTenantData = tenantRoles[activeTenantId];
+          session.user.tenantId = activeTenantId;
+          session.user.currentTenant = activeTenantData.tenant;
+          
+          // Aggregate all permissions for the active tenant
+          const allPermissions = activeTenantData.roles.flatMap(role => role.permissions);
+          const uniquePermissions = allPermissions.filter((permission, index, self) => 
+            index === self.findIndex(p => p.name === permission.name)
+          );
+
+          // Set roles for the active tenant (formatted for withPermission compatibility)
+          session.user.roles = [{
+            id: activeTenantId, // Use tenant ID as role ID for compatibility
+            name: `Multi-Tenant-${activeTenantId}`,
+            tenantId: activeTenantId,
+            policies: uniquePermissions
+          }];
+
+          // Set available tenants for tenant switching
+          session.user.availableTenants = Object.entries(tenantRoles).map(([tenantId, data]) => ({
+            id: parseInt(tenantId),
+            name: data.tenant.name,
+            roles: data.roles.map(role => role.name),
+            isActive: parseInt(tenantId) === activeTenantId
+          }));
+          
+          console.log('Loaded multi-tenant permissions:', {
+            userId,
+            activeTenantId,
+            activeTenantName: activeTenantData.tenant.name,
+            totalTenants: Object.keys(tenantRoles).length,
+            activePermissionsCount: uniquePermissions.length,
+            availableTenants: session.user.availableTenants.map(t => `${t.name} (${t.roles.join(', ')})`)
+          });
+          
+        } catch (error) {
+          console.error('Error loading user permissions in session:', error);
+          session.user.roles = [];
+          session.user.tenantId = null;
+          session.user.availableTenants = [];
+          session.user.currentTenant = null;
+        }
+        
         session.user.orgUser = [];
       }
       
       console.log('Session callback result:', { 
         userId: session.user?.id, 
-        email: session.user?.email 
+        email: session.user?.email,
+        tenantId: session.user?.tenantId,
+        currentTenant: session.user?.currentTenant?.name,
+        rolesCount: session.user?.roles?.length || 0,
+        permissionsCount: session.user?.roles?.flatMap(r => r.policies).length || 0
       });
       
       return session;

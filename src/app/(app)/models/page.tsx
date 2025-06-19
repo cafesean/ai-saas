@@ -4,6 +4,7 @@ import React, { useState, Suspense, memo } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import { Brain, RefreshCw, Download, Plus } from "lucide-react";
+import { RouteGuard } from "@/components/auth/RouteGuard";
 import axios from "axios";
 
 import { SampleButton } from "@/components/ui/sample-button";
@@ -270,8 +271,9 @@ const ModelsPage = () => {
   };
 
   return (
-    <div className="flex flex-col grow max-w-[100vw] p-4 md:p-4">
-      <ErrorBoundary>
+    <RouteGuard permission="model:read" showAccessDenied={true}>
+      <div className="flex flex-col grow max-w-[100vw] p-4 md:p-4">
+        <ErrorBoundary>
         <Suspense fallback={<DefaultSkeleton count={5} className="m-6" />}>
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
             <div className="space-y-1">
@@ -397,7 +399,8 @@ const ModelsPage = () => {
           {(importing || deletingModel) && <FullScreenLoading />}
         </Suspense>
       </ErrorBoundary>
-    </div>
+      </div>
+    </RouteGuard>
   );
 };
 

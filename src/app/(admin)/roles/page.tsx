@@ -4,9 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { api } from "@/utils/trpc";
-import { WithPermission } from "@/components/auth/WithPermission";
+import { RouteGuard } from "@/components/auth/RouteGuard";
 import { toast } from "sonner";
-import { useAuthStore } from "@/framework/store/auth.store";
 import { RoleDataTable } from "./components/RoleDataTable";
 import { useRoleTableColumns } from "./hooks/useRoleTableColumns";
 import { CreateRoleDialog } from "./components/CreateRoleDialog";
@@ -22,8 +21,7 @@ export default function RolesPage() {
   const [managePermissionsDialogOpen, setManagePermissionsDialogOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<RoleWithStats | null>(null);
 
-  // Get auth state for debugging
-  const { user, permissions, authenticated, role } = useAuthStore();
+
 
   // Fetch roles with stats
   const { data: roles = [], isLoading, refetch } = api.role.getAllWithStats.useQuery();
@@ -117,38 +115,7 @@ export default function RolesPage() {
   });
 
   return (
-    <WithPermission 
-      permission="admin:role_management"
-      fallback={
-        <div className="container mx-auto py-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-            <p className="text-muted-foreground mb-4">
-              You don't have permission to access role management.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Required permission: <code>admin:role_management</code>
-            </p>
-            <details className="mt-4 text-left">
-              <summary className="cursor-pointer text-sm font-medium">Debug Info</summary>
-              <div className="mt-2 p-3 bg-muted rounded text-xs">
-                <p><strong>Authenticated:</strong> {authenticated ? 'Yes' : 'No'}</p>
-                <p><strong>User:</strong> {user ? user.name : 'None'}</p>
-                <p><strong>Role:</strong> {role ? role.name : 'None'}</p>
-                <p><strong>Permissions:</strong> {permissions?.length || 0} total</p>
-                <p><strong>Has admin:role_management:</strong> {permissions?.some(p => (typeof p === 'string' ? p : p.slug) === 'admin:role_management') ? 'Yes' : 'No'}</p>
-                <details className="mt-2">
-                  <summary>All Permissions</summary>
-                  <div className="mt-1 max-h-32 overflow-y-auto">
-                    {permissions?.map((p, i) => <div key={i} className="text-xs">{typeof p === 'string' ? p : p.slug}</div>) || 'No permissions'}
-                  </div>
-                </details>
-              </div>
-            </details>
-          </div>
-        </div>
-      }
-    >
+    <RouteGuard permission="roles:read" showAccessDenied={true}>
       <div className="container mx-auto py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -203,6 +170,6 @@ export default function RolesPage() {
           role={selectedRole}
         />
       </div>
-    </WithPermission>
+    </RouteGuard>
   );
 } 

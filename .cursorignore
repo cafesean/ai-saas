@@ -13,3 +13,4 @@ test-*.js
 !ai/scratchpad/*
 !/
 !.
+!.env.local

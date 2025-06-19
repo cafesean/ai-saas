@@ -30,6 +30,8 @@ import { SampleButton } from "@/components/ui/sample-button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { WithPermission } from "@/components/auth/WithPermission";
+import { TenantSwitcher } from "@/components/auth/TenantSwitcher";
+import { UserProfile } from "@/components/auth/UserProfile";
 
 interface NavItem {
   title: string;
@@ -176,19 +178,19 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
     {
       title: "Models",
       icon: Brain,
-      // permission: "model:read", // Temporarily removed for testing
+      anyPermissions: ["model:read", "model:create", "model:update", "model:delete"],
       children: [
         {
           title: "All Models",
           href: "/models",
           icon: Brain,
-          // permission: "model:read", // Temporarily removed for testing
+          permission: "model:read",
         },
         {
           title: "Model Registry",
           href: "/models/registry",
           icon: Database,
-          // permission: "model:create", // Temporarily removed for testing
+          permission: "model:create",
         },
       ],
     },
@@ -196,36 +198,36 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
       title: "Workflows",
       href: "/workflows",
       icon: GitBranch,
-      // permission: "workflow:read", // Temporarily removed for testing
+      permission: "workflow:read",
     },
     {
       title: "Decisioning",
       icon: FileText,
-      // permission: "decision_table:read", // Temporarily removed for testing
+      anyPermissions: ["rules:read", "decisioning:variable:read", "decisioning:lookup:read", "decisioning:ruleset:read"],
       children: [
         {
           title: "Decision Tables",
           href: "/decisioning",
           icon: FileText,
-          // permission: "decision_table:read", // Temporarily removed for testing
+          permission: "rules:read",
         },
         {
           title: "Variables",
           href: "/decisioning/variables",
           icon: Calculator,
-          // permission: "variable:read", // Temporarily removed for testing
+          permission: "decisioning:variable:read",
         },
         {
           title: "Lookup Tables",
           href: "/decisioning/lookup-tables",
           icon: Table,
-          // permission: "lookup_table:read", // Temporarily removed for testing
+          permission: "decisioning:lookup:read",
         },
         {
           title: "Rule Sets",
           href: "/decisioning/rule-sets",
           icon: GitBranch,
-          // permission: "rule_set:read", // Temporarily removed for testing
+          permission: "decisioning:ruleset:read",
         },
       ],
     },
@@ -233,25 +235,25 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
       title: "Knowledge Bases",
       href: "/knowledge-bases",
       icon: Database,
-      // permission: "knowledge_base:read", // Temporarily removed for testing
+      permission: "bases:read",
     },
     {
       title: "AI Docs",
       href: "/documents",
       icon: File,
-      // permission: "admin:full_access", // Temporarily removed for testing
+      adminOnly: true,
     },
     {
       title: "Content Repo",
       href: "/content-repo",
       icon: File,
-      // permission: "admin:full_access", // Temporarily removed for testing
+      adminOnly: true,
     },
     {
       title: "Widgets",
       href: "/widgets",
       icon: Layout,
-      // permission: "admin:full_access", // Temporarily removed for testing
+      adminOnly: true,
     },
     {
       title: "API Docs",
@@ -271,25 +273,25 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
           title: "Organizations",
           href: "/organizations",
           icon: Building,
-          // permission: "admin:full_access", // Temporarily removed for testing
+          permission: "orgs:read",
         },
         {
           title: "Role Management",
           href: "/roles",
           icon: Shield,
-          // anyPermissions: ["role:read", "admin:full_access"], // Temporarily removed for testing
+          permission: "roles:read",
         },
         {
           title: "Permissions",
           href: "/permissions", 
           icon: Key,
-          // anyPermissions: ["permission:read", "admin:full_access"], // Temporarily removed for testing
+          adminOnly: true,
         },
         {
           title: "User Management", 
           href: "/users",
           icon: Users,
-          // permission: "admin:full_access", // Temporarily removed for testing
+          permission: "users:read",
         },
       ],
     },
@@ -301,6 +303,11 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
       "w-64 flex flex-col border-r bg-background",
       setOpen ? "relative h-screen" : "fixed top-16 bottom-0 left-0 z-40 h-[calc(100vh-4rem)]"
     )}>
+      {/* Tenant Switcher at the top */}
+      <div className="px-3 py-4 border-b">
+        <TenantSwitcher />
+      </div>
+      
       <ScrollArea className="flex-1 px-2 py-4">
         <nav className="flex flex-col gap-1">
           {navItems.map((item, index) => (
@@ -328,6 +335,11 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
               />
             ))}
           </nav>
+        </div>
+        
+        {/* User Profile at the very bottom */}
+        <div className="px-2 py-3 border-t">
+          <UserProfile />
         </div>
       </div>
     </div>

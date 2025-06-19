@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useAuthStore, UserProfile, UserRole } from "@/framework/store/auth.store";
+import { useSession } from "next-auth/react";
 
 /**
  * Props for the WithPermission component
@@ -29,7 +29,7 @@ export interface WithPermissionProps {
   hideWhenUnauthorized?: boolean;
   
   /** Custom permission check function for complex logic */
-  customCheck?: (user: UserProfile, role: UserRole | null, permissions: string[]) => boolean;
+  customCheck?: (user: any, role: any, permissions: string[]) => boolean;
   
   /** Additional class names for styling */
   className?: string;
@@ -45,7 +45,7 @@ export interface WithPermissionProps {
  * WithPermission - A flexible UI gating component for RBAC
  * 
  * This component conditionally renders its children based on user permissions,
- * roles, or custom authorization logic.
+ * roles, or custom authorization logic using NextAuth session directly.
  * 
  * @example
  * // Basic permission check
@@ -103,57 +103,76 @@ export function WithPermission({
   showLoading = false,
   loadingComponent = <div className="animate-pulse">Loading...</div>,
 }: WithPermissionProps) {
-  // Get auth state from store
-  const { 
-    user, 
-    role: userRole, 
-    permissions: userPermissions, 
-    authenticated, 
-    loading,
-    hasPermission,
-    hasAnyPermission
-  } = useAuthStore();
+  const { data: session, status } = useSession();
 
   // Handle loading state
-  if (loading && showLoading) {
+  if (status === 'loading' && showLoading) {
     return <div className={className}>{loadingComponent}</div>;
   }
 
   // If not authenticated, always deny access
-  if (!authenticated || !user) {
+  if (status !== 'authenticated' || !session?.user) {
     if (hideWhenUnauthorized) return null;
     return fallback ? <div className={className}>{fallback}</div> : null;
   }
 
-  // Check permissions using the auth store methods (same as other modules)
+  // Extract permissions from session
+  const userPermissions = session.user.roles?.flatMap(role => 
+    role.policies?.map(policy => policy.name) || []
+  ) || [];
+
+  // Helper functions
+  const hasPermissionCheck = (perm: string) => {
+    return userPermissions.includes(perm) || userPermissions.includes('admin:full_access');
+  };
+
+  const hasAnyPermissionCheck = (perms: string[]) => {
+    return perms.some(perm => hasPermissionCheck(perm));
+  };
+
+  // Check permissions
   let hasAccess = true;
 
   // Custom check takes precedence
   if (customCheck) {
-    const permissionSlugs = userPermissions.map(p => p.slug);
-    hasAccess = customCheck(user, userRole, permissionSlugs);
+    const primaryRole = session.user.roles?.[0];
+    hasAccess = customCheck(session.user, primaryRole, userPermissions);
   }
   // Check single permission
   else if (permission) {
-    hasAccess = hasPermission(permission);
+    hasAccess = hasPermissionCheck(permission);
   }
   // Check multiple permissions (user must have ALL)
   else if (permissions.length > 0) {
-    hasAccess = permissions.every(perm => hasPermission(perm));
+    hasAccess = permissions.every(perm => hasPermissionCheck(perm));
   }
   // Check any permissions (user must have at least ONE)
   else if (anyPermissions.length > 0) {
-    hasAccess = hasAnyPermission(anyPermissions);
+    hasAccess = hasAnyPermissionCheck(anyPermissions);
   }
   // Check role(s)
   else if (role) {
-    if (!userRole) {
+    const primaryRole = session.user.roles?.[0];
+    if (!primaryRole) {
       hasAccess = false;
     } else if (Array.isArray(role)) {
-      hasAccess = role.includes(userRole.name);
+      hasAccess = role.includes(primaryRole.name);
     } else {
-      hasAccess = userRole.name === role;
+      hasAccess = primaryRole.name === role;
     }
+  }
+
+  // Debug logging in development
+  if (process.env.NODE_ENV === 'development' && permission) {
+    console.log('WithPermission Client Debug:', {
+      requiredPermission: permission,
+      userPermissionsCount: userPermissions.length,
+      hasRequiredPermission: userPermissions.includes(permission),
+      hasAdminFullAccess: userPermissions.includes('admin:full_access'),
+      hasAccess,
+      userEmail: session.user.email,
+      sessionStatus: status
+    });
   }
 
   // Render based on access
@@ -186,47 +205,54 @@ export function WithPermission({
  * }
  */
 export function useWithPermission(props: Omit<WithPermissionProps, 'children' | 'fallback' | 'hideWhenUnauthorized' | 'className' | 'showLoading' | 'loadingComponent'>) {
-  const { 
-    user, 
-    role: userRole, 
-    permissions: userPermissions, 
-    authenticated,
-    loading,
-    hasPermission,
-    hasAnyPermission
-  } = useAuthStore();
+  const { data: session, status } = useSession();
 
   // If loading or not authenticated, deny access
-  if (loading || !authenticated || !user) {
+  if (status === 'loading' || status !== 'authenticated' || !session?.user) {
     return false;
   }
 
   const { permission, permissions = [], anyPermissions = [], role, customCheck } = props;
 
+  // Extract permissions from session
+  const userPermissions = session.user.roles?.flatMap(role => 
+    role.policies?.map(policy => policy.name) || []
+  ) || [];
+
+  // Helper functions
+  const hasPermissionCheck = (perm: string) => {
+    return userPermissions.includes(perm) || userPermissions.includes('admin:full_access');
+  };
+
+  const hasAnyPermissionCheck = (perms: string[]) => {
+    return perms.some(perm => hasPermissionCheck(perm));
+  };
+
   // Custom check takes precedence
   if (customCheck) {
-    const permissionSlugs = userPermissions.map(p => p.slug);
-    return customCheck(user, userRole, permissionSlugs);
+    const primaryRole = session.user.roles?.[0];
+    return customCheck(session.user, primaryRole, userPermissions);
   }
   // Check single permission
   if (permission) {
-    return hasPermission(permission);
+    return hasPermissionCheck(permission);
   }
   // Check multiple permissions (user must have ALL)
   if (permissions.length > 0) {
-    return permissions.every(perm => hasPermission(perm));
+    return permissions.every(perm => hasPermissionCheck(perm));
   }
   // Check any permissions (user must have at least ONE)
   if (anyPermissions.length > 0) {
-    return hasAnyPermission(anyPermissions);
+    return hasAnyPermissionCheck(anyPermissions);
   }
   // Check role(s)
   if (role) {
-    if (!userRole) return false;
+    const primaryRole = session.user.roles?.[0];
+    if (!primaryRole) return false;
     if (Array.isArray(role)) {
-      return role.includes(userRole.name);
+      return role.includes(primaryRole.name);
     }
-    return userRole.name === role;
+    return primaryRole.name === role;
   }
 
   // If no specific criteria provided, default to authenticated
@@ -255,14 +281,8 @@ export function withPermission<P extends object>(
   };
 }
 
-
-
 /**
- * Utility components for common use cases
- */
-
-/**
- * AdminOnly - Quick component for admin-only content
+ * Convenience components for common access patterns
  */
 export function AdminOnly({ 
   children, 
@@ -273,18 +293,14 @@ export function AdminOnly({
 }) {
   return (
     <WithPermission 
-      role="Admin" 
+      anyPermissions={["admin:full_access", "admin:role_management"]}
       fallback={fallback}
-      hideWhenUnauthorized={!fallback}
     >
       {children}
     </WithPermission>
   );
 }
 
-/**
- * SuperAdminOnly - Quick component for super admin content
- */
 export function SuperAdminOnly({ 
   children, 
   fallback = null 
@@ -294,18 +310,14 @@ export function SuperAdminOnly({
 }) {
   return (
     <WithPermission 
-      role="Super Admin" 
+      role={["Super Admin", "Owner"]}
       fallback={fallback}
-      hideWhenUnauthorized={!fallback}
     >
       {children}
     </WithPermission>
   );
 }
 
-/**
- * RequirePermissions - Quick component for permission-based content
- */
 export function RequirePermissions({ 
   permissions, 
   children, 
@@ -318,13 +330,9 @@ export function RequirePermissions({
   const permissionProps = Array.isArray(permissions) 
     ? { permissions } 
     : { permission: permissions };
-
+    
   return (
-    <WithPermission 
-      {...permissionProps}
-      fallback={fallback}
-      hideWhenUnauthorized={!fallback}
-    >
+    <WithPermission {...permissionProps} fallback={fallback}>
       {children}
     </WithPermission>
   );

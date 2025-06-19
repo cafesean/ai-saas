@@ -12,6 +12,7 @@ import { type UserWithStats } from "@/types/user";
 import { api } from "@/utils/trpc";
 import { toast } from "sonner";
 import { TRPCError } from "@trpc/server";
+import { RouteGuard } from "@/components/auth/RouteGuard";
 
 export default function UsersPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -174,17 +175,18 @@ export default function UsersPage() {
   });
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">User Management</h1>
-          <p className="text-muted-foreground">Manage user accounts, roles, and permissions</p>
+    <RouteGuard permission="users:read" showAccessDenied={true}>
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">User Management</h1>
+            <p className="text-muted-foreground">Manage user accounts, roles, and permissions</p>
+          </div>
+          <Button onClick={handleCreateUser}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create User
+          </Button>
         </div>
-        <Button onClick={handleCreateUser}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create User
-        </Button>
-      </div>
 
       {/* User Table */}
       <UserDataTable 
@@ -230,6 +232,7 @@ export default function UsersPage() {
         users={bulkUsers}
         operation={bulkOperation}
       />
-    </div>
+      </div>
+    </RouteGuard>
   );
 } 

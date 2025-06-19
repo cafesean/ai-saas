@@ -5,12 +5,12 @@
  *
  * We also create a few inference helpers for input and output types
  */
-import { httpBatchLink, loggerLink } from "@trpc/client";
+import { type AppRouter } from "@/server/api/root";
 import { createTRPCReact } from "@trpc/react-query";
+import { loggerLink, unstable_httpBatchStreamLink } from "@trpc/client";
 import { type inferRouterInputs, type inferRouterOutputs } from "@trpc/server";
 import superjson from "superjson";
-
-import { type AppRouter } from "../server/api/root";
+import { getSession } from "next-auth/react";
 
 export const getBaseUrl = () => {
   if (typeof window !== "undefined") return ""; // browser should use relative url
@@ -18,7 +18,7 @@ export const getBaseUrl = () => {
   return `http://localhost:${process.env.PORT ?? 3000}`; // dev SSR should use localhost
 };
 
-/** A set of type-safe react-query hooks for your tRPC `API`. */
+/** A set of type-safe react-query hooks for your tRPC API. */
 export const api = createTRPCReact<AppRouter>({
   overrides: {
     useMutation: {
