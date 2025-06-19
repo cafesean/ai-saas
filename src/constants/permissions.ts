@@ -516,6 +516,24 @@ export const ADMIN_PERMISSIONS: Permission[] = [
     description: "Manage system permissions and access control",
     category: "admin",
   },
+  {
+    slug: "admin:debug_context",
+    name: "Debug Context Access",
+    description: "Access system debug information and context data",
+    category: "admin",
+  },
+  {
+    slug: "admin:seed_rbac",
+    name: "Seed RBAC System",
+    description: "Initialize and modify the RBAC system structure",
+    category: "admin",
+  },
+  {
+    slug: "admin:seed_tenants",
+    name: "Seed Tenant System",
+    description: "Initialize and modify tenant organizational structure",
+    category: "admin",
+  },
 ];
 
 // Widget and Endpoint Permissions

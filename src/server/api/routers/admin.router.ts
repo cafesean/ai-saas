@@ -5,7 +5,7 @@ import { roles, permissions, rolePermissions, userRoles, tenants } from "@/db/sc
 import { TRPCError } from "@trpc/server";
 
 export const adminRouter = createTRPCRouter({
-	debugContext: publicProcedure.query(async ({ ctx }) => {
+	debugContext: withPermission('admin:debug_context').query(async ({ ctx }) => {
 		return {
 			hasSession: !!ctx.session,
 			hasUser: !!ctx.session?.user,
@@ -16,7 +16,7 @@ export const adminRouter = createTRPCRouter({
 		};
 	}),
 
-	seedRBAC: protectedProcedure.mutation(async ({ ctx }) => {
+	seedRBAC: withPermission('admin:seed_rbac').mutation(async ({ ctx }) => {
 		// Rate limiting for admin operations
 		try {
 			const { checkTRPCRateLimit } = await import("@/lib/rate-limit");
@@ -263,7 +263,7 @@ export const adminRouter = createTRPCRouter({
 		}
 	}),
 
-	seedTenants: protectedProcedure.mutation(async ({ ctx }) => {
+	seedTenants: withPermission('admin:seed_tenants').mutation(async ({ ctx }) => {
 		try {
 			// Check if any tenants exist
 			const existingTenants = await db.select().from(tenants);

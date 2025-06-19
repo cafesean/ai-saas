@@ -19,8 +19,8 @@
 ### **Implementation Priority:**
 1. ✅ **SAAS-135** - User Management Router Security (CRITICAL) - **COMPLETED**
 2. ✅ **SAAS-136** - Role Management Router Security (CRITICAL) - **COMPLETED**
-3. 🔴 **SAAS-137** - Admin Router Security (HIGH) - **NEXT**
-4. 🟡 **SAAS-138** - Permission Naming Standardization (HIGH)
+3. ✅ **SAAS-137** - Admin Router Security (HIGH) - **COMPLETED** 🔥 **CRITICAL FIX**
+4. 🟡 **SAAS-138** - Permission Naming Standardization (HIGH) - **NEXT**
 5. 🟡 **SAAS-139** - Route-Level Access Controls (HIGH)
 
 ---
@@ -85,19 +85,51 @@
 
 ---
 
-## 🚀 **Current Task: SAAS-137 - Admin Router Security**
+## ✅ **COMPLETED: SAAS-137 - Admin Router Security** 🔥 **CRITICAL SECURITY FIX**
+
+### **What Was Fixed:**
+1. **Added Missing Admin Permissions** (`src/constants/permissions.ts`):
+   - Added `admin:debug_context` - Access system debug information
+   - Added `admin:seed_rbac` - Initialize/modify RBAC system structure
+   - Added `admin:seed_tenants` - Initialize/modify tenant structure
+
+2. **🔥 CRITICAL FIX - Secured Admin Router** (`src/server/api/routers/admin.router.ts`):
+   - **`debugContext`** → `withPermission('admin:debug_context')` **[CRITICAL: Was PUBLIC!]**
+   - `seedRBAC` → `withPermission('admin:seed_rbac')`
+   - `seedTenants` → `withPermission('admin:seed_tenants')`
+
+3. **Build Verification**: ✅ Build successful with no errors
+
+### **🚨 CRITICAL Security Impact:**
+🔥 **MOST CRITICAL FIX**: `debugContext` was **COMPLETELY PUBLIC** exposing:
+- Session information to anyone
+- User IDs and tenant IDs
+- Node environment details
+- Mock user credentials
+- **ZERO authentication required!**
+
+🔒 **VULNERABILITIES FIXED**:
+- Debug context now requires admin permissions
+- RBAC seeding now requires proper authorization
+- Tenant seeding now properly protected
+- Complete system information exposure eliminated
+
+---
+
+## 🚀 **Current Task: SAAS-138 - Permission Naming Standardization**
 
 ### **Analysis Plan:**
-- [ ] Examine `src/server/api/routers/admin.router.ts`
-- [ ] Identify all procedures lacking permission checks
-- [ ] Plan admin permission structure
-- [ ] Implement permission checks
+- [ ] Review all remaining routers for naming inconsistencies
+- [ ] Update permission constants to follow new convention
+- [ ] Ensure all modules use consistent `module:action` format
+- [ ] Update role configurations
 
-### **Expected Admin Permissions:**
-- `admin:system_settings` - Access system-wide settings
-- `admin:audit_logs` - View audit logs and security events
-- `admin:full_access` - Complete administrative privileges
-- `admin:debug_context` - Access debug information (currently public!)
+### **Target Naming Convention:**
+- `workflows:read/create/update/delete`
+- `models:read/create/update/delete`
+- `rules:read/create/update/delete` (from decision_table)
+- `bases:read/create/update/delete` (from knowledge_bases)
+- `orgs:read/create/update/delete` (from tenant)
 
 ---
 
@@ -106,6 +138,8 @@
 - 47 procedures across multiple routers lack permission checks
 - User router had 9 critical procedures completely unprotected ✅ FIXED
 - Role router had 9 critical procedures completely unprotected ✅ FIXED
+- **Admin router had PUBLIC debug context exposing all system info** ✅ FIXED 🔥
 - Permission constants exist but need standardization
 - Systematic approach works well for fixing security issues
-- Build validation is critical after each change 
+- Build validation is critical after each change
+- **PUBLIC procedures can be the most dangerous vulnerabilities** 
