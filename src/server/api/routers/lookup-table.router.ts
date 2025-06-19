@@ -2,7 +2,7 @@ import { z } from "zod";
 import { eq, and, desc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure, getUserTenantId } from "@/server/api/trpc";
 import { db } from "@/db";
 import { lookup_tables, lookup_table_rows, LookupTableStatus } from "@/db/schema/lookup_table";
 import { variables } from "@/db/schema/variable";
@@ -62,8 +62,8 @@ export const lookupTableRouter = createTRPCRouter({
   // Get all lookup tables
   getAll: protectedProcedure.query(async ({ ctx }) => {
     try {
-      // TODO: Replace hardcoded tenantId with actual tenant from context
-      const tenantId = 1;
+      // 🔒 SECURITY FIX: Get tenant from authenticated user context
+      const tenantId = await getUserTenantId(ctx.session.user.id);
 
       const lookupTables = await db
         .select({

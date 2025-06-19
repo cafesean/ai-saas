@@ -15,6 +15,8 @@ import { ZodError } from "zod";
 
 import { authOptions } from "@/server/auth-simple";
 import { db } from "@/db";
+import { userRoles } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 
 /**
  * 1. CONTEXT
@@ -159,6 +161,75 @@ export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
       session: ctx.session,
     },
   });
+});
+
+/**
+ * Helper function to get user's tenant ID securely
+ * 
+ * Returns the user's tenant ID from their active roles.
+ * For security, this ensures users can only access their assigned tenants.
+ */
+export const getUserTenantId = async (userId: number): Promise<number> => {
+  const userRole = await db.query.userRoles.findFirst({
+    where: and(
+      eq(userRoles.userId, userId),
+      eq(userRoles.isActive, true)
+    ),
+    columns: {
+      tenantId: true,
+    },
+  });
+
+  if (!userRole) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "User is not assigned to any tenant",
+    });
+  }
+
+  return userRole.tenantId;
+};
+
+/**
+ * Helper function to validate user has access to specific tenant
+ */
+export const validateUserTenantAccess = async (userId: number, tenantId: number): Promise<void> => {
+  const userRole = await db.query.userRoles.findFirst({
+    where: and(
+      eq(userRoles.userId, userId),
+      eq(userRoles.tenantId, tenantId),
+      eq(userRoles.isActive, true)
+    ),
+  });
+
+  if (!userRole) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "User does not have access to this tenant",
+    });
+  }
+};
+
+/**
+ * Rate limiting middleware for tRPC procedures
+ */
+export const withRateLimit = (procedure?: string) => {
+  return protectedProcedure.use(async ({ ctx, next, path }) => {
+    const { checkTRPCRateLimit } = await import("@/lib/rate-limit");
+    await checkTRPCRateLimit(ctx.session.user.id, procedure || path);
+    return next();
+  });
+};
+
+/**
+ * Protected mutation with rate limiting
+ * 
+ * Standard protected mutation procedure with built-in rate limiting
+ */
+export const protectedMutationWithRateLimit = protectedProcedure.use(async ({ ctx, next, path }) => {
+  const { checkTRPCRateLimit } = await import("@/lib/rate-limit");
+  await checkTRPCRateLimit(ctx.session.user.id, path);
+  return next();
 });
 
 /**

@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { models, model_metrics } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 import { ModelStatus } from "@/constants/general";
-import { createTRPCRouter, publicProcedure, protectedProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure, getUserTenantId } from "../trpc";
 import { NOT_FOUND, INTERNAL_SERVER_ERROR } from "@/constants/errorCode";
 import {
   MODEL_NOT_FOUND_ERROR,
@@ -124,7 +124,7 @@ export const modelRouter = createTRPCRouter({
               status: input.status || ModelStatus.INACTIVE,
               type: input.type,
               framework: input.framework,
-              tenantId: 1, // Default tenant ID for now
+              tenantId: await getUserTenantId(ctx.session.user.id), // 🔒 SECURITY FIX
             })
             .returning();
           if (model && model.id && input.metrics) {
