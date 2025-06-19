@@ -70,7 +70,7 @@ export default function EditLookupTablePage({ params }: { params: Promise<{ uuid
     isLoading: isFetching,
     error,
     refetch,
-  } = api.newLookupTable.getByUuid.useQuery({ uuid })
+  } = api.lookupTable.getByUuid.useQuery({ uuid })
 
   // Track original data for change detection
   useEffect(() => {
@@ -82,7 +82,7 @@ export default function EditLookupTablePage({ params }: { params: Promise<{ uuid
   }, [lookupTable])
 
   // Update mutation - keeping existing save flow
-  const updateMutation = api.newLookupTable.update.useMutation({
+  const updateMutation = api.lookupTable.update.useMutation({
     onSuccess: () => {
       toast.success("Lookup table saved successfully")
       refetch() // Refetch the data to get latest changes
@@ -97,7 +97,7 @@ export default function EditLookupTablePage({ params }: { params: Promise<{ uuid
   })
 
   // Publish mutation
-  const publishMutation = api.newLookupTable.publish.useMutation({
+  const publishMutation = api.lookupTable.publish.useMutation({
     onSuccess: () => {
       refetch()
       toast.success("Table published successfully")
@@ -109,7 +109,7 @@ export default function EditLookupTablePage({ params }: { params: Promise<{ uuid
   })
 
   // Deprecate mutation  
-  const deprecateMutation = api.newLookupTable.deprecate.useMutation({
+  const deprecateMutation = api.lookupTable.deprecate.useMutation({
     onSuccess: () => {
       refetch()
       toast.success("Table deprecated successfully")
@@ -121,7 +121,7 @@ export default function EditLookupTablePage({ params }: { params: Promise<{ uuid
   })
 
   // Update name mutation - we'll need to use the full update with current data
-  const updateNameMutation = api.newLookupTable.update.useMutation({
+  const updateNameMutation = api.lookupTable.update.useMutation({
     onSuccess: () => {
       refetch()
       setIsEditingName(false)

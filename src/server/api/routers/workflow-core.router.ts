@@ -130,35 +130,15 @@ export const workflowCoreRouter = createTRPCRouter({
           .where(eq(workflows.uuid, input.uuid))
           .returning();
         
+        // Note: N8N settings sync is handled by the workflowN8nRouter.syncSettings procedure
+        // This keeps the core router focused on database operations only
+        
         return workflowData[0];
       } catch (error) {
         console.error(error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to update workflow settings",
-        });
-      }
-    }),
-
-  // Delete workflow
-  delete: publicProcedure
-    .input(z.object({ uuid: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      try {
-        const workflowData = await db
-          .delete(workflows)
-          .where(eq(workflows.uuid, input.uuid))
-          .returning();
-        
-        return { 
-          success: true, 
-          deletedWorkflow: workflowData[0] 
-        };
-      } catch (error) {
-        console.error(error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to delete workflow",
         });
       }
     }),
