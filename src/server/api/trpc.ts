@@ -28,7 +28,7 @@ import { db } from "@/db/config";
  *
  * @see https://trpc.io/docs/server/context
  */
-export const createTRPCContext = async (opts: { headers: Headers }) => {
+export const createTRPCContext = async (opts?: { headers: Headers }) => {
   const session = await getServerSession(authOptions);
 
   return {
@@ -219,34 +219,6 @@ export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   });
 });
 
-/**
- * Permission-based procedure factory
- * 
- * Creates a procedure that checks for specific permissions
- */
-export const withPermission = (requiredPermission: string) => {
-  return protectedProcedure.use(({ ctx, next }) => {
-    const userPermissions = ctx.session.user.roles?.flatMap(role => 
-      role.policies?.map(policy => policy.name) || []
-    ) || [];
-    
-    const hasPermission = userPermissions.includes(requiredPermission) ||
-                         userPermissions.includes('admin:full_access');
-
-    if (!hasPermission) {
-      throw new TRPCError({ 
-        code: "FORBIDDEN",
-        message: `Permission required: ${requiredPermission}` 
-      });
-    }
-    
-    return next({
-      ctx: {
-        session: ctx.session,
-      },
-    });
-  });
-};
 /**
  * Permission-based procedure factory
  * 
