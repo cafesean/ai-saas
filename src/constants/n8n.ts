@@ -5,6 +5,7 @@ export const n8nWebhookNode = {
     httpMethod: "",
     path: "",
     responseMode: "lastNode",
+    responseData: "allEntries",
     options: {},
   },
   position: [],
