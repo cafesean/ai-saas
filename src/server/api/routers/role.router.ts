@@ -4,7 +4,6 @@ import { db } from '@/db/config';
 import { roles, permissions, rolePermissions, userRoles } from '@/db/schema';
 import { eq, asc, inArray } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
-import type { DbRole } from '@/db/types';
 import { v4 as uuidv4 } from 'uuid';
 
 const roleSchema = z.object({

@@ -35,6 +35,7 @@ export default function TRPCSuspenseProvider({
       links: [
         httpBatchLink({
           url: `${process.env.NEXT_PUBLIC_APP_URL || ""}/api/trpc`,
+          transformer: superjson,
         }),
       ],
     }),
