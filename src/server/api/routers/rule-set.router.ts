@@ -3,7 +3,7 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { desc, eq, and, asc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
-import { db } from "@/db/config";
+import { db } from "@/db";
 import { rule_sets, rule_set_steps } from "@/db/schema";
 import { RuleSetStatus } from "@/db/schema/rule_set";
 

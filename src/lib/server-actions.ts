@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/server/auth-simple';
 import { checkUserPermission } from '@/lib/trpc-permissions';
 import { logPermissionDenied, logUnauthorizedAccess } from '@/lib/audit';
-import { db } from '@/db/config';
+import { db } from '@/db';
 import { eq } from 'drizzle-orm';
 import { userTenants } from '@/db/schema';
 

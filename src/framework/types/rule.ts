@@ -1,8 +1,8 @@
 import type { InferSelectModel } from 'drizzle-orm';
-import type schema from '@/db/schema';
+import type { rules } from '@/db/schema';
 
 // DB Types
-export type DbRule = InferSelectModel<typeof schema.rules>;
+export type DbRule = InferSelectModel<typeof rules>;
 
 export interface RuleView {
   uuid: string;

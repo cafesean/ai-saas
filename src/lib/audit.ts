@@ -1,4 +1,4 @@
-import { db } from '@/db/config';
+import { db } from '@/db';
 import { auditLogs } from '@/db/schema/audit';
 
 export type AuditAction = 

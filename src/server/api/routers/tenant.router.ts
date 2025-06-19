@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
-import { db } from '@/db/config';
+import { db } from '@/db';
 import { tenants, users, userTenants, userRoles, roles } from '@/db/schema';
 import { eq, asc, desc, and, or, like, count, sql, not } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure, protectedProcedure, withPermission } from "../trpc";
-import { db } from "@/db/config";
+import { db } from "@/db";
 import { roles, permissions, rolePermissions, userRoles, tenants } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 

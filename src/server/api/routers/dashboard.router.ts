@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { eq, sql, gte, lt, and, desc } from "drizzle-orm";
 
-import { db } from "@/db/config";
+import { db } from "@/db";
 import { models, inferences, workflows } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 import { ModelStatus } from "@/constants/general";

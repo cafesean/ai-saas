@@ -2,8 +2,8 @@ import { z } from "zod";
 import { eq, asc, desc, and } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
-import { db } from "@/db/config";
-import schema, { models, model_metrics } from "@/db/schema";
+import { db } from "@/db";
+import { models, model_metrics } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 import { ModelStatus } from "@/constants/general";
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "../trpc";
@@ -61,7 +61,7 @@ export const modelRouter = createTRPCRouter({
         orderBy: desc(models.updatedAt),
         with: {
           metrics: {
-            orderBy: desc(schema.model_metrics.createdAt),
+            orderBy: desc(model_metrics.createdAt),
           },
         },
       });
@@ -91,7 +91,7 @@ export const modelRouter = createTRPCRouter({
         where: eq(models.uuid, input),
         with: {
           metrics: {
-            orderBy: desc(schema.model_metrics.createdAt),
+            orderBy: desc(model_metrics.createdAt),
           },
         },
       });

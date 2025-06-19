@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { db } from '@/db/config';
+import { db } from '@/db';
 import { nodeTypes as nodeTypesTable } from '@/db/schema/n8n';
 import { desc } from 'drizzle-orm';
 import { withApiAuth, createApiError, createApiSuccess } from '@/lib/api-auth';

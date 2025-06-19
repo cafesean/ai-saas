@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { db } from '@/db/config';
+import { db } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { userRoles, rolePermissions, permissions } from '@/db/schema';
 import { logTrpcAccessDenied } from '@/lib/audit';

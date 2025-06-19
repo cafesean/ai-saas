@@ -6,9 +6,14 @@ import {
   mockEmbeddingModels,
 } from "./knowledge-bases/mockData";
 import type { EmbeddingModel } from "@/types/knowledge-base";
-import { db } from "@/db/config";
+import { db } from "@/db";
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "../trpc";
-import schema, { knowledge_bases } from "@/db/schema";
+import { 
+  knowledge_bases,
+  knowledge_base_documents,
+  conversations,
+  conversation_messages
+} from "@/db/schema";
 import { KnowledgeBaseEmbeddingModels } from "@/constants/knowledgeBase";
 
 /**
@@ -58,7 +63,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
     .query(async ({ input }: { input: { status: string } }) => {
       try {
         const knowledgeBasesData = await db.query.knowledge_bases.findMany({
-          where: eq(schema.knowledge_bases.status, input.status),
+          where: eq(knowledge_bases.status, input.status),
         });
         return knowledgeBasesData;
       } catch (error) {
@@ -80,7 +85,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
       try {
         const originKnowledgeBase: any =
           await db.query.knowledge_bases.findFirst({
-            where: eq(schema.knowledge_bases.uuid, input.uuid),
+            where: eq(knowledge_bases.uuid, input.uuid),
             with: {
               documents: true,
               conversations: {
@@ -89,14 +94,14 @@ export const knowledgeBasesRouter = createTRPCRouter({
                   name: true,
                   updatedAt: true,
                 },
-                orderBy: desc(schema.conversations.updatedAt),
+                orderBy: desc(conversations.updatedAt),
                 with: {
                   messages: {
                     columns: {
                       uuid: true,
                       updatedAt: true,
                     },
-                    orderBy: desc(schema.conversation_messages.createdAt),
+                    orderBy: desc(conversation_messages.createdAt),
                   },
                 },
               },
@@ -147,7 +152,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
       }) => {
         // In a real implementation, this would insert into a database
         const newKnowledgeBase = await db
-          .insert(schema.knowledge_bases)
+          .insert(knowledge_bases)
           .values(input)
           .returning();
 
@@ -182,9 +187,9 @@ export const knowledgeBasesRouter = createTRPCRouter({
         }
         const kb = await db.transaction(async (tx) => {
           const [kb] = await tx
-            .update(schema.knowledge_bases)
+            .update(knowledge_bases)
             .set(updateInfo)
-            .where(eq(schema.knowledge_bases.uuid, input.uuid))
+            .where(eq(knowledge_bases.uuid, input.uuid))
             .returning();
         });
         return kb;
@@ -203,9 +208,9 @@ export const knowledgeBasesRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       try {
         const [kb] = await db
-          .update(schema.knowledge_bases)
+          .update(knowledge_bases)
           .set({ status: input.status })
-          .where(eq(schema.knowledge_bases.uuid, input.uuid))
+          .where(eq(knowledge_bases.uuid, input.uuid))
           .returning();
 
         return kb;
@@ -224,8 +229,8 @@ export const knowledgeBasesRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       try {
         const [kb] = await db
-          .delete(schema.knowledge_bases)
-          .where(eq(schema.knowledge_bases.uuid, input.uuid))
+          .delete(knowledge_bases)
+          .where(eq(knowledge_bases.uuid, input.uuid))
           .returning();
         return kb;
       } catch (error) {
@@ -263,7 +268,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
           chunkOverlap: input.chunkOverlap,
         }));
         const kbDocuments = await db
-          .insert(schema.knowledge_base_documents)
+          .insert(knowledge_base_documents)
           .values(documentsToInsert)
           .returning();
         return {
@@ -288,11 +293,11 @@ export const knowledgeBasesRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       try {
         const deletedDocuments = await db
-          .delete(schema.knowledge_base_documents)
+          .delete(knowledge_base_documents)
           .where(
             and(
-              eq(schema.knowledge_base_documents.kb_id, input.kbId),
-              inArray(schema.knowledge_base_documents.uuid, input.documents),
+              eq(knowledge_base_documents.kb_id, input.kbId),
+              inArray(knowledge_base_documents.uuid, input.documents),
             ),
           )
           .returning();
@@ -317,7 +322,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
     .query(async ({ input }) => {
       try {
         const documents = await db.query.knowledge_base_documents.findMany({
-          where: eq(schema.knowledge_base_documents.kb_id, input.kbId),
+          where: eq(knowledge_base_documents.kb_id, input.kbId),
         });
         return {
           success: true,
@@ -342,7 +347,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       try {
         const [newConversation] = await db
-          .insert(schema.conversations)
+          .insert(conversations)
           .values({
             name: input.name,
             description: input.description,
@@ -367,7 +372,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       try {
         const newConversationMessage = await db
-          .insert(schema.conversation_messages)
+          .insert(conversation_messages)
           .values({
             conversationId: input.conversationId,
             role: input.role,
@@ -390,10 +395,10 @@ export const knowledgeBasesRouter = createTRPCRouter({
     .query(async ({ input }) => {
       try {
         const conversation = await db.query.conversations.findFirst({
-          where: eq(schema.conversations.uuid, input.uuid),
+          where: eq(conversations.uuid, input.uuid),
           with: {
             messages: {
-              orderBy: asc(schema.conversation_messages.createdAt),
+              orderBy: asc(conversation_messages.createdAt),
             },
           },
         });
@@ -415,12 +420,12 @@ export const knowledgeBasesRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       try {
         const conversation = await db
-          .update(schema.conversations)
+          .update(conversations)
           .set({
             name: input.name,
             description: input.description,
           })
-          .where(eq(schema.conversations.uuid, input.uuid))
+          .where(eq(conversations.uuid, input.uuid))
           .returning();
         return conversation;
       } catch (error) {
@@ -439,12 +444,12 @@ export const knowledgeBasesRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       try {
         const updatedDocuments = await db
-          .update(schema.knowledge_base_documents)
+          .update(knowledge_base_documents)
           .set({
             status: input.status,
             updatedAt: new Date(),
           })
-          .where(inArray(schema.knowledge_base_documents.uuid, input.documentIds))
+          .where(inArray(knowledge_base_documents.uuid, input.documentIds))
           .returning();
         return {
           success: true,
