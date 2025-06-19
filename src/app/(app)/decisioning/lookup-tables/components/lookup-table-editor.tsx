@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { Plus, Save, Settings, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { SampleInput } from "@/components/ui/sample-input";
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -113,6 +113,7 @@ export function LookupTableEditor({ initialData, currentData, onSave, onTest, on
 
   // Use currentData if provided, otherwise use internal state
   const data = currentData || internalData
+  console.log(data);
   const setData = currentData ? (updater: any) => {
     const newData = typeof updater === 'function' ? updater(data) : updater
     onChange?.(newData)
@@ -415,7 +416,7 @@ export function LookupTableEditor({ initialData, currentData, onSave, onTest, on
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor={`label-${bin.id}`}>Label</Label>
-              <Input
+              <SampleInput
                 id={`label-${bin.id}`}
                 value={bin.label}
                 onChange={(e) => updateBin(dimension, bin.id, { label: e.target.value })}
@@ -444,7 +445,7 @@ export function LookupTableEditor({ initialData, currentData, onSave, onTest, on
             {bin.binType === "exact" ? (
               <div className="space-y-2">
                 <Label htmlFor={`value-${bin.id}`}>Value</Label>
-                <Input
+                <SampleInput
                   id={`value-${bin.id}`}
                   type={variable.dataType === "number" ? "number" : "text"}
                   value={bin.exactValue || ""}
@@ -457,7 +458,7 @@ export function LookupTableEditor({ initialData, currentData, onSave, onTest, on
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-2">
                     <Label htmlFor={`min-${bin.id}`}>Min Value</Label>
-                    <Input
+                    <SampleInput
                       id={`min-${bin.id}`}
                       type="number"
                       value={bin.rangeMin ?? ""}
@@ -471,7 +472,7 @@ export function LookupTableEditor({ initialData, currentData, onSave, onTest, on
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`max-${bin.id}`}>Max Value</Label>
-                    <Input
+                    <SampleInput
                       id={`max-${bin.id}`}
                       type="number"
                       value={bin.rangeMax ?? ""}
@@ -560,7 +561,7 @@ export function LookupTableEditor({ initialData, currentData, onSave, onTest, on
           <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
               {editingBinId === bin.id ? (
-                <Input
+                <SampleInput
                   value={bin.label}
                   onChange={(e) => updateBin(1, bin.id, { label: e.target.value })}
                   onBlur={() => setEditingBinId(null)}
@@ -642,7 +643,7 @@ export function LookupTableEditor({ initialData, currentData, onSave, onTest, on
       >
         <div className="space-y-1">
           {editingBinId === bin.id ? (
-            <Input
+            <SampleInput
               value={bin.label}
               onChange={(e) => updateBin(2, bin.id, { label: e.target.value })}
               onBlur={() => setEditingBinId(null)}
@@ -815,7 +816,7 @@ export function LookupTableEditor({ initialData, currentData, onSave, onTest, on
                             const cellValidation = getCellValidation(row1Bin.id, row2Bin.id)
                             return (
                               <td key={row2Bin.id} className="border border-border p-1">
-                                <Input
+                                <SampleInput
                                   value={getCellValue(row1Bin.id, row2Bin.id)}
                                   onChange={e => updateCell(row1Bin.id, row2Bin.id, e.target.value)}
                                   placeholder="Value"
@@ -830,7 +831,7 @@ export function LookupTableEditor({ initialData, currentData, onSave, onTest, on
                           })
                         ) : (
                           <td className="border border-border p-1">
-                            <Input
+                            <SampleInput
                               value={getCellValue(row1Bin.id, null)}
                               onChange={e => updateCell(row1Bin.id, null, e.target.value)}
                               placeholder="Value"
