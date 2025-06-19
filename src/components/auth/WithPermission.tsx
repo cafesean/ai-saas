@@ -1,9 +1,7 @@
 "use client";
 
 import React from "react";
-import { usePermission, usePermissions } from "@/framework/hooks/useAuthSession";
 import { useAuthStore, UserProfile, UserRole } from "@/framework/store/auth.store";
-import { AuthError } from "@/types/auth";
 
 /**
  * Props for the WithPermission component

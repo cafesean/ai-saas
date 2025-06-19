@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/server/auth-simple';
-import { db } from '@/db/config';
+import { db } from '@/db';
 import { eq, and, count } from 'drizzle-orm';
-import schema, { userTenants, userRoles, rolePermissions, permissions } from '@/db/schema';
+import { users, userTenants, userRoles, rolePermissions, permissions } from '@/db/schema';
 
 /**
  * API Authentication and Authorization Middleware for Next.js App Router
@@ -121,7 +121,7 @@ async function getCurrentUser(): Promise<AuthenticatedUser | null> {
     try {
       // Get mock user from database
       const mockUser = await db.query.users.findFirst({
-        where: eq(schema.users.id, parseInt(mockUserId)),
+        where: eq(users.id, parseInt(mockUserId)),
       });
 
       if (mockUser) {

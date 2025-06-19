@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
-import { db } from "@/db/config";
+import { db } from "@/db";
 import { templates, InsertTemplate } from "@/db/schema/n8n";
 import { parseWorkflow } from "@/lib/parser/workflow-parser";
 import { desc, eq } from "drizzle-orm";

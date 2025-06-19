@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 import { eq, and } from "drizzle-orm";
 
-import { db } from "@/db/config";
-import schema from "@/db/schema";
+import { db } from "@/db";
+import { knowledge_bases, conversation_messages } from "@/db/schema";
 import { withApiAuth, createApiError, createApiSuccess } from "@/lib/api-auth";
 
 export const POST = withApiAuth(async (request: NextRequest, user) => {
@@ -25,7 +25,7 @@ export const POST = withApiAuth(async (request: NextRequest, user) => {
 
     // Verify user has access to this knowledge base
     const knowledgeBase = await db.query.knowledge_bases.findFirst({
-      where: eq(schema.knowledge_bases.uuid, kbId),
+      where: eq(knowledge_bases.uuid, kbId),
     });
 
     if (!knowledgeBase) {
@@ -59,7 +59,7 @@ export const POST = withApiAuth(async (request: NextRequest, user) => {
     if (result.data[0].response.text) {
       // Add conversation message to database
       const newConversationMessage = await db
-        .insert(schema.conversation_messages)
+        .insert(conversation_messages)
         .values({
           conversationId,
           role,

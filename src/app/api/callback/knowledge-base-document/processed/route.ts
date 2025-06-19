@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/db/config";
-import schema from "@/db/schema";
+import { db } from "@/db";
+import { knowledge_base_documents } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { withApiAuth, createApiError, createApiSuccess } from "@/lib/api-auth";
 
@@ -20,7 +20,7 @@ export const POST = withApiAuth(async (request: NextRequest, user) => {
     }
 
     const document = await db.query.knowledge_base_documents.findFirst({
-      where: eq(schema.knowledge_base_documents.uuid, payload.documentId),
+      where: eq(knowledge_base_documents.uuid, payload.documentId),
     });
 
     if (!document) {
@@ -36,9 +36,9 @@ export const POST = withApiAuth(async (request: NextRequest, user) => {
 
     // Update the document status to processed
     await db
-      .update(schema.knowledge_base_documents)
+      .update(knowledge_base_documents)
       .set({ status: KnowledgeBaseDocumentStatus.processed })
-      .where(eq(schema.knowledge_base_documents.uuid, payload.documentId));
+      .where(eq(knowledge_base_documents.uuid, payload.documentId));
 
     return createApiSuccess({
       documentId: payload.documentId,

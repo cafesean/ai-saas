@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 import { z } from "zod";
-import { db } from "@/db/config";
-import schema from "@/db/schema";
+import { db } from "@/db";
+import { endpoints, workflowRunHistory } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     //   );
     // }
     const endpoint = await db.query.endpoints.findFirst({
-      where: eq(schema.endpoints.uri, uri),
+      where: eq(endpoints.uri, uri),
       with: {
         workflow: true,
       },
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
         // Insert success response into workflow_run_history
         // Later should move the MQ
         await db
-          .insert(schema.workflowRunHistory)
+          .insert(workflowRunHistory)
           .values({
             workflowId: endpoint?.workflow.uuid,
             path: endpoint?.uri,

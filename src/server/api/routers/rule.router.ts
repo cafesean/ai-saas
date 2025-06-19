@@ -2,7 +2,7 @@ import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import { desc, eq } from "drizzle-orm";
 
-import { db } from "@/db/config";
+import { db } from "@/db";
 import {
   rules,
   rule_flows,

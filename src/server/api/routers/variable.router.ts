@@ -3,7 +3,7 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { desc, eq, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
-import { db } from "@/db/config";
+import { db } from "@/db";
 import { variables } from "@/db/schema";
 import { VariableLogicTypes, VariableDataTypes, VariableStatus } from "@/db/schema/variable";
 

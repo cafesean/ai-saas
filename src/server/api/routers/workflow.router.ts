@@ -1,7 +1,16 @@
 import { unknown, z } from "zod";
 import { createTRPCRouter, publicProcedure, protectedProcedure, withPermission } from "../trpc";
-import { db } from "@/db/config";
-import schema, { rules } from "@/db/schema";
+import { db } from "@/db";
+import { 
+  workflows,
+  workflowRunHistory,
+  nodes,
+  edges,
+  endpoints,
+  models,
+  decision_tables,
+  rules
+} from "@/db/schema";
 import { eq, asc, desc, count, inArray, max } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { v4 as uuidv4 } from "uuid";
@@ -72,7 +81,7 @@ export const workflowRouter = createTRPCRouter({
         endpoint: true,
         nodes: true,
       },
-      orderBy: desc(schema.workflows.id),
+      orderBy: desc(workflows.id),
     });
 
     // 2. Bulk get workflow run history counts AND last run timestamps
@@ -80,13 +89,13 @@ export const workflowRouter = createTRPCRouter({
 
     const historyStats = await ctx.db
       .select({
-        workflowId: schema.workflowRunHistory.workflowId,
+        workflowId: workflowRunHistory.workflowId,
         count: count(),
-        lastRunAt: max(schema.workflowRunHistory.createdAt),
+        lastRunAt: max(workflowRunHistory.createdAt),
       })
-      .from(schema.workflowRunHistory)
-      .where(inArray(schema.workflowRunHistory.workflowId, workflowUUIDs))
-      .groupBy(schema.workflowRunHistory.workflowId);
+      .from(workflowRunHistory)
+      .where(inArray(workflowRunHistory.workflowId, workflowUUIDs))
+      .groupBy(workflowRunHistory.workflowId);
 
     // 3. Merge workflow data with history stats
     return workflowsData.map((workflow) => {
@@ -106,8 +115,8 @@ export const workflowRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       return await db
         .select()
-        .from(schema.workflows)
-        .where(eq(schema.workflows.status, input.status));
+        .from(workflows)
+        .where(eq(workflows.status, input.status));
     }),
 
   create: protectedProcedure
@@ -115,7 +124,7 @@ export const workflowRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       try {
         const workflowData = await db
-          .insert(schema.workflows)
+          .insert(workflows)
           .values({
             ...input,
             tenantId: 1, // Default tenant for now
@@ -135,7 +144,7 @@ export const workflowRouter = createTRPCRouter({
     .input(z.object({ uuid: z.string() }))
     .query(async ({ ctx, input }) => {
       const workflowData = await db.query.workflows.findFirst({
-        where: eq(schema.workflows.uuid, input.uuid),
+        where: eq(workflows.uuid, input.uuid),
         with: {
           nodes: true,
           edges: true,
@@ -149,11 +158,11 @@ export const workflowRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       try {
         const workflowData = await db
-          .update(schema.workflows)
+          .update(workflows)
           .set({
             status: input.status,
           })
-          .where(eq(schema.workflows.uuid, input.uuid))
+          .where(eq(workflows.uuid, input.uuid))
           .returning();
         return workflowData[0];
       } catch (error) {
@@ -170,13 +179,13 @@ export const workflowRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       try {
         const workflowData = await db
-          .update(schema.workflows)
+          .update(workflows)
           .set({
             name: input.name,
             description: input.description,
             type: input.type,
           })
-          .where(eq(schema.workflows.uuid, input.uuid))
+          .where(eq(workflows.uuid, input.uuid))
           .returning();
         // Detect if workflow have flowId
         if (workflowData[0]?.flowId) {
@@ -240,7 +249,7 @@ export const workflowRouter = createTRPCRouter({
         const updateWorkflow = await db.transaction(async (tx: any) => {
           // Find the workflow by UUID
           const workflow = await tx.query.workflows.findFirst({
-            where: eq(schema.workflows.uuid, input.uuid),
+            where: eq(workflows.uuid, input.uuid),
           });
           if (!workflow) {
             throw new TRPCError({
@@ -250,18 +259,18 @@ export const workflowRouter = createTRPCRouter({
           }
           // Delete all nodes and edges associated with the workflow
           await tx
-            .delete(schema.nodes)
-            .where(eq(schema.nodes.workflowId, workflow.uuid));
+            .delete(nodes)
+            .where(eq(nodes.workflowId, workflow.uuid));
           await tx
-            .delete(schema.edges)
-            .where(eq(schema.edges.workflowId, workflow.uuid));
+            .delete(edges)
+            .where(eq(edges.workflowId, workflow.uuid));
           // Insert the new nodes and edges
           if (input.nodes.length > 0) {
             // Filter out node type is empty or undefined
             const filteredNodes = input.nodes.filter(
               (node) => node.type && node.type !== "",
             );
-            const nodes = await tx.insert(schema.nodes).values(
+            const nodes = await tx.insert(nodes).values(
               filteredNodes.map((node) => ({
                 uuid: node.id,
                 type: node.type,
@@ -276,7 +285,7 @@ export const workflowRouter = createTRPCRouter({
             const filteredEdges = input.edges.filter(
               (edge) => edge.source && edge.target,
             );
-            const edges = await tx.insert(schema.edges).values(
+            const edges = await tx.insert(edges).values(
               filteredEdges.map((edge) => ({
                 uuid: uuidv4(),
                 source: edge.source,
@@ -377,11 +386,11 @@ export const workflowRouter = createTRPCRouter({
               }
               // update flowId in workflow table
               await tx
-                .update(schema.workflows)
+                .update(workflows)
                 .set({
                   flowId: flowId,
                 })
-                .where(eq(schema.workflows.uuid, workflow.uuid))
+                .where(eq(workflows.uuid, workflow.uuid))
                 .returning();
             } catch (error) {
               console.error(error);
@@ -393,13 +402,13 @@ export const workflowRouter = createTRPCRouter({
             (node: any) => node.type === n8nWebhookNode.type,
           );
           await tx
-            .delete(schema.endpoints)
-            .where(eq(schema.endpoints.workflowId, workflow.uuid));
+            .delete(endpoints)
+            .where(eq(endpoints.workflowId, workflow.uuid));
           if (n8nWebhookNodes) {
             // Delete all endpoints associated with the workflow
             for (const node of n8nWebhookNodes) {
               const endpoint = await tx
-                .insert(schema.endpoints)
+                .insert(endpoints)
                 .values({
                   workflowId: workflow.uuid,
                   uri: node.parameters.path,
@@ -431,7 +440,7 @@ export const workflowRouter = createTRPCRouter({
       const deleteResponse = await db.transaction(async (tx) => {
         // Delete n8n flow if flowId exists
         const workflow = await tx.query.workflows.findFirst({
-          where: eq(schema.workflows.uuid, input.uuid),
+          where: eq(workflows.uuid, input.uuid),
         });
         if (workflow && workflow.flowId) {
           try {
@@ -453,8 +462,8 @@ export const workflowRouter = createTRPCRouter({
           }
         }
         return await tx
-          .delete(schema.workflows)
-          .where(eq(schema.workflows.uuid, input.uuid))
+          .delete(workflows)
+          .where(eq(workflows.uuid, input.uuid))
           .returning();
       });
       return deleteResponse;
@@ -489,7 +498,7 @@ const generateN8NNodesAndN8NConnections = async (
         if (node.data.type === ModelTypes[0]?.value) {
           const modelUUID = node.data.model.uuid;
           const model = await tx.query.models.findFirst({
-            where: eq(schema.models.uuid, modelUUID),
+            where: eq(models.uuid, modelUUID),
           });
           const queryParameters = [];
           if (model.fileKey) {
@@ -575,7 +584,7 @@ const generateN8NNodesAndN8NConnections = async (
       case NodeTypes.decisionTable:
         const decisionTableUUID = node.data.decisionTable.uuid;
         const decisionTable = await tx.query.decision_tables.findFirst({
-          where: eq(schema.decision_tables.uuid, decisionTableUUID),
+          where: eq(decision_tables.uuid, decisionTableUUID),
           with: {
             decisionTableRows: {
               with: {

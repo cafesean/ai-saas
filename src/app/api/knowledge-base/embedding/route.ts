@@ -3,8 +3,8 @@ import { EMBEDDING_DOCUMENT } from "@/constants/general";
 import { eq, and } from "drizzle-orm";
 import axios from "axios";
 
-import { db } from "@/db/config";
-import schema from "@/db/schema";
+import { db } from "@/db";
+import { knowledge_bases } from "@/db/schema";
 import { withApiAuth, createApiError, createApiSuccess } from "@/lib/api-auth";
 
 export const POST = withApiAuth(async (request: NextRequest, user) => {
@@ -26,7 +26,7 @@ export const POST = withApiAuth(async (request: NextRequest, user) => {
 
     // Verify user has access to this knowledge base
     const knowledgeBase = await db.query.knowledge_bases.findFirst({
-      where: eq(schema.knowledge_bases.uuid, kb_id),
+      where: eq(knowledge_bases.uuid, kb_id),
     });
 
     if (!knowledgeBase) {
@@ -91,7 +91,7 @@ export const DELETE = withApiAuth(async (request: NextRequest, user) => {
 
     // Verify user has access to this knowledge base
     const knowledgeBase = await db.query.knowledge_bases.findFirst({
-      where: eq(schema.knowledge_bases.uuid, kbId),
+      where: eq(knowledge_bases.uuid, kbId),
     });
 
     if (!knowledgeBase) {

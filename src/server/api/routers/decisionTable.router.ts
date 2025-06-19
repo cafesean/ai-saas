@@ -2,7 +2,7 @@ import { z } from "zod";
 import { eq, asc, desc } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
-import { db } from "@/db/config";
+import { db } from "@/db";
 import {
   decision_tables,
   decision_table_rows,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
-import { db } from "@/db/config";
-import schema from "@/db/schema";
+import { db } from "@/db";
+import { models, inferences } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { withApiAuth, createApiError, createApiSuccess } from "@/lib/api-auth";
 
@@ -27,8 +27,8 @@ export const POST = withApiAuth(async (request: NextRequest, user) => {
     // Add tenant isolation to model query
     const model = await db.query.models.findFirst({
       where: and(
-        eq(schema.models.uuid, modelId),
-        eq(schema.models.tenantId, user.tenantId)
+        eq(models.uuid, modelId),
+        eq(models.tenantId, user.tenantId)
       ),
     });
     
@@ -55,7 +55,7 @@ export const POST = withApiAuth(async (request: NextRequest, user) => {
       const inferenceResponse = await instance(inferenceOptions);
       if (inferenceResponse.data && !inferenceResponse.data.error) {
         // Insert inference into inferences table
-        await db.insert(schema.inferences).values({
+        await db.insert(inferences).values({
           modelId: model.id,
           input: payload,
           output: inferenceResponse.data,

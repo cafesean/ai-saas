@@ -1,4 +1,4 @@
-import { db } from "@/db/config";
+import { db } from "@/db";
 import type { GetServerSidePropsContext } from "next";
 import { getServerSession, type NextAuthOptions } from 'next-auth';
 import CredentialsProvider from "next-auth/providers/credentials";

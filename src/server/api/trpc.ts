@@ -14,7 +14,7 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 
 import { authOptions } from "@/server/auth-simple";
-import { db } from "@/db/config";
+import { db } from "@/db";
 
 /**
  * 1. CONTEXT
