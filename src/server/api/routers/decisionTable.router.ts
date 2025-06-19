@@ -13,7 +13,7 @@ import {
 } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 import { DecisionStatus } from "@/constants/decisionTable";
-import { createTRPCRouter, publicProcedure, protectedProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure, getUserTenantId } from "../trpc";
 import { NOT_FOUND, INTERNAL_SERVER_ERROR } from "@/constants/errorCode";
 import {
   DECISION_TABLE_NOT_FOUND_ERROR,
@@ -130,7 +130,7 @@ export const decisionTableRouter = createTRPCRouter({
             name: input.name,
             description: input.description,
             status: input.status,
-            tenantId: 1, // Default tenant for now
+            tenantId: 1, // TODO: Change to protectedProcedure and fix tenant context
           })
           .returning();
         

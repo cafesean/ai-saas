@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { eq, and, desc } from "drizzle-orm"
-import { createTRPCRouter, protectedProcedure } from "../trpc"
+import { createTRPCRouter, protectedProcedure, getUserTenantId } from "../trpc"
 import { 
   lookup_tables, 
   lookup_table_dimension_bins, 
@@ -52,7 +52,7 @@ export const newLookupTableRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = 1;
+      const tenantId = await getUserTenantId(ctx.session.user.id);
       if (!tenantId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -82,7 +82,7 @@ export const newLookupTableRouter = createTRPCRouter({
 
   getById: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ ctx, input }) => {
     // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = 1;
+    const tenantId = await getUserTenantId(ctx.session.user.id);
     if (!tenantId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
@@ -122,7 +122,7 @@ export const newLookupTableRouter = createTRPCRouter({
 
   getByUuid: protectedProcedure.input(z.object({ uuid: z.string() })).query(async ({ ctx, input }) => {
     // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = 1;
+    const tenantId = await getUserTenantId(ctx.session.user.id);
     if (!tenantId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
@@ -164,7 +164,7 @@ export const newLookupTableRouter = createTRPCRouter({
     console.log("Create lookup table input:", input)
     
     // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = 1;
+    const tenantId = await getUserTenantId(ctx.session.user.id);
     const userId = ctx.session?.user?.id || 1 // Fallback to user ID 1 for now
     
     console.log("Session:", ctx.session)
@@ -283,7 +283,7 @@ export const newLookupTableRouter = createTRPCRouter({
 
   update: protectedProcedure.input(updateLookupTableSchema).mutation(async ({ ctx, input }) => {
     // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = 1;
+    const tenantId = await getUserTenantId(ctx.session.user.id);
     const userId = ctx.session?.user?.id
     if (!tenantId || !userId) {
       throw new TRPCError({
@@ -400,7 +400,7 @@ export const newLookupTableRouter = createTRPCRouter({
 
   publish: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
     // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = 1;
+    const tenantId = await getUserTenantId(ctx.session.user.id);
     const userId = ctx.session?.user?.id
     if (!tenantId || !userId) {
       throw new TRPCError({
@@ -446,7 +446,7 @@ export const newLookupTableRouter = createTRPCRouter({
 
   deprecate: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
     // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = 1;
+    const tenantId = await getUserTenantId(ctx.session.user.id);
     const userId = ctx.session?.user?.id
     if (!tenantId || !userId) {
       throw new TRPCError({
@@ -477,7 +477,7 @@ export const newLookupTableRouter = createTRPCRouter({
 
   delete: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
     // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = 1;
+    const tenantId = await getUserTenantId(ctx.session.user.id);
     if (!tenantId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",

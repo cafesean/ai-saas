@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { eq, and, desc } from "drizzle-orm"
-import { createTRPCRouter, protectedProcedure } from "../trpc"
+import { createTRPCRouter, protectedProcedure, getUserTenantId } from "../trpc"
 import { 
   lookup_tables,
   lookup_table_inputs,
@@ -121,7 +121,7 @@ export const lookupTableRouter = createTRPCRouter({
   getAll: protectedProcedure
     .query(async ({ ctx }) => {
       // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = 1;
+      const tenantId = await getUserTenantId(ctx.session.user.id);
       if (!tenantId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -159,7 +159,7 @@ export const lookupTableRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = 1;
+      const tenantId = await getUserTenantId(ctx.session.user.id);
       if (!tenantId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -201,7 +201,7 @@ export const lookupTableRouter = createTRPCRouter({
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
       // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = 1;
+      const tenantId = await getUserTenantId(ctx.session.user.id);
       if (!tenantId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -240,7 +240,7 @@ export const lookupTableRouter = createTRPCRouter({
       // Handle both object and string formats
       const uuid = typeof input === 'string' ? input : input.uuid
       // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = 1;
+      const tenantId = await getUserTenantId(ctx.session.user.id);
       if (!tenantId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -274,7 +274,7 @@ export const lookupTableRouter = createTRPCRouter({
     .input(createLookupTableSchema)
     .mutation(async ({ ctx, input }) => {
       // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = 1;
+      const tenantId = await getUserTenantId(ctx.session.user.id);
       const userId = ctx.session?.user?.id
       if (!tenantId || !userId) {
         throw new TRPCError({
@@ -365,7 +365,7 @@ export const lookupTableRouter = createTRPCRouter({
     .input(updateLookupTableSchema)
     .mutation(async ({ ctx, input }) => {
       // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = 1;
+      const tenantId = await getUserTenantId(ctx.session.user.id);
       const userId = ctx.session?.user?.id
       if (!tenantId || !userId) {
         throw new TRPCError({
@@ -459,7 +459,7 @@ export const lookupTableRouter = createTRPCRouter({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = 1;
+      const tenantId = await getUserTenantId(ctx.session.user.id);
       const userId = ctx.session?.user?.id
       if (!tenantId || !userId) {
         throw new TRPCError({
@@ -507,7 +507,7 @@ export const lookupTableRouter = createTRPCRouter({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = 1;
+      const tenantId = await getUserTenantId(ctx.session.user.id);
       const userId = ctx.session?.user?.id
       if (!tenantId || !userId) {
         throw new TRPCError({
@@ -545,7 +545,7 @@ export const lookupTableRouter = createTRPCRouter({
       // Handle both object and number formats
       const id = typeof input === 'number' ? input : input.id
       // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = 1;
+      const tenantId = await getUserTenantId(ctx.session.user.id);
       if (!tenantId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",

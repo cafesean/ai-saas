@@ -1,5 +1,5 @@
 import { unknown, z } from "zod";
-import { createTRPCRouter, publicProcedure, protectedProcedure, withPermission } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure, withPermission, getUserTenantId, protectedMutationWithRateLimit } from "../trpc";
 import { db } from "@/db";
 import { 
   workflows,
@@ -119,15 +119,17 @@ export const workflowRouter = createTRPCRouter({
         .where(eq(workflows.status, input.status));
     }),
 
-  create: protectedProcedure
+  create: protectedMutationWithRateLimit
     .input(workflowCreateSchema)
     .mutation(async ({ ctx, input }) => {
       try {
+        // 🔒 SECURITY FIX: Get tenant from authenticated user context
+        const tenantId = await getUserTenantId(ctx.session.user.id);
         const workflowData = await db
           .insert(workflows)
           .values({
             ...input,
-            tenantId: 1, // Default tenant for now
+            tenantId,
           })
           .returning();
         return workflowData[0];

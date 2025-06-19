@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure, getUserTenantId } from "../trpc";
 import { desc, eq, and, asc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -66,7 +66,7 @@ export const ruleSetRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = 1;
+      const tenantId = await getUserTenantId(ctx.session.user.id);
       if (!tenantId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -92,7 +92,7 @@ export const ruleSetRouter = createTRPCRouter({
   // Get published rule sets only (for use in workflows)
   getPublished: protectedProcedure.query(async ({ ctx }) => {
     // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = 1;
+    const tenantId = await getUserTenantId(ctx.session.user.id);
     if (!tenantId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
@@ -119,7 +119,7 @@ export const ruleSetRouter = createTRPCRouter({
     .input(z.string().uuid())
     .query(async ({ ctx, input }) => {
       // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = 1;
+      const tenantId = await getUserTenantId(ctx.session.user.id);
       if (!tenantId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -159,7 +159,7 @@ export const ruleSetRouter = createTRPCRouter({
     .input(createRuleSetSchema)
     .mutation(async ({ ctx, input }) => {
       // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = 1;
+      const tenantId = await getUserTenantId(ctx.session.user.id);
       const userId = ctx.session?.user?.id;
 
       if (!tenantId) {
@@ -200,7 +200,7 @@ export const ruleSetRouter = createTRPCRouter({
     .input(updateRuleSetSchema)
     .mutation(async ({ ctx, input }) => {
       // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = 1;
+      const tenantId = await getUserTenantId(ctx.session.user.id);
       if (!tenantId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -267,7 +267,7 @@ export const ruleSetRouter = createTRPCRouter({
     .input(publishRuleSetSchema)
     .mutation(async ({ ctx, input }) => {
       // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = 1;
+      const tenantId = await getUserTenantId(ctx.session.user.id);
       const userId = ctx.session?.user?.id;
 
       if (!tenantId) {
@@ -335,7 +335,7 @@ export const ruleSetRouter = createTRPCRouter({
     .input(z.string().uuid())
     .mutation(async ({ ctx, input }) => {
       // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = 1;
+      const tenantId = await getUserTenantId(ctx.session.user.id);
       if (!tenantId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -386,7 +386,7 @@ export const ruleSetRouter = createTRPCRouter({
     .input(z.string().uuid())
     .mutation(async ({ ctx, input }) => {
       // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = 1;
+      const tenantId = await getUserTenantId(ctx.session.user.id);
       if (!tenantId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -435,7 +435,7 @@ export const ruleSetRouter = createTRPCRouter({
       .input(createStepSchema)
       .mutation(async ({ ctx, input }) => {
         // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-        const tenantId = 1;
+        const tenantId = await getUserTenantId(ctx.session.user.id);
         if (!tenantId) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -491,7 +491,7 @@ export const ruleSetRouter = createTRPCRouter({
       .input(updateStepSchema)
       .mutation(async ({ ctx, input }) => {
         // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-        const tenantId = 1;
+        const tenantId = await getUserTenantId(ctx.session.user.id);
         if (!tenantId) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -564,7 +564,7 @@ export const ruleSetRouter = createTRPCRouter({
       .input(z.string().uuid())
       .mutation(async ({ ctx, input }) => {
         // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-        const tenantId = 1;
+        const tenantId = await getUserTenantId(ctx.session.user.id);
         if (!tenantId) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -617,7 +617,7 @@ export const ruleSetRouter = createTRPCRouter({
       .input(reorderStepsSchema)
       .mutation(async ({ ctx, input }) => {
         // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-        const tenantId = 1;
+        const tenantId = await getUserTenantId(ctx.session.user.id);
         if (!tenantId) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
