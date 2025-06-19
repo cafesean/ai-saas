@@ -60,6 +60,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ViewToggle } from "@/components/view-toggle";
+import { RouteGuard } from "@/components/auth/RouteGuard";
 
 // Sample data for AI documents
 const documents = [
@@ -237,8 +238,9 @@ export default function AIDocumentsPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background animate-fade-in">
-      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+    <RouteGuard role={["Admin", "Super Admin"]} showAccessDenied={true}>
+      <div className="flex min-h-screen w-full flex-col bg-background animate-fade-in">
+        <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
         <Link
           href="/"
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
@@ -529,7 +531,8 @@ export default function AIDocumentsPage() {
           </TabsContent>
         </Tabs>
       </main>
-    </div>
+      </div>
+    </RouteGuard>
   );
 }
 

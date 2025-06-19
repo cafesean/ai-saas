@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure, withPermission } from "../trpc";
 import { desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -79,13 +79,13 @@ const releUpdateSchema = z.object({
 });
 
 export const rulesRouter = createTRPCRouter({
-  getAll: publicProcedure.query(async ({ ctx }) => {
+  getAll: withPermission('rules:read').query(async ({ ctx }) => {
     const rulesData = await db.query.rules.findMany({
       orderBy: desc(rules.id),
     });
     return rulesData;
   }),
-  create: publicProcedure
+  create: withPermission('rules:create')
     .input(releCreateSchema)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -203,7 +203,7 @@ export const rulesRouter = createTRPCRouter({
         });
       }
     }),
-  getByUUID: publicProcedure
+  getByUUID: withPermission('rules:read')
     .input(z.object({ uuid: z.string() }))
     .query(async ({ ctx, input }) => {
       const ruleData = await db.query.rules.findMany({
@@ -233,7 +233,7 @@ export const rulesRouter = createTRPCRouter({
         flows: formatFlows(rule?.ruleFlows),
       };
     }),
-  update: publicProcedure
+  update: withPermission('rules:update')
     .input(releUpdateSchema)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -350,9 +350,9 @@ export const rulesRouter = createTRPCRouter({
         });
       }
     }),
-  delete: publicProcedure
-   .input(z.object({ id: z.string() }))
-   .mutation(async ({ ctx, input }) => {
+    delete: withPermission('rules:delete')
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
       try {
         await db.delete(rules).where(eq(rules.uuid, input.id));
       } catch (error) {

@@ -32,6 +32,7 @@ import {
 import { useModalState } from "@/framework/hooks/useModalState";
 import { KnowledgeBaseStatus } from "@/constants/knowledgeBase";
 import { S3_API, KNOWLEDGE_BASE_API } from "@/constants/api";
+import { RouteGuard } from "@/components/auth/RouteGuard";
 
 // Replace the utility access with direct values
 export const dynamic = "force-dynamic";
@@ -168,8 +169,9 @@ export default function KnowledgeBasesPage() {
   };
 
   return (
-    <div className="flex w-full flex-col bg-background">
-      <main className="flex-1 p-8 pt-6">
+    <RouteGuard permission="bases:read" showAccessDenied={true}>
+      <div className="flex w-full flex-col bg-background">
+        <main className="flex-1 p-8 pt-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
           <div className="space-y-1">
             <h1 className="text-3xl font-bold tracking-tight">
@@ -323,6 +325,7 @@ export default function KnowledgeBasesPage() {
         />
         {(create.isPending || deletingKnowledgeBase) && <FullScreenLoading />}
       </main>
-    </div>
+      </div>
+    </RouteGuard>
   );
 }

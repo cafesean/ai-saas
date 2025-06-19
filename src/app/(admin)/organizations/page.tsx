@@ -10,6 +10,7 @@ import { DeleteOrganizationDialog } from "./components/DeleteOrganizationDialog"
 import { type OrganizationWithStats } from "@/types/organization";
 import { api } from "@/utils/trpc";
 import { toast } from "sonner";
+import { RouteGuard } from "@/components/auth/RouteGuard";
 
 export default function OrganizationsPage() {
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
@@ -106,8 +107,9 @@ export default function OrganizationsPage() {
   });
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex items-center justify-between mb-6">
+    <RouteGuard permission="orgs:read" showAccessDenied={true}>
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">Organization Management</h1>
           <p className="text-muted-foreground">Manage organizations, users, and settings</p>
@@ -142,6 +144,7 @@ export default function OrganizationsPage() {
         onSuccess={handleDeleteSuccess}
         organization={selectedOrganization}
       />
-    </div>
+      </div>
+    </RouteGuard>
   );
 }

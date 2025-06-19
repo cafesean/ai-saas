@@ -173,37 +173,13 @@ export function useAuthSync() {
         session.user.roles.forEach(role => {
           if (role.policies) {
             role.policies.forEach(policy => {
-              // Convert CRUD permissions to permission objects
-              if (policy.can_create) {
+              // Handle the correct session structure where policies have 'name' field directly
+              if (policy.name) {
                 permissions.push({
-                  id: `${policy.id}-create`,
-                  slug: `${policy.name}:create`,
-                  name: `Create ${policy.name}`,
-                  category: policy.name,
-                });
-              }
-              if (policy.can_read) {
-                permissions.push({
-                  id: `${policy.id}-read`,
-                  slug: `${policy.name}:read`,
-                  name: `Read ${policy.name}`,
-                  category: policy.name,
-                });
-              }
-              if (policy.can_update) {
-                permissions.push({
-                  id: `${policy.id}-update`,
-                  slug: `${policy.name}:update`,
-                  name: `Update ${policy.name}`,
-                  category: policy.name,
-                });
-              }
-              if (policy.can_delete) {
-                permissions.push({
-                  id: `${policy.id}-delete`,
-                  slug: `${policy.name}:delete`,
-                  name: `Delete ${policy.name}`,
-                  category: policy.name,
+                  id: `${policy.name}-${role.id}`,
+                  slug: policy.name,
+                  name: policy.description || policy.name,
+                  category: policy.name.split(':')[0] || 'general',
                 });
               }
             });
@@ -243,6 +219,19 @@ export function useAuthSync() {
           { id: 'file-3', slug: 'file:delete', name: 'Delete Files', category: 'file' },
           { id: 'file-4', slug: 'file:manage_s3', name: 'Manage S3 Storage', category: 'file' },
         );
+      }
+
+      // Debug logging in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Auth Store Sync:', {
+          userEmail: userProfile.email,
+          roleId: role?.id,
+          roleName: role?.name,
+          permissionsCount: permissions.length,
+          firstFewPermissions: permissions.slice(0, 5).map(p => p.slug),
+          sessionRolesCount: session.user.roles?.length,
+          sessionPoliciesCount: session.user.roles?.flatMap(r => r.policies).length
+        });
       }
 
       setAuthState({

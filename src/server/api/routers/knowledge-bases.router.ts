@@ -7,7 +7,7 @@ import {
 } from "./knowledge-bases/mockData";
 import type { EmbeddingModel } from "@/types/knowledge-base";
 import { db } from "@/db";
-import { createTRPCRouter, publicProcedure, protectedProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure, withPermission } from "../trpc";
 import { 
   knowledge_bases,
   knowledge_base_documents,
@@ -23,7 +23,7 @@ export const knowledgeBasesRouter = createTRPCRouter({
   /**
    * Get all knowledge bases
    */
-  getAllKnowledgeBases: publicProcedure
+  getAllKnowledgeBases: withPermission('bases:read')
     .input(z.void())
     .query(async ({ ctx }) => {
       const knowledgeBasesData = await ctx.db.query.knowledge_bases.findMany({

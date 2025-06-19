@@ -13,7 +13,7 @@ import {
 } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 import { DecisionStatus } from "@/constants/decisionTable";
-import { createTRPCRouter, publicProcedure, protectedProcedure, getUserTenantId } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure, getUserTenantId, withPermission } from "../trpc";
 import { NOT_FOUND, INTERNAL_SERVER_ERROR } from "@/constants/errorCode";
 import {
   DECISION_TABLE_NOT_FOUND_ERROR,
@@ -68,7 +68,7 @@ const decisionTableSchema = z.object({
 });
 
 export const decisionTableRouter = createTRPCRouter({
-  getAll: publicProcedure.query(async () => {
+  getAll: withPermission('rules:read').query(async () => {
     try {
       const decisionTablesData = await db.select().from(decision_tables)
         .orderBy(desc(decision_tables.updatedAt));
@@ -79,7 +79,7 @@ export const decisionTableRouter = createTRPCRouter({
     }
   }),
 
-  getByStatus: publicProcedure
+  getByStatus: withPermission('rules:read')
     .input(z.enum([DecisionStatus.ACTIVE, DecisionStatus.INACTIVE]))
     .query(async ({ input }) => {
       try {
@@ -94,7 +94,7 @@ export const decisionTableRouter = createTRPCRouter({
       }
     }),
 
-  getByUUID: publicProcedure.input(z.string()).query(async ({ input }) => {
+  getByUUID: withPermission('rules:read').input(z.string()).query(async ({ input }) => {
     const decisionTable = await db.query.decision_tables.findFirst({
       where: eq(decision_tables.uuid, input),
       with: {
@@ -119,9 +119,9 @@ export const decisionTableRouter = createTRPCRouter({
     return decisionTable;
   }),
 
-  create: publicProcedure
+  create: withPermission('rules:create')
     .input(decisionTableSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
         const [decisionTable] = await db
           .insert(decision_tables)
@@ -130,7 +130,7 @@ export const decisionTableRouter = createTRPCRouter({
             name: input.name,
             description: input.description,
             status: input.status,
-            tenantId: 1, // TODO: Change to protectedProcedure and fix tenant context
+            tenantId: ctx.session.user.tenantId,
           })
           .returning();
         
@@ -144,7 +144,7 @@ export const decisionTableRouter = createTRPCRouter({
       }
     }),
 
-  updateStatus: publicProcedure
+  updateStatus: withPermission('rules:update')
     .input(z.object({ uuid: z.string(), status: z.nativeEnum(DecisionStatus) }))
     .mutation(async ({ input }) => {
       try {
@@ -162,7 +162,7 @@ export const decisionTableRouter = createTRPCRouter({
       }
     }),
 
-  update: publicProcedure
+  update: withPermission('rules:update')
     .input(decisionTableSchema)
     .mutation(async ({ input }) => {
       try {
@@ -319,7 +319,7 @@ export const decisionTableRouter = createTRPCRouter({
       }
     }),
 
-  delete: publicProcedure.input(z.string()).mutation(async ({ input }) => {
+  delete: withPermission('rules:delete').input(z.string()).mutation(async ({ input }) => {
     const [decisionTable] = await db
       .delete(decision_tables)
       .where(eq(decision_tables.uuid, input))

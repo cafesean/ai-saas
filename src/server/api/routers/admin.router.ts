@@ -10,7 +10,7 @@ export const adminRouter = createTRPCRouter({
 			hasSession: !!ctx.session,
 			hasUser: !!ctx.session?.user,
 			userId: ctx.session?.user?.id || null,
-			tenantId: null, // TODO: Fix tenantId access based on actual OrgUser structure
+			tenantId: ctx.session?.user?.tenantId || null,
 			nodeEnv: process.env.NODE_ENV,
 			mockUserId: process.env.NEXT_PUBLIC_MOCK_USER_ID,
 		};
@@ -226,14 +226,14 @@ export const adminRouter = createTRPCRouter({
 				}
 			}
 
-			// Assign user ID 1 to owner role
-			if (ownerRole) {
+			// Assign current user to owner role
+			if (ownerRole && ctx.session?.user?.id) {
 				await db
 					.insert(userRoles)
 					.values({
-						userId: 1,
+						userId: ctx.session.user.id,
 						roleId: ownerRole.id,
-						tenantId: 1,
+						tenantId: ctx.session.user.tenantId,
 						isActive: true,
 					})
 					.onConflictDoNothing();

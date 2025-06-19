@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Download, Users, Shield, BarChart3 } from 'lucide-react';
 import { WithPermission } from '@/components/auth/WithPermission';
+import { RouteGuard } from '@/components/auth/RouteGuard';
 
 export default function PermissionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -65,8 +66,9 @@ export default function PermissionsPage() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <RouteGuard role={["Admin", "Super Admin"]} showAccessDenied={true}>
+      <div className="container mx-auto py-6 space-y-6">
+        <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Permissions Catalogue</h1>
           <p className="text-muted-foreground mt-2">
@@ -241,6 +243,7 @@ export default function PermissionsPage() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </RouteGuard>
   );
 }

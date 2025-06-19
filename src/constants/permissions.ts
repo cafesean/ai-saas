@@ -7,12 +7,13 @@
  * Categories:
  * - workflow: Workflow management permissions
  * - model: AI Model management permissions
- * - decision_table: Decision table management permissions
+ * - rules: Decision table and rules management permissions
  * - rule: Business rule management permissions
- * - knowledge_base: Knowledge base management permissions
+ * - bases: Knowledge base management permissions
  * - admin: Administrative permissions
- * - tenant: Tenant management permissions
- * - user: User management permissions
+ * - orgs: Organization management permissions
+ * - users: User management permissions
+ * - roles: Role management permissions
  */
 
 export interface Permission {
@@ -114,43 +115,43 @@ export const MODEL_PERMISSIONS: Permission[] = [
   },
 ];
 
-// Decision Table Permissions
+// Decision Table Permissions (Rules)
 export const DECISION_TABLE_PERMISSIONS: Permission[] = [
   {
-    slug: "decision_table:create",
-    name: "Create Decision Table",
-    description: "Create new decision tables",
-    category: "decision_table",
+    slug: "rules:create",
+    name: "Create Rules",
+    description: "Create new decision tables and rules",
+    category: "rules",
   },
   {
-    slug: "decision_table:read",
-    name: "View Decision Table",
+    slug: "rules:read",
+    name: "View Rules",
     description: "View decision table structure and rules",
-    category: "decision_table",
+    category: "rules",
   },
   {
-    slug: "decision_table:update",
-    name: "Edit Decision Table",
+    slug: "rules:update",
+    name: "Edit Rules",
     description: "Edit decision table rules and conditions",
-    category: "decision_table",
+    category: "rules",
   },
   {
-    slug: "decision_table:delete",
-    name: "Delete Decision Table",
-    description: "Delete decision tables",
-    category: "decision_table",
+    slug: "rules:delete",
+    name: "Delete Rules",
+    description: "Delete decision tables and rules",
+    category: "rules",
   },
   {
-    slug: "decision_table:publish",
-    name: "Publish Decision Table",
+    slug: "rules:publish",
+    name: "Publish Rules",
     description: "Publish decision tables to production",
-    category: "decision_table",
+    category: "rules",
   },
   {
-    slug: "decision_table:test",
-    name: "Test Decision Table",
+    slug: "rules:test",
+    name: "Test Rules",
     description: "Execute test cases against decision tables",
-    category: "decision_table",
+    category: "rules",
   },
 ];
 
@@ -188,49 +189,49 @@ export const RULE_PERMISSIONS: Permission[] = [
   },
 ];
 
-// Knowledge Base Permissions
+// Knowledge Base Permissions (Bases)
 export const KNOWLEDGE_BASE_PERMISSIONS: Permission[] = [
   {
-    slug: "knowledge_base:create",
-    name: "Create Knowledge Base",
+    slug: "bases:create",
+    name: "Create Knowledge Bases",
     description: "Create new knowledge bases",
-    category: "knowledge_base",
+    category: "bases",
   },
   {
-    slug: "knowledge_base:read",
-    name: "View Knowledge Base",
+    slug: "bases:read",
+    name: "View Knowledge Bases",
     description: "Access knowledge base content",
-    category: "knowledge_base",
+    category: "bases",
   },
   {
-    slug: "knowledge_base:update",
-    name: "Edit Knowledge Base",
+    slug: "bases:update",
+    name: "Edit Knowledge Bases",
     description: "Edit knowledge base content and settings",
-    category: "knowledge_base",
+    category: "bases",
   },
   {
-    slug: "knowledge_base:delete",
-    name: "Delete Knowledge Base",
+    slug: "bases:delete",
+    name: "Delete Knowledge Bases",
     description: "Delete knowledge bases",
-    category: "knowledge_base",
+    category: "bases",
   },
   {
-    slug: "knowledge_base:upload_document",
+    slug: "bases:upload_document",
     name: "Upload Documents",
     description: "Upload documents to knowledge bases",
-    category: "knowledge_base",
+    category: "bases",
   },
   {
-    slug: "knowledge_base:chat",
-    name: "Chat with Knowledge Base",
+    slug: "bases:chat",
+    name: "Chat with Knowledge Bases",
     description: "Use chat interface with knowledge bases",
-    category: "knowledge_base",
+    category: "bases",
   },
   {
-    slug: "knowledge_base:callback",
-    name: "Knowledge Base Callback",
+    slug: "bases:callback",
+    name: "Knowledge Base Callbacks",
     description: "Process knowledge base document callbacks",
-    category: "knowledge_base",
+    category: "bases",
   },
 ];
 
@@ -456,31 +457,31 @@ export const ROLE_PERMISSIONS: Permission[] = [
   },
 ];
 
-// Tenant Management Permissions
+// Organization Management Permissions (Orgs)
 export const TENANT_PERMISSIONS: Permission[] = [
   {
-    slug: "tenant:create",
-    name: "Create Tenant",
-    description: "Create new tenant organizations",
-    category: "tenant",
+    slug: "orgs:create",
+    name: "Create Organizations",
+    description: "Create new organizations",
+    category: "orgs",
   },
   {
-    slug: "tenant:read",
-    name: "View Tenant",
-    description: "View tenant information and settings",
-    category: "tenant",
+    slug: "orgs:read",
+    name: "View Organizations",
+    description: "View organization information and settings",
+    category: "orgs",
   },
   {
-    slug: "tenant:update",
-    name: "Edit Tenant",
-    description: "Edit tenant settings and configuration",
-    category: "tenant",
+    slug: "orgs:update",
+    name: "Edit Organizations",
+    description: "Edit organization settings and configuration",
+    category: "orgs",
   },
   {
-    slug: "tenant:delete",
-    name: "Delete Tenant",
-    description: "Delete tenant organizations",
-    category: "tenant",
+    slug: "orgs:delete",
+    name: "Delete Organizations",
+    description: "Delete organizations",
+    category: "orgs",
   },
 ];
 
@@ -724,11 +725,11 @@ export const DEFAULT_ROLES: RoleConfig[] = [
       ...WORKFLOW_ADDITIONAL_PERMISSIONS.map(p => p.slug),
       ...ENDPOINT_PERMISSIONS.map(p => p.slug),
       ...WIDGET_PERMISSIONS.map(p => p.slug),
-      "decision_table:read",
-      "decision_table:test",
+      "rules:read",
+      "rules:test",
       "rule:read",
-      "knowledge_base:read",
-      "knowledge_base:chat",
+      "bases:read",
+      "bases:chat",
       "users:read",
     ],
     isSystemRole: true,
@@ -741,11 +742,11 @@ export const DEFAULT_ROLES: RoleConfig[] = [
       "workflow:execute",
       "model:read",
       "model:inference",
-      "decision_table:read",
-      "decision_table:test",
+      "rules:read",
+      "rules:test",
       "rule:read",
-      "knowledge_base:read",
-      "knowledge_base:chat",
+      "bases:read",
+      "bases:chat",
       "widget:read",
       "endpoint:read",
       "users:read",

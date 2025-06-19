@@ -2,17 +2,13 @@
 
 import * as React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { httpBatchLink, loggerLink } from '@trpc/client';
-import { SessionProvider } from 'next-auth/react';
+import { loggerLink, unstable_httpBatchStreamLink } from '@trpc/client';
 import { api, getBaseUrl } from '@/utils/trpc';
-import { useAuthSync } from '@/framework/store/auth.store';
+
+import { getSession } from 'next-auth/react';
 import superjson from 'superjson';
 
-// Auth sync component
-function AuthSyncProvider({ children }: { children: React.ReactNode }) {
-  useAuthSync(); // This will sync the NextAuth session with our Zustand store
-  return <>{children}</>;
-}
+
 
 export function TRPCProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = React.useState(() => new QueryClient({
@@ -52,20 +48,31 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
             process.env.NODE_ENV === "development" ||
             (opts.direction === "down" && opts.result instanceof Error),
         }),
-        httpBatchLink({
+        unstable_httpBatchStreamLink({
           url: `${getBaseUrl()}/api/trpc`,
           transformer: superjson,
-          headers() {
+          headers: async () => {
+            // Include session token in headers for server-side authentication
+            if (typeof window !== "undefined") {
+              // Client-side: get session from NextAuth
+              const session = await getSession();
+              if (session?.user?.id) {
+                return {
+                  "x-user-id": session.user.id.toString(),
+                  "x-tenant-id": session.user.tenantId?.toString() || "1",
+                  "x-session-token": "authenticated",
+                };
+              }
+            }
             return {};
           },
         }),
       ],
     })
   );
-  
-  
+
   return (
-    <api.Provider client={trpcClient} queryClient={queryClient as any}>
+    <api.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         {children}
       </QueryClientProvider>

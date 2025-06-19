@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 import { Route } from "next";
 import { toast } from "sonner";
+import { RouteGuard } from "@/components/auth/RouteGuard";
 import { WithPermission } from "@/components/auth/WithPermission";
 
 import { Card } from "@/components/ui/card";
@@ -302,8 +303,9 @@ export default function WorkflowsPage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <ErrorBoundary>
+    <RouteGuard permission="workflow:read" showAccessDenied={true}>
+      <div className="flex min-h-screen w-full flex-col bg-background">
+        <ErrorBoundary>
         <Suspense fallback={<DefaultSkeleton count={5} className="m-6" />}>
           <Breadcrumbs
             items={[
@@ -584,7 +586,8 @@ export default function WorkflowsPage() {
             updateWorkflowStatus.isPending) && <FullScreenLoading />}
         </Suspense>
       </ErrorBoundary>
-    </div>
+      </div>
+    </RouteGuard>
   );
 }
 
