@@ -16,8 +16,7 @@ import { authRouter } from "./routers/auth.router";
 import { userRouter } from "./routers/user.router";
 import { tenantRouter } from "./routers/tenant.router";
 import { variableRouter } from "./routers/variable.router";
-import { lookupTableRouter } from "./routers/lookupTable.router";
-import { newLookupTableRouter } from "./routers/new-lookup-table";
+import { lookupTableRouter } from "./routers/lookup-table.router";
 import { ruleSetRouter } from "./routers/rule-set.router";
 /**
  *
@@ -51,7 +50,6 @@ export const appRouter = createTRPCRouter({
   tenant: tenantRouter,
   variable: variableRouter,
   lookupTable: lookupTableRouter,
-  newLookupTable: newLookupTableRouter,
   ruleSet: ruleSetRouter,
 });
 

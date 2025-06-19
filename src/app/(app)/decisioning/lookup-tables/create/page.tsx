@@ -21,7 +21,7 @@ export default function CreateLookupTablePage() {
   const { data: variables, isLoading: isLoadingVariables, error: variablesError } = api.variable.getAll.useQuery()
 
   // Create mutation using the new lookup table router
-  const createMutation = api.newLookupTable.create.useMutation({
+  const createMutation = api.lookupTable.create.useMutation({
     onSuccess: (result) => {
       router.push(`/decisioning/lookup-tables/${result.uuid}` as any)
     },

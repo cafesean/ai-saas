@@ -38,13 +38,13 @@ export default function LookupTablesPage() {
     isLoading,
     error,
     refetch,
-  } = api.newLookupTable.list.useQuery({
+  } = api.lookupTable.list.useQuery({
     status: statusFilter === "all" ? undefined : (statusFilter as "draft" | "published" | "deprecated"),
     search: searchTerm || undefined,
   })
 
   // Delete mutation
-  const deleteMutation = api.newLookupTable.delete.useMutation({
+  const deleteMutation = api.lookupTable.delete.useMutation({
     onSuccess: () => {
       refetch()
     },

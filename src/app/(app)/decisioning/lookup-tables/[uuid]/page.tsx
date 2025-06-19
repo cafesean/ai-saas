@@ -27,10 +27,10 @@ export default function LookupTableDetailPage({ params }: { params: Promise<{ uu
     isLoading,
     error,
     refetch,
-  } = api.newLookupTable.getByUuid.useQuery({ uuid })
+  } = api.lookupTable.getByUuid.useQuery({ uuid })
 
   // Delete mutation
-  const deleteMutation = api.newLookupTable.delete.useMutation({
+  const deleteMutation = api.lookupTable.delete.useMutation({
     onSuccess: () => {
       router.push("/decisioning/lookup-tables")
     },

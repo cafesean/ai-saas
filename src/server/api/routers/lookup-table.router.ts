@@ -1,822 +1,511 @@
-import { z } from "zod";
-import { eq, and, desc } from "drizzle-orm";
-import { TRPCError } from "@trpc/server";
+import { z } from "zod"
+import { eq, and, desc } from "drizzle-orm"
+import { createTRPCRouter, protectedProcedure, getUserTenantId } from "../trpc"
+import { 
+  lookup_tables, 
+  lookup_table_dimension_bins, 
+  lookup_table_cells,
+  lookup_table_inputs,
+  lookup_table_outputs
+} from "@/db/schema/lookup_table"
+import { TRPCError } from "@trpc/server"
 
-import { createTRPCRouter, protectedProcedure, getUserTenantId } from "@/server/api/trpc";
-import { db } from "@/db";
-import { lookup_tables, lookup_table_rows, LookupTableStatus } from "@/db/schema/lookup_table";
-import { variables } from "@/db/schema/variable";
-
-// Zod schemas for validation
 const createLookupTableSchema = z.object({
-  name: z.string().min(1, "Name is required").max(255),
+  name: z.string().min(1).max(255),
   description: z.string().optional(),
-  inputVariableId: z.string().uuid("Invalid input variable ID"),
-  outputName: z.string().min(1, "Output name is required").max(255),
-  outputDataType: z.enum(["string", "number", "boolean", "date"]),
-  defaultValue: z.string().optional(),
-});
+  outputVariableId: z.number(),
+  inputVariable1Id: z.number(),
+  inputVariable2Id: z.number().optional(),
+  dimensionBins: z.array(
+    z.object({
+      dimension: z.number().min(1).max(2),
+      binIndex: z.number(),
+      label: z.string(),
+      binType: z.enum(["exact", "range"]),
+      exactValue: z.string().optional(),
+      rangeMin: z.number().optional(),
+      rangeMax: z.number().optional(),
+      isMinInclusive: z.boolean().default(true),
+      isMaxInclusive: z.boolean().default(false),
+    }),
+  ),
+  cells: z.array(
+    z.object({
+      row1BinIndex: z.number(),
+      row2BinIndex: z.number().optional(),
+      outputValue: z.string(),
+    }),
+  ),
+})
 
-const updateLookupTableSchema = z.object({
-  uuid: z.string().uuid(),
-  name: z.string().min(1, "Name is required").max(255).optional(),
-  description: z.string().optional(),
-  inputVariableId: z.string().uuid("Invalid input variable ID").optional(),
-  outputName: z.string().min(1, "Output name is required").max(255).optional(),
-  outputDataType: z.enum(["string", "number", "boolean", "date"]).optional(),
-  defaultValue: z.string().optional(),
-});
-
-const createLookupTableRowSchema = z.object({
-  lookupTableId: z.string().uuid(),
-  inputCondition: z.string().optional(),
-  inputValue: z.string().min(1, "Input value is required"),
-  outputValue: z.string().min(1, "Output value is required"),
-  order: z.number().int().min(0).default(0),
-  isDefault: z.boolean().default(false),
-});
-
-const updateLookupTableRowSchema = z.object({
-  uuid: z.string().uuid(),
-  inputCondition: z.string().optional(),
-  inputValue: z.string().min(1, "Input value is required").optional(),
-  outputValue: z.string().min(1, "Output value is required").optional(),
-  order: z.number().int().min(0).optional(),
-  isDefault: z.boolean().optional(),
-});
-
-const batchUpdateRowsSchema = z.object({
-  lookupTableId: z.string().uuid(),
-  rows: z.array(z.object({
-    uuid: z.string().uuid().optional(), // Optional for new rows
-    inputCondition: z.string().optional(),
-    inputValue: z.string().min(1, "Input value is required"),
-    outputValue: z.string().min(1, "Output value is required"),
-    order: z.number().int().min(0).default(0),
-    isDefault: z.boolean().default(false),
-    _action: z.enum(["create", "update", "delete"]).optional(),
-  })),
-});
+const updateLookupTableSchema = createLookupTableSchema.extend({
+  id: z.number(),
+})
 
 export const lookupTableRouter = createTRPCRouter({
-  // Get all lookup tables
-  getAll: protectedProcedure.query(async ({ ctx }) => {
-    try {
-      // 🔒 SECURITY FIX: Get tenant from authenticated user context
+  list: protectedProcedure
+    .input(
+      z.object({
+        status: z.enum(["draft", "published", "deprecated"]).optional(),
+        search: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
       const tenantId = await getUserTenantId(ctx.session.user.id);
-
-      const lookupTables = await db
-        .select({
-          id: lookup_tables.id,
-          uuid: lookup_tables.uuid,
-          name: lookup_tables.name,
-          description: lookup_tables.description,
-          inputVariableId: lookup_tables.inputVariableId,
-          outputName: lookup_tables.outputName,
-          outputDataType: lookup_tables.outputDataType,
-          defaultValue: lookup_tables.defaultValue,
-          version: lookup_tables.version,
-          status: lookup_tables.status,
-          publishedAt: lookup_tables.publishedAt,
-          publishedBy: lookup_tables.publishedBy,
-          tenantId: lookup_tables.tenantId,
-          createdAt: lookup_tables.createdAt,
-          updatedAt: lookup_tables.updatedAt,
-          // Include input variable name for display
-          inputVariableName: variables.name,
-        })
-        .from(lookup_tables)
-        .leftJoin(variables, eq(lookup_tables.inputVariableId, variables.uuid))
-        .where(eq(lookup_tables.tenantId, tenantId))
-        .orderBy(desc(lookup_tables.updatedAt));
-
-      return lookupTables;
-    } catch (error) {
-      console.error("Error fetching lookup tables:", error);
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to fetch lookup tables",
-      });
-    }
-  }),
-
-  // Get lookup table by UUID with rows
-  getByUuid: protectedProcedure
-    .input(z.string().uuid())
-    .query(async ({ input: uuid, ctx }) => {
-      try {
-        // TODO: Replace hardcoded tenantId with actual tenant from context
-        const tenantId = 1;
-
-        // Get the lookup table
-        const lookupTable = await db
-          .select({
-            id: lookup_tables.id,
-            uuid: lookup_tables.uuid,
-            name: lookup_tables.name,
-            description: lookup_tables.description,
-            inputVariableId: lookup_tables.inputVariableId,
-            outputName: lookup_tables.outputName,
-            outputDataType: lookup_tables.outputDataType,
-            defaultValue: lookup_tables.defaultValue,
-            version: lookup_tables.version,
-            status: lookup_tables.status,
-            publishedAt: lookup_tables.publishedAt,
-            publishedBy: lookup_tables.publishedBy,
-            tenantId: lookup_tables.tenantId,
-            createdAt: lookup_tables.createdAt,
-            updatedAt: lookup_tables.updatedAt,
-            // Include input variable name for display
-            inputVariableName: variables.name,
-          })
-          .from(lookup_tables)
-          .leftJoin(variables, eq(lookup_tables.inputVariableId, variables.uuid))
-          .where(and(
-            eq(lookup_tables.uuid, uuid),
-            eq(lookup_tables.tenantId, tenantId)
-          ))
-          .limit(1);
-
-        if (lookupTable.length === 0) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Lookup table not found",
-          });
-        }
-
-        // Get the rows for this lookup table
-        const rows = await db
-          .select()
-          .from(lookup_table_rows)
-          .where(eq(lookup_table_rows.lookupTableId, uuid))
-          .orderBy(lookup_table_rows.order, lookup_table_rows.createdAt);
-
-        return {
-          ...lookupTable[0],
-          rows,
-        };
-      } catch (error) {
-        if (error instanceof TRPCError) {
-          throw error;
-        }
-        console.error("Error fetching lookup table:", error);
+      if (!tenantId) {
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch lookup table",
-        });
+          code: "UNAUTHORIZED",
+          message: "No tenant access",
+        })
       }
+
+      const conditions = [eq(lookup_tables.tenantId, tenantId)]
+
+      if (input.status) {
+        conditions.push(eq(lookup_tables.status, input.status))
+      }
+
+      const tables = await ctx.db
+        .select()
+        .from(lookup_tables)
+        .where(and(...conditions))
+        .orderBy(desc(lookup_tables.updatedAt))
+
+      return tables.filter(
+        (table) =>
+          !input.search ||
+          table.name.toLowerCase().includes(input.search.toLowerCase()) ||
+          table.description?.toLowerCase().includes(input.search.toLowerCase()),
+      )
     }),
 
-  // Create new lookup table
-  create: protectedProcedure
-    .input(createLookupTableSchema)
-    .mutation(async ({ input, ctx }) => {
-      try {
-        // TODO: Replace hardcoded tenantId with actual tenant from context
-        const tenantId = 1;
+  getById: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ ctx, input }) => {
+    // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
+    const tenantId = await getUserTenantId(ctx.session.user.id);
+    if (!tenantId) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "No tenant access",
+      })
+    }
 
-        // Verify the input variable exists and is published
-        const inputVariable = await db
-          .select()
-          .from(variables)
-          .where(and(
-            eq(variables.uuid, input.inputVariableId),
-            eq(variables.tenantId, tenantId)
-          ))
-          .limit(1);
+    const table = await ctx.db.query.lookup_tables.findFirst({
+      where: and(eq(lookup_tables.id, input.id), eq(lookup_tables.tenantId, tenantId)),
+      with: {
+        inputs: {
+          with: {
+            variable: true,
+          },
+        },
+        outputs: {
+          with: {
+            variable: true,
+          },
+        },
+        dimensionBins: {
+          orderBy: [lookup_table_dimension_bins.dimensionOrder, lookup_table_dimension_bins.binIndex],
+        },
+        cells: true,
+      },
+    })
 
-        if (inputVariable.length === 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Input variable not found",
-          });
-        }
+    if (!table) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Lookup table not found",
+      })
+    }
 
-        if (inputVariable[0].status !== "published") {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Input variable must be published to be used in lookup tables",
-          });
-        }
+    return table
+  }),
 
-        // Check for duplicate name within tenant
-        const existingTable = await db
-          .select()
-          .from(lookup_tables)
-          .where(and(
-            eq(lookup_tables.name, input.name),
-            eq(lookup_tables.tenantId, tenantId)
-          ))
-          .limit(1);
+  getByUuid: protectedProcedure.input(z.object({ uuid: z.string() })).query(async ({ ctx, input }) => {
+    // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
+    const tenantId = await getUserTenantId(ctx.session.user.id);
+    if (!tenantId) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "No tenant access",
+      })
+    }
 
-        if (existingTable.length > 0) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "A lookup table with this name already exists",
-          });
-        }
+    const table = await ctx.db.query.lookup_tables.findFirst({
+      where: and(eq(lookup_tables.uuid, input.uuid), eq(lookup_tables.tenantId, tenantId)),
+      with: {
+        inputs: {
+          with: {
+            variable: true,
+          },
+        },
+        outputs: {
+          with: {
+            variable: true,
+          },
+        },
+        dimensionBins: {
+          orderBy: [lookup_table_dimension_bins.dimensionOrder, lookup_table_dimension_bins.binIndex],
+        },
+        cells: true,
+      },
+    })
 
-        const result = await db
-          .insert(lookup_tables)
-          .values({
-            name: input.name,
-            description: input.description,
-            inputVariableId: input.inputVariableId,
-            outputName: input.outputName,
-            outputDataType: input.outputDataType,
-            defaultValue: input.defaultValue,
-            tenantId,
-            status: LookupTableStatus.DRAFT,
-            version: 1,
-          })
-          .returning();
+    if (!table) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Lookup table not found",
+      })
+    }
 
-        return result[0];
-      } catch (error) {
-        if (error instanceof TRPCError) {
-          throw error;
-        }
-        console.error("Error creating lookup table:", error);
+    return table
+  }),
+
+  create: protectedProcedure.input(createLookupTableSchema).mutation(async ({ ctx, input }) => {
+    console.log("Create lookup table input:", input)
+    
+    // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
+    const tenantId = await getUserTenantId(ctx.session.user.id);
+    const userId = ctx.session?.user?.id || 1 // Fallback to user ID 1 for now
+    
+    console.log("Session:", ctx.session)
+    console.log("User ID:", userId)
+    console.log("Tenant ID:", tenantId)
+    
+    if (!tenantId) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "No tenant access",
+      })
+    }
+
+    return await ctx.db.transaction(async (tx) => {
+      // Create the lookup table
+      const [newTable] = await tx
+        .insert(lookup_tables)
+        .values({
+          tenantId: tenantId,
+          name: input.name,
+          description: input.description,
+          createdBy: userId,
+          updatedBy: userId,
+        })
+        .returning()
+
+      if (!newTable) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to create lookup table",
-        });
-      }
-    }),
-
-  // Update lookup table
-  update: protectedProcedure
-    .input(updateLookupTableSchema)
-    .mutation(async ({ input, ctx }) => {
-      try {
-        // TODO: Replace hardcoded tenantId with actual tenant from context
-        const tenantId = 1;
-
-        // Check if lookup table exists and is editable
-        const existingTable = await db
-          .select()
-          .from(lookup_tables)
-          .where(and(
-            eq(lookup_tables.uuid, input.uuid),
-            eq(lookup_tables.tenantId, tenantId)
-          ))
-          .limit(1);
-
-        if (existingTable.length === 0) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Lookup table not found",
-          });
-        }
-
-        if (existingTable[0].status !== LookupTableStatus.DRAFT) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Only draft lookup tables can be updated",
-          });
-        }
-
-        // If updating input variable, verify it exists and is published
-        if (input.inputVariableId) {
-          const inputVariable = await db
-            .select()
-            .from(variables)
-            .where(and(
-              eq(variables.uuid, input.inputVariableId),
-              eq(variables.tenantId, tenantId)
-            ))
-            .limit(1);
-
-          if (inputVariable.length === 0) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Input variable not found",
-            });
-          }
-
-          if (inputVariable[0].status !== "published") {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Input variable must be published to be used in lookup tables",
-            });
-          }
-        }
-
-        // Check for duplicate name if name is being updated
-        if (input.name && input.name !== existingTable[0].name) {
-          const duplicateTable = await db
-            .select()
-            .from(lookup_tables)
-            .where(and(
-              eq(lookup_tables.name, input.name),
-              eq(lookup_tables.tenantId, tenantId)
-            ))
-            .limit(1);
-
-          if (duplicateTable.length > 0) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: "A lookup table with this name already exists",
-            });
-          }
-        }
-
-        const { uuid, ...updateData } = input;
-        const result = await db
-          .update(lookup_tables)
-          .set({
-            ...updateData,
-            updatedAt: new Date(),
-          })
-          .where(and(
-            eq(lookup_tables.uuid, uuid),
-            eq(lookup_tables.tenantId, tenantId)
-          ))
-          .returning();
-
-        return result[0];
-      } catch (error) {
-        if (error instanceof TRPCError) {
-          throw error;
-        }
-        console.error("Error updating lookup table:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to update lookup table",
-        });
-      }
-    }),
-
-  // Delete lookup table
-  delete: protectedProcedure
-    .input(z.string().uuid())
-    .mutation(async ({ input: uuid, ctx }) => {
-      try {
-        // TODO: Replace hardcoded tenantId with actual tenant from context
-        const tenantId = 1;
-
-        // Check if lookup table exists and is deletable
-        const existingTable = await db
-          .select()
-          .from(lookup_tables)
-          .where(and(
-            eq(lookup_tables.uuid, uuid),
-            eq(lookup_tables.tenantId, tenantId)
-          ))
-          .limit(1);
-
-        if (existingTable.length === 0) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Lookup table not found",
-          });
-        }
-
-        if (existingTable[0].status !== LookupTableStatus.DRAFT) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Only draft lookup tables can be deleted",
-          });
-        }
-
-        // Check if any variables reference this lookup table
-        const referencingVariables = await db
-          .select()
-          .from(variables)
-          .where(and(
-            eq(variables.lookupTableId, uuid),
-            eq(variables.tenantId, tenantId)
-          ))
-          .limit(1);
-
-        if (referencingVariables.length > 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Cannot delete lookup table that is referenced by variables",
-          });
-        }
-
-        await db
-          .delete(lookup_tables)
-          .where(and(
-            eq(lookup_tables.uuid, uuid),
-            eq(lookup_tables.tenantId, tenantId)
-          ));
-
-        return { success: true };
-      } catch (error) {
-        if (error instanceof TRPCError) {
-          throw error;
-        }
-        console.error("Error deleting lookup table:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to delete lookup table",
-        });
-      }
-    }),
-
-  // Publish lookup table
-  publish: protectedProcedure
-    .input(z.object({ uuid: z.string().uuid() }))
-    .mutation(async ({ input, ctx }) => {
-      try {
-        // TODO: Replace hardcoded tenantId and userId with actual values from context
-        const tenantId = 1;
-        const userId = 1; // TODO: Get from ctx.session.user.id
-
-        const existingTable = await db
-          .select()
-          .from(lookup_tables)
-          .where(and(
-            eq(lookup_tables.uuid, input.uuid),
-            eq(lookup_tables.tenantId, tenantId)
-          ))
-          .limit(1);
-
-        if (existingTable.length === 0) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Lookup table not found",
-          });
-        }
-
-        if (existingTable[0].status !== LookupTableStatus.DRAFT) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Only draft lookup tables can be published",
-          });
-        }
-
-        // Verify the lookup table has at least one row
-        const rowCount = await db
-          .select({ count: lookup_table_rows.id })
-          .from(lookup_table_rows)
-          .where(eq(lookup_table_rows.lookupTableId, input.uuid));
-
-        if (rowCount.length === 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Lookup table must have at least one row before publishing",
-          });
-        }
-
-        const result = await db
-          .update(lookup_tables)
-          .set({
-            status: LookupTableStatus.PUBLISHED,
-            version: existingTable[0].version + 1,
-            publishedAt: new Date(),
-            publishedBy: userId,
-            updatedAt: new Date(),
-          })
-          .where(and(
-            eq(lookup_tables.uuid, input.uuid),
-            eq(lookup_tables.tenantId, tenantId)
-          ))
-          .returning();
-
-        return result[0];
-      } catch (error) {
-        if (error instanceof TRPCError) {
-          throw error;
-        }
-        console.error("Error publishing lookup table:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to publish lookup table",
-        });
-      }
-    }),
-
-  // Deprecate lookup table
-  deprecate: protectedProcedure
-    .input(z.string().uuid())
-    .mutation(async ({ input: uuid, ctx }) => {
-      try {
-        // TODO: Replace hardcoded tenantId with actual tenant from context
-        const tenantId = 1;
-
-        const existingTable = await db
-          .select()
-          .from(lookup_tables)
-          .where(and(
-            eq(lookup_tables.uuid, uuid),
-            eq(lookup_tables.tenantId, tenantId)
-          ))
-          .limit(1);
-
-        if (existingTable.length === 0) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Lookup table not found",
-          });
-        }
-
-        if (existingTable[0].status !== LookupTableStatus.PUBLISHED) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Only published lookup tables can be deprecated",
-          });
-        }
-
-        const result = await db
-          .update(lookup_tables)
-          .set({
-            status: LookupTableStatus.DEPRECATED,
-            updatedAt: new Date(),
-          })
-          .where(and(
-            eq(lookup_tables.uuid, uuid),
-            eq(lookup_tables.tenantId, tenantId)
-          ))
-          .returning();
-
-        return result[0];
-      } catch (error) {
-        if (error instanceof TRPCError) {
-          throw error;
-        }
-        console.error("Error deprecating lookup table:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to deprecate lookup table",
-        });
-      }
-    }),
-
-  // Row management endpoints
-  rows: createTRPCRouter({
-    // Create lookup table row
-    create: protectedProcedure
-      .input(createLookupTableRowSchema)
-      .mutation(async ({ input, ctx }) => {
-        try {
-          // TODO: Replace hardcoded tenantId with actual tenant from context
-          const tenantId = 1;
-
-          // Verify the lookup table exists and is editable
-          const lookupTable = await db
-            .select()
-            .from(lookup_tables)
-            .where(and(
-              eq(lookup_tables.uuid, input.lookupTableId),
-              eq(lookup_tables.tenantId, tenantId)
-            ))
-            .limit(1);
-
-          if (lookupTable.length === 0) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Lookup table not found",
-            });
-          }
-
-          if (lookupTable[0].status !== LookupTableStatus.DRAFT) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Can only add rows to draft lookup tables",
-            });
-          }
-
-          const result = await db
-            .insert(lookup_table_rows)
-            .values(input)
-            .returning();
-
-          return result[0];
-        } catch (error) {
-          if (error instanceof TRPCError) {
-            throw error;
-          }
-          console.error("Error creating lookup table row:", error);
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to create lookup table row",
-          });
-        }
-      }),
-
-    // Update lookup table row
-    update: protectedProcedure
-      .input(updateLookupTableRowSchema)
-      .mutation(async ({ input, ctx }) => {
-        try {
-          // TODO: Replace hardcoded tenantId with actual tenant from context
-          const tenantId = 1;
-
-          // Get the row and verify the lookup table is editable
-          const row = await db
-            .select({
-              rowId: lookup_table_rows.id,
-              lookupTableId: lookup_table_rows.lookupTableId,
-              status: lookup_tables.status,
-            })
-            .from(lookup_table_rows)
-            .innerJoin(lookup_tables, eq(lookup_table_rows.lookupTableId, lookup_tables.uuid))
-            .where(and(
-              eq(lookup_table_rows.uuid, input.uuid),
-              eq(lookup_tables.tenantId, tenantId)
-            ))
-            .limit(1);
-
-          if (row.length === 0) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Lookup table row not found",
-            });
-          }
-
-          if (row[0].status !== LookupTableStatus.DRAFT) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Can only update rows in draft lookup tables",
-            });
-          }
-
-          const { uuid, ...updateData } = input;
-          const result = await db
-            .update(lookup_table_rows)
-            .set({
-              ...updateData,
-              updatedAt: new Date(),
-            })
-            .where(eq(lookup_table_rows.uuid, uuid))
-            .returning();
-
-          return result[0];
-        } catch (error) {
-          if (error instanceof TRPCError) {
-            throw error;
-          }
-          console.error("Error updating lookup table row:", error);
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to update lookup table row",
-          });
-        }
-      }),
-
-    // Delete lookup table row
-    delete: protectedProcedure
-      .input(z.string().uuid())
-      .mutation(async ({ input: uuid, ctx }) => {
-        try {
-          // TODO: Replace hardcoded tenantId with actual tenant from context
-          const tenantId = 1;
-
-          // Get the row and verify the lookup table is editable
-          const row = await db
-            .select({
-              rowId: lookup_table_rows.id,
-              lookupTableId: lookup_table_rows.lookupTableId,
-              status: lookup_tables.status,
-            })
-            .from(lookup_table_rows)
-            .innerJoin(lookup_tables, eq(lookup_table_rows.lookupTableId, lookup_tables.uuid))
-            .where(and(
-              eq(lookup_table_rows.uuid, uuid),
-              eq(lookup_tables.tenantId, tenantId)
-            ))
-            .limit(1);
-
-          if (row.length === 0) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Lookup table row not found",
-            });
-          }
-
-          if (row[0].status !== LookupTableStatus.DRAFT) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Can only delete rows from draft lookup tables",
-            });
-          }
-
-          await db
-            .delete(lookup_table_rows)
-            .where(eq(lookup_table_rows.uuid, uuid));
-
-          return { success: true };
-        } catch (error) {
-          if (error instanceof TRPCError) {
-            throw error;
-          }
-          console.error("Error deleting lookup table row:", error);
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to delete lookup table row",
-          });
-        }
-      }),
-
-    // Batch update rows (for CSV import or bulk editing)
-    batchUpdate: protectedProcedure
-      .input(batchUpdateRowsSchema)
-      .mutation(async ({ input, ctx }) => {
-        try {
-          // TODO: Replace hardcoded tenantId with actual tenant from context
-          const tenantId = 1;
-
-          // Verify the lookup table exists and is editable
-          const lookupTable = await db
-            .select()
-            .from(lookup_tables)
-            .where(and(
-              eq(lookup_tables.uuid, input.lookupTableId),
-              eq(lookup_tables.tenantId, tenantId)
-            ))
-            .limit(1);
-
-          if (lookupTable.length === 0) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Lookup table not found",
-            });
-          }
-
-          if (lookupTable[0].status !== LookupTableStatus.DRAFT) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Can only update rows in draft lookup tables",
-            });
-          }
-
-          const results = [];
-
-          for (const row of input.rows) {
-            if (row._action === "delete" && row.uuid) {
-              await db
-                .delete(lookup_table_rows)
-                .where(eq(lookup_table_rows.uuid, row.uuid));
-              results.push({ action: "delete", uuid: row.uuid });
-            } else if (row._action === "update" && row.uuid) {
-              const { uuid, _action, ...updateData } = row;
-              const result = await db
-                .update(lookup_table_rows)
-                .set({
-                  ...updateData,
-                  updatedAt: new Date(),
-                })
-                .where(eq(lookup_table_rows.uuid, uuid))
-                .returning();
-              results.push({ action: "update", data: result[0] });
-            } else if (row._action === "create" || !row.uuid) {
-              const { uuid, _action, ...createData } = row;
-              const result = await db
-                .insert(lookup_table_rows)
-                .values({
-                  ...createData,
-                  lookupTableId: input.lookupTableId,
-                })
-                .returning();
-              results.push({ action: "create", data: result[0] });
-            }
-          }
-
-          return { success: true, results };
-        } catch (error) {
-          if (error instanceof TRPCError) {
-            throw error;
-          }
-          console.error("Error batch updating lookup table rows:", error);
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to batch update lookup table rows",
-          });
-        }
-      }),
-  }),
-
-  // Get published lookup tables for variable selection
-  getPublishedForSelection: protectedProcedure.query(async ({ ctx }) => {
-    try {
-      // TODO: Replace hardcoded tenantId with actual tenant from context
-      const tenantId = 1;
-
-      const publishedTables = await db
-        .select({
-          uuid: lookup_tables.uuid,
-          name: lookup_tables.name,
-          description: lookup_tables.description,
-          outputName: lookup_tables.outputName,
-          outputDataType: lookup_tables.outputDataType,
         })
-        .from(lookup_tables)
-        .where(and(
-          eq(lookup_tables.tenantId, tenantId),
-          eq(lookup_tables.status, LookupTableStatus.PUBLISHED)
-        ))
-        .orderBy(lookup_tables.name);
+      }
 
-      return publishedTables;
-    } catch (error) {
-      console.error("Error fetching published lookup tables:", error);
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to fetch published lookup tables",
-      });
-    }
+      // Create input variable mappings
+      const inputInserts = []
+      if (input.inputVariable1Id) {
+        inputInserts.push({
+          tenantId: tenantId,
+          lookupTableId: newTable.id,
+          variableId: input.inputVariable1Id,
+          dimensionOrder: 1,
+        })
+      }
+      if (input.inputVariable2Id) {
+        inputInserts.push({
+          tenantId: tenantId,
+          lookupTableId: newTable.id,
+          variableId: input.inputVariable2Id,
+          dimensionOrder: 2,
+        })
+      }
+      if (inputInserts.length > 0) {
+        await tx.insert(lookup_table_inputs).values(inputInserts)
+      }
+
+      // Create output variable mapping
+      await tx.insert(lookup_table_outputs).values({
+        tenantId: tenantId,
+        lookupTableId: newTable.id,
+        variableId: input.outputVariableId,
+        outputOrder: 1,
+      })
+
+      // Create dimension bins
+      const binInserts = input.dimensionBins.map((bin) => ({
+        tenantId: tenantId,
+        lookupTableId: newTable.id,
+        dimension: bin.dimension,
+        dimensionOrder: bin.dimension,
+        binIndex: bin.binIndex,
+        label: bin.label,
+        binType: bin.binType,
+        exactValue: bin.exactValue,
+        rangeMin: bin.rangeMin?.toString(),
+        rangeMax: bin.rangeMax?.toString(),
+        isMinInclusive: bin.isMinInclusive,
+        isMaxInclusive: bin.isMaxInclusive,
+      }))
+
+      console.log("Creating dimension bins:", binInserts)
+      const createdBins = await tx.insert(lookup_table_dimension_bins).values(binInserts).returning()
+
+      // Create a mapping from bin index to bin ID for cell creation
+      const binIndexToId = new Map<string, number>()
+      createdBins.forEach((bin) => {
+        const key = `${bin.dimensionOrder}-${bin.binIndex}`
+        binIndexToId.set(key, bin.id)
+      })
+
+      // Create cells using legacy format for backward compatibility
+      const cellInserts = input.cells.map((cell) => {
+        const row1BinId = binIndexToId.get(`1-${cell.row1BinIndex}`)!
+        const row2BinId = cell.row2BinIndex !== undefined ? binIndexToId.get(`2-${cell.row2BinIndex}`)! : undefined
+
+        return {
+          tenantId: tenantId,
+          lookupTableId: newTable.id,
+          // Use legacy columns for compatibility with existing database schema
+          row1BinId: row1BinId,
+          row2BinId: row2BinId,
+          outputValue: cell.outputValue,
+          // Also include N-dimensional format if database supports it
+          inputCoordinates: {
+            "1": row1BinId,
+            ...(row2BinId ? { "2": row2BinId } : {})
+          },
+          outputValues: { "1": cell.outputValue },
+        }
+      })
+
+      await tx.insert(lookup_table_cells).values(cellInserts)
+
+      return newTable
+    })
   }),
-}); 
+
+  update: protectedProcedure.input(updateLookupTableSchema).mutation(async ({ ctx, input }) => {
+    // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
+    const tenantId = await getUserTenantId(ctx.session.user.id);
+    const userId = ctx.session?.user?.id
+    if (!tenantId || !userId) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "No tenant access",
+      })
+    }
+
+    return await ctx.db.transaction(async (tx) => {
+      // Update the lookup table
+      const [updatedTable] = await tx
+        .update(lookup_tables)
+        .set({
+          name: input.name,
+          description: input.description,
+          updatedBy: userId,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.tenantId, tenantId)))
+        .returning()
+
+      if (!updatedTable) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Lookup table not found",
+        })
+      }
+
+      // Delete existing related data
+      await tx.delete(lookup_table_cells).where(eq(lookup_table_cells.lookupTableId, input.id))
+      await tx.delete(lookup_table_dimension_bins).where(eq(lookup_table_dimension_bins.lookupTableId, input.id))
+      await tx.delete(lookup_table_inputs).where(eq(lookup_table_inputs.lookupTableId, input.id))
+      await tx.delete(lookup_table_outputs).where(eq(lookup_table_outputs.lookupTableId, input.id))
+
+      // Recreate input variable mappings
+      const inputInserts = []
+      if (input.inputVariable1Id) {
+        inputInserts.push({
+          tenantId: tenantId,
+          lookupTableId: updatedTable.id,
+          variableId: input.inputVariable1Id,
+          dimensionOrder: 1,
+        })
+      }
+      if (input.inputVariable2Id) {
+        inputInserts.push({
+          tenantId: tenantId,
+          lookupTableId: updatedTable.id,
+          variableId: input.inputVariable2Id,
+          dimensionOrder: 2,
+        })
+      }
+      if (inputInserts.length > 0) {
+        await tx.insert(lookup_table_inputs).values(inputInserts)
+      }
+
+      // Recreate output variable mapping
+      await tx.insert(lookup_table_outputs).values({
+        tenantId: tenantId,
+        lookupTableId: updatedTable.id,
+        variableId: input.outputVariableId,
+        outputOrder: 1,
+      })
+
+      // Recreate dimension bins and cells (same logic as create)
+      const binInserts = input.dimensionBins.map((bin) => ({
+        tenantId: tenantId,
+        lookupTableId: updatedTable.id,
+        dimension: bin.dimension, // Keep for backward compatibility with old schema
+        dimensionOrder: bin.dimension, // New field name
+        binIndex: bin.binIndex,
+        label: bin.label,
+        binType: bin.binType,
+        exactValue: bin.exactValue,
+        rangeMin: bin.rangeMin?.toString(),
+        rangeMax: bin.rangeMax?.toString(),
+        isMinInclusive: bin.isMinInclusive,
+        isMaxInclusive: bin.isMaxInclusive,
+      }))
+
+      const createdBins = await tx.insert(lookup_table_dimension_bins).values(binInserts).returning()
+
+      const binIndexToId = new Map<string, number>()
+      createdBins.forEach((bin) => {
+        const key = `${bin.dimensionOrder}-${bin.binIndex}`
+        binIndexToId.set(key, bin.id)
+      })
+
+      const cellInserts = input.cells.map((cell) => {
+        const row1BinId = binIndexToId.get(`1-${cell.row1BinIndex}`)!
+        const row2BinId = cell.row2BinIndex !== undefined ? binIndexToId.get(`2-${cell.row2BinIndex}`)! : undefined
+
+        return {
+          tenantId: tenantId,
+          lookupTableId: updatedTable.id,
+          // Use legacy columns for compatibility with existing database schema
+          row1BinId: row1BinId,
+          row2BinId: row2BinId,
+          outputValue: cell.outputValue,
+          // Also include N-dimensional format if database supports it
+          inputCoordinates: {
+            "1": row1BinId,
+            ...(row2BinId ? { "2": row2BinId } : {})
+          },
+          outputValues: { "1": cell.outputValue },
+        }
+      })
+
+      await tx.insert(lookup_table_cells).values(cellInserts)
+
+      return updatedTable
+    })
+  }),
+
+  publish: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+    // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
+    const tenantId = await getUserTenantId(ctx.session.user.id);
+    const userId = ctx.session?.user?.id
+    if (!tenantId || !userId) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "No tenant access",
+      })
+    }
+
+    // First get the current table to increment version
+    const currentTable = await ctx.db
+      .select()
+      .from(lookup_tables)
+      .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.tenantId, tenantId)))
+      .limit(1)
+    
+    if (!currentTable[0]) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Lookup table not found",
+      })
+    }
+
+    const [updatedTable] = await ctx.db
+      .update(lookup_tables)
+      .set({
+        status: "published",
+        version: currentTable[0].version + 1,
+        updatedBy: userId,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.tenantId, tenantId)))
+      .returning()
+
+    if (!updatedTable) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Lookup table not found",
+      })
+    }
+
+    return updatedTable
+  }),
+
+  deprecate: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+    // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
+    const tenantId = await getUserTenantId(ctx.session.user.id);
+    const userId = ctx.session?.user?.id
+    if (!tenantId || !userId) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "No tenant access",
+      })
+    }
+
+    const [updatedTable] = await ctx.db
+      .update(lookup_tables)
+      .set({
+        status: "deprecated",
+        updatedBy: userId,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.tenantId, tenantId)))
+      .returning()
+
+    if (!updatedTable) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Lookup table not found",
+      })
+    }
+
+    return updatedTable
+  }),
+
+  delete: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+    // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
+    const tenantId = await getUserTenantId(ctx.session.user.id);
+    if (!tenantId) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "No tenant access",
+      })
+    }
+
+    return await ctx.db.transaction(async (tx) => {
+      // Delete related data first (FK constraints will handle cascade)
+      await tx.delete(lookup_table_cells).where(eq(lookup_table_cells.lookupTableId, input.id))
+      await tx.delete(lookup_table_dimension_bins).where(eq(lookup_table_dimension_bins.lookupTableId, input.id))
+      await tx.delete(lookup_table_inputs).where(eq(lookup_table_inputs.lookupTableId, input.id))
+      await tx.delete(lookup_table_outputs).where(eq(lookup_table_outputs.lookupTableId, input.id))
+
+      // Delete the table
+      const [deletedTable] = await tx
+        .delete(lookup_tables)
+        .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.tenantId, tenantId)))
+        .returning()
+
+      if (!deletedTable) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Lookup table not found",
+        })
+      }
+
+      return deletedTable
+    })
+  }),
+})
