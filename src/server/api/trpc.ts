@@ -61,7 +61,6 @@ export const createTRPCContextFetch = async (opts: { req: Request; resHeaders: H
  * errors on the backend.
  */
 const t = initTRPC.context<typeof createTRPCContext>().create({
-const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
   errorFormatter({ shape, error }) {
     return {
@@ -74,13 +73,6 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
     };
   },
 });
-
-/**
- * Create a server-side caller.
- *
- * @see https://trpc.io/docs/server/server-side-calls
- */
-export const createCallerFactory = t.createCallerFactory;
 
 /**
  * Create a server-side caller.
@@ -136,57 +128,7 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
     },
   });
 });
-/**
- * Protected (authenticated) procedure
- *
- * If you want a query or mutation to ONLY be accessible to logged in users, use this. It verifies
- * the session is valid and guarantees `ctx.session.user` is not null.
- *
- * @see https://trpc.io/docs/procedures
- */
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
-  if (!ctx.session || !ctx.session.user) {
-    throw new TRPCError({ code: "UNAUTHORIZED" });
-  }
-  return next({
-    ctx: {
-      // infers the `session` as non-nullable
-      session: { ...ctx.session, user: ctx.session.user },
-    },
-  });
-});
 
-/**
- * Admin procedure
- *
- * If you want a query or mutation to ONLY be accessible to admin users, use this.
- * It verifies the session is valid and the user has admin permissions.
- */
-export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  // Check if user has admin permissions
-  const userPermissions = ctx.session.user.roles?.flatMap(role => 
-    role.policies?.map(policy => policy.name) || []
-  ) || [];
-  
-  const hasAdminAccess = userPermissions.includes('admin:full_access') || 
-                        userPermissions.includes('admin:role_management') ||
-                        ctx.session.user.roles?.some(role => 
-                          ['admin', 'owner', 'super'].includes(role.name.toLowerCase())
-                        );
-
-  if (!hasAdminAccess) {
-    throw new TRPCError({ 
-      code: "FORBIDDEN",
-      message: "Admin access required" 
-    });
-  }
-
-  return next({
-    ctx: {
-      session: ctx.session,
-    },
-  });
-});
 /**
  * Admin procedure
  *
