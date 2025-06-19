@@ -19,7 +19,16 @@ export const getBaseUrl = () => {
 };
 
 /** A set of type-safe react-query hooks for your tRPC `API`. */
-export const api = createTRPCReact<AppRouter>();
+export const api = createTRPCReact<AppRouter>({
+  overrides: {
+    useMutation: {
+      async onSuccess(opts) {
+        await opts.originalFn();
+        await opts.queryClient.invalidateQueries();
+      },
+    },
+  },
+});
 
 /** Export useUtils hook for easier access */
 export const useUtils = api.useUtils;
