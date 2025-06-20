@@ -57,12 +57,17 @@ import {
 } from "./knowledge_base";
 import {
   users,
+  orgs,
+  userOrgs,
+  usersRelations,
+  orgsRelations,
+  userOrgsRelations,
+  // Legacy exports for backward compatibility
   tenants,
   userTenants,
-  usersRelations,
   tenantsRelations,
   userTenantsRelations,
-} from "./tenant";
+} from "./org";
 import {
   roles,
   permissions,
@@ -156,9 +161,14 @@ export {
   conversationRelations,
   conversationMessageRelations,
   users,
+  orgs,
+  userOrgs,
+  usersRelations,
+  orgsRelations,
+  userOrgsRelations,
+  // Legacy exports for backward compatibility
   tenants,
   userTenants,
-  usersRelations,
   tenantsRelations,
   userTenantsRelations,
   roles,
@@ -245,9 +255,14 @@ export default {
   conversationRelations,
   conversationMessageRelations,
   users,
+  orgs,
+  userOrgs,
+  usersRelations,
+  orgsRelations,
+  userOrgsRelations,
+  // Legacy exports for backward compatibility  
   tenants,
   userTenants,
-  usersRelations,
   tenantsRelations,
   userTenantsRelations,
   roles,

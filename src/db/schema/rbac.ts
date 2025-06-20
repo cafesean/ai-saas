@@ -12,8 +12,8 @@ import {
   primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { users } from "./tenant";
-import { tenants } from "./tenant";
+import { users } from "./org";
+import { orgs } from "./org";
 
 // Roles table - defines system roles
 export const roles = pgTable(
@@ -101,16 +101,16 @@ export const rolePermissions = pgTable(
   ],
 );
 
-// User-Role assignments table - defines which roles users have within specific tenants
+// User-Role assignments table - defines which roles users have within specific orgs
 export const userRoles = pgTable(
   "user_roles",
   {
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    tenantId: integer("tenant_id")
+    orgId: integer("org_id")
       .notNull()
-      .references(() => tenants.id, { onDelete: "cascade" }),
+      .references(() => orgs.id, { onDelete: "cascade" }),
     roleId: integer("role_id")
       .notNull()
       .references(() => roles.id, { onDelete: "cascade" }),
@@ -137,9 +137,9 @@ export const userRoles = pgTable(
   },
   (table) => [
     // Composite unique constraint to prevent duplicate role assignments
-    primaryKey({ columns: [table.userId, table.tenantId, table.roleId] }),
+    primaryKey({ columns: [table.userId, table.orgId, table.roleId] }),
     index("user_roles_user_id_idx").on(table.userId),
-    index("user_roles_tenant_id_idx").on(table.tenantId),
+    index("user_roles_org_id_idx").on(table.orgId),
     index("user_roles_role_id_idx").on(table.roleId),
     index("user_roles_assigned_by_idx").on(table.assignedBy),
   ],
@@ -171,9 +171,9 @@ export const userRolesRelations = relations(userRoles, ({ one }) => ({
     fields: [userRoles.userId],
     references: [users.id],
   }),
-  tenant: one(tenants, {
-    fields: [userRoles.tenantId],
-    references: [tenants.id],
+  org: one(orgs, {
+    fields: [userRoles.orgId],
+    references: [orgs.id],
   }),
   role: one(roles, {
     fields: [userRoles.roleId],

@@ -14,7 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { desc, relations } from "drizzle-orm";
 import { DecisionStatus } from "@/constants/decisionTable";
-import { tenants } from "./tenant";
+import { orgs } from "./org";
 
 export const decision_tables = pgTable(
   "decision_tables",
@@ -33,9 +33,9 @@ export const decision_tables = pgTable(
     publishedBy: integer("published_by"), // User ID who published
     
     // Multi-tenancy support (SAAS-32)
-    tenantId: integer("tenant_id")
+    orgId: integer("org_id")
       .notNull()
-      .references(() => tenants.id, { onDelete: "restrict" }),
+      .references(() => orgs.id, { onDelete: "restrict" }),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "date",
@@ -52,11 +52,11 @@ export const decision_tables = pgTable(
   (table) => [
     index("dt_id_idx").on(table.id),
     index("dt_uuid_idx").on(table.uuid),
-    index("dt_tenant_id_idx").on(table.tenantId),
+    index("dt_org_id_idx").on(table.orgId),
     index("dt_version_idx").on(table.version),
     index("dt_status_idx").on(table.status),
-    // Composite unique index for tenant + name combination
-    unique("dt_tenant_name_unique").on(table.tenantId, table.name),
+    // Composite unique index for org + name combination
+    unique("dt_org_name_unique").on(table.orgId, table.name),
   ],
 );
 
@@ -233,10 +233,10 @@ export const decision_table_output_results = pgTable(
 export const decisionTablesRelations = relations(
   decision_tables,
   ({ one, many }) => ({
-    tenant: one(tenants, {
-      fields: [decision_tables.tenantId],
-      references: [tenants.id],
-    }),
+      org: one(orgs, {
+    fields: [decision_tables.orgId],
+    references: [orgs.id],
+  }),
     rows: many(decision_table_rows),
     inputs: many(decision_table_inputs),
     outputs: many(decision_table_outputs),

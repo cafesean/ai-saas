@@ -16,7 +16,7 @@ import { relations } from "drizzle-orm";
 import { WorkflowStatus, WorkflowRunHistoryStatus } from "@/constants/general";
 import { endpoints } from "./endpoint";
 import { widgets } from "./widget";
-import { tenants } from "./tenant";
+import { orgs } from "./org";
 
 export const workflows = pgTable(
   "workflows",
@@ -33,9 +33,9 @@ export const workflows = pgTable(
       .default(WorkflowStatus.DRAFT),
     type: varchar("type", { length: 100 }),
     // Multi-tenancy support (SAAS-32)
-    tenantId: integer("tenant_id")
+    orgId: integer("org_id")
       .notNull()
-      .references(() => tenants.id, { onDelete: "restrict" }),
+      .references(() => orgs.id, { onDelete: "restrict" }),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "date",
@@ -52,7 +52,7 @@ export const workflows = pgTable(
   (table) => [
     index("workflow_id_idx").on(table.id),
     index("workflow_uuid_idx").on(table.uuid),
-    index("workflow_tenant_id_idx").on(table.tenantId),
+    index("workflow_org_id_idx").on(table.orgId),
   ],
 );
 
@@ -154,9 +154,9 @@ export const workflowRunHistory = pgTable(
 
 // Relations
 export const workflowsRelations = relations(workflows, ({ one, many }) => ({
-  tenant: one(tenants, {
-    fields: [workflows.tenantId],
-    references: [tenants.id],
+  org: one(orgs, {
+    fields: [workflows.orgId],
+    references: [orgs.id],
   }),
   endpoint: one(endpoints, {
     fields: [workflows.uuid],

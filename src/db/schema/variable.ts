@@ -10,7 +10,7 @@ import {
   unique,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { tenants } from "./tenant";
+import { orgs } from "./org";
 
 // Variable Logic Types
 export const VariableLogicTypes = {
@@ -62,9 +62,9 @@ export const variables = pgTable(
     publishedBy: integer("published_by"), // User ID who published
     
     // Multi-tenancy support
-    tenantId: integer("tenant_id")
-      .notNull()
-      .references(() => tenants.id, { onDelete: "restrict" }),
+      orgId: integer("org_id")
+    .notNull()
+    .references(() => orgs.id, { onDelete: "restrict" }),
       
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -86,8 +86,8 @@ export const variables = pgTable(
 
 // Relations
 export const variablesRelations = relations(variables, ({ one }) => ({
-  tenant: one(tenants, {
-    fields: [variables.tenantId],
-    references: [tenants.id],
+  org: one(orgs, {
+    fields: [variables.orgId],
+    references: [orgs.id],
   }),
 })); 
