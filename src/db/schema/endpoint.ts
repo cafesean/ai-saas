@@ -14,6 +14,7 @@ import {
 import { relations } from "drizzle-orm";
 import { EndpointStatus, HTTPMethod } from "@/constants/general";
 import { workflows, workflowRunHistory } from "./workflow";
+import { orgs } from "./org";
 
 export const endpoints = pgTable(
   "endpoints",
@@ -37,12 +38,17 @@ export const endpoints = pgTable(
       .default(HTTPMethod.POST),
     clientId: text("client_id").notNull(),
     clientSecret: text("client_secret").notNull(),
+    // Multi-org support
+    orgId: integer("org_id")
+      .notNull()
+      .references(() => orgs.id, { onDelete: "restrict" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
     index("endpoint_id_idx").on(table.id),
     index("endpoint_uuid_idx").on(table.uuid),
+    index("endpoint_org_id_idx").on(table.orgId),
   ],
 );
 
@@ -50,5 +56,9 @@ export const endpointsRelations = relations(endpoints, ({ one, many }) => ({
   workflow: one(workflows, {
     fields: [endpoints.workflowId],
     references: [workflows.uuid],
+  }),
+  org: one(orgs, {
+    fields: [endpoints.orgId],
+    references: [orgs.id],
   }),
 }));

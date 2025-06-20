@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure, getUserTenantId, protectedMutationWithRateLimit } from "../trpc";
+import { createTRPCRouter, protectedProcedure, getUserOrgId, protectedMutationWithRateLimit } from "../trpc";
 import { desc, eq, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -46,16 +46,16 @@ export const variableRouter = createTRPCRouter({
       }).optional()
     )
     .query(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      if (!tenantId) {
+      // TODO: Implement proper org lookup - using hardcoded orgId for now
+      const orgId = await getUserOrgId(ctx.session.user.id);
+      if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "No tenant access found",
+          message: "No org access found",
         });
       }
 
-      const whereConditions = [eq(variables.tenantId, tenantId)];
+      const whereConditions = [eq(variables.orgId, orgId)];
       
       if (input?.status) {
         whereConditions.push(eq(variables.status, input.status));
@@ -76,12 +76,12 @@ export const variableRouter = createTRPCRouter({
 
   // Get published variables only (for use in other artifacts)
   getPublished: protectedProcedure.query(async ({ ctx }) => {
-    // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = await getUserTenantId(ctx.session.user.id);
-    if (!tenantId) {
+    // TODO: Implement proper org lookup - using hardcoded orgId for now
+    const orgId = await getUserOrgId(ctx.session.user.id);
+    if (!orgId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "No tenant access found",
+        message: "No org access found",
       });
     }
 
@@ -90,7 +90,7 @@ export const variableRouter = createTRPCRouter({
       .from(variables)
       .where(
         and(
-          eq(variables.tenantId, tenantId),
+          eq(variables.orgId, orgId),
           eq(variables.status, VariableStatus.PUBLISHED)
         )
       )
@@ -103,19 +103,19 @@ export const variableRouter = createTRPCRouter({
   getByUuid: protectedProcedure
     .input(z.string().uuid())
     .query(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      if (!tenantId) {
+      // TODO: Implement proper org lookup - using hardcoded orgId for now
+      const orgId = await getUserOrgId(ctx.session.user.id);
+      if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "No tenant access found",
+          message: "No org access found",
         });
       }
 
       const variable = await db.query.variables.findFirst({
         where: and(
           eq(variables.uuid, input),
-          eq(variables.tenantId, tenantId)
+          eq(variables.orgId, orgId)
         ),
       });
 
@@ -133,14 +133,14 @@ export const variableRouter = createTRPCRouter({
   create: protectedMutationWithRateLimit
     .input(createVariableSchema)
     .mutation(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
+      // TODO: Implement proper org lookup - using hardcoded orgId for now
+      const orgId = await getUserOrgId(ctx.session.user.id);
       const userId = ctx.session?.user?.id;
 
-      if (!tenantId) {
+      if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "No tenant access found",
+          message: "No org access found",
         });
       }
 
@@ -164,7 +164,7 @@ export const variableRouter = createTRPCRouter({
           .insert(variables)
           .values({
             ...input,
-            tenantId,
+            orgId,
             status: VariableStatus.DRAFT,
             version: 1,
           })
@@ -189,12 +189,12 @@ export const variableRouter = createTRPCRouter({
   update: protectedMutationWithRateLimit
     .input(updateVariableSchema)
     .mutation(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      if (!tenantId) {
+      // TODO: Implement proper org lookup - using hardcoded orgId for now
+      const orgId = await getUserOrgId(ctx.session.user.id);
+      if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "No tenant access found",
+          message: "No org access found",
         });
       }
 
@@ -202,7 +202,7 @@ export const variableRouter = createTRPCRouter({
       const existingVariable = await db.query.variables.findFirst({
         where: and(
           eq(variables.uuid, input.uuid),
-          eq(variables.tenantId, tenantId)
+          eq(variables.orgId, orgId)
         ),
       });
 
@@ -247,7 +247,7 @@ export const variableRouter = createTRPCRouter({
           .where(
             and(
               eq(variables.uuid, input.uuid),
-              eq(variables.tenantId, tenantId)
+              eq(variables.orgId, orgId)
             )
           )
           .returning();
@@ -271,21 +271,21 @@ export const variableRouter = createTRPCRouter({
   publish: protectedProcedure
     .input(publishVariableSchema)
     .mutation(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
+      // TODO: Implement proper org lookup - using hardcoded orgId for now
+      const orgId = await getUserOrgId(ctx.session.user.id);
       const userId = ctx.session?.user?.id;
 
-      if (!tenantId) {
+      if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "No tenant access found",
+          message: "No org access found",
         });
       }
 
       const existingVariable = await db.query.variables.findFirst({
         where: and(
           eq(variables.uuid, input.uuid),
-          eq(variables.tenantId, tenantId)
+          eq(variables.orgId, orgId)
         ),
       });
 
@@ -314,7 +314,7 @@ export const variableRouter = createTRPCRouter({
         .where(
           and(
             eq(variables.uuid, input.uuid),
-            eq(variables.tenantId, tenantId)
+            eq(variables.orgId, orgId)
           )
         )
         .returning();
@@ -326,19 +326,19 @@ export const variableRouter = createTRPCRouter({
   deprecate: protectedProcedure
     .input(z.string().uuid())
     .mutation(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      if (!tenantId) {
+      // TODO: Implement proper org lookup - using hardcoded orgId for now
+      const orgId = await getUserOrgId(ctx.session.user.id);
+      if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "No tenant access found",
+          message: "No org access found",
         });
       }
 
       const existingVariable = await db.query.variables.findFirst({
         where: and(
           eq(variables.uuid, input),
-          eq(variables.tenantId, tenantId)
+          eq(variables.orgId, orgId)
         ),
       });
 
@@ -365,7 +365,7 @@ export const variableRouter = createTRPCRouter({
         .where(
           and(
             eq(variables.uuid, input),
-            eq(variables.tenantId, tenantId)
+            eq(variables.orgId, orgId)
           )
         )
         .returning();
@@ -377,19 +377,19 @@ export const variableRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.string().uuid())
     .mutation(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      if (!tenantId) {
+      // TODO: Implement proper org lookup - using hardcoded orgId for now
+      const orgId = await getUserOrgId(ctx.session.user.id);
+      if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "No tenant access found",
+          message: "No org access found",
         });
       }
 
       const existingVariable = await db.query.variables.findFirst({
         where: and(
           eq(variables.uuid, input),
-          eq(variables.tenantId, tenantId)
+          eq(variables.orgId, orgId)
         ),
       });
 
@@ -412,7 +412,7 @@ export const variableRouter = createTRPCRouter({
         .where(
           and(
             eq(variables.uuid, input),
-            eq(variables.tenantId, tenantId)
+            eq(variables.orgId, orgId)
           )
         );
 

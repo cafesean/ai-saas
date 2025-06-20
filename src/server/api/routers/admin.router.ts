@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure, protectedProcedure, withPermission } from "../trpc";
 import { db } from "@/db";
-import { roles, permissions, rolePermissions, userRoles, tenants } from "@/db/schema";
+import { roles, permissions, rolePermissions, userRoles, orgs } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 
 export const adminRouter = createTRPCRouter({
@@ -10,7 +10,7 @@ export const adminRouter = createTRPCRouter({
 			hasSession: !!ctx.session,
 			hasUser: !!ctx.session?.user,
 			userId: ctx.session?.user?.id || null,
-			tenantId: ctx.session?.user?.tenantId || null,
+			orgId: ctx.session?.user?.orgId || null,
 			nodeEnv: process.env.NODE_ENV,
 			mockUserId: process.env.NEXT_PUBLIC_MOCK_USER_ID,
 		};
@@ -233,7 +233,7 @@ export const adminRouter = createTRPCRouter({
 					.values({
 						userId: ctx.session.user.id,
 						roleId: ownerRole.id,
-						tenantId: ctx.session.user.tenantId,
+						orgId: ctx.session.user.orgId,
 						isActive: true,
 					})
 					.onConflictDoNothing();
@@ -263,14 +263,14 @@ export const adminRouter = createTRPCRouter({
 		}
 	}),
 
-	seedTenants: withPermission('admin:seed_tenants').mutation(async ({ ctx }) => {
+	seedOrgs: withPermission('admin:seed_orgs').mutation(async ({ ctx }) => {
 		try {
-			// Check if any tenants exist
-			const existingTenants = await db.select().from(tenants);
+			// Check if any orgs exist
+			const existingTenants = await db.select().from(orgs);
 			
 			if (existingTenants.length === 0) {
 				// Create default tenant
-				const [defaultTenant] = await db.insert(tenants).values({
+				const [defaultTenant] = await db.insert(orgs).values({
 					name: 'Default Organization',
 					description: 'Default tenant for initial setup and development',
 					slug: 'default-org',

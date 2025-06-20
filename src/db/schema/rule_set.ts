@@ -57,10 +57,10 @@ export const rule_sets = pgTable(
   (table) => [
     index("rule_set_id_idx").on(table.id),
     index("rule_set_uuid_idx").on(table.uuid), 
-    index("rule_set_tenant_id_idx").on(table.tenantId),
+    index("rule_set_org_id_idx").on(table.orgId),
     index("rule_set_status_idx").on(table.status),
-    // Composite unique index for tenant + name combination
-    unique("rule_set_tenant_name_unique").on(table.tenantId, table.name),
+    // Composite unique index for org + name combination
+    unique("rule_set_org_name_unique").on(table.orgId, table.name),
   ],
 );
 

@@ -1,4 +1,4 @@
-import { templates } from "./n8n";
+import { templates, templatesRelations } from "./n8n";
 import {
   models,
   model_metrics,
@@ -112,6 +112,7 @@ import {
 
 export {
   templates,
+  templatesRelations,
   models,
   model_metrics,
   inferences,

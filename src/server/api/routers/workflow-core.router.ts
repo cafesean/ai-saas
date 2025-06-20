@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure, protectedProcedure, getUserTenantId, protectedMutationWithRateLimit } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure, getUserOrgId, protectedMutationWithRateLimit } from "../trpc";
 import { db } from "@/db";
 import { workflows, workflowRunHistory } from "@/db/schema";
 import { eq, desc, count, inArray, max } from "drizzle-orm";
@@ -97,12 +97,12 @@ export const workflowCoreRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       try {
         // 🔒 SECURITY FIX: Get tenant from authenticated user context
-        const tenantId = await getUserTenantId(ctx.session.user.id);
+        const orgId = await getUserOrgId(ctx.session.user.id);
         const workflowData = await db
           .insert(workflows)
           .values({
             ...input,
-            tenantId,
+            orgId,
           })
           .returning();
         return workflowData[0];

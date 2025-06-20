@@ -45,11 +45,11 @@ export const users = pgTable(
       .notNull(),
   },
   (table) => [
-    index("users_id_idx").on(table.id),
-    uniqueIndex("users_uuid_idx").on(table.uuid),
-    uniqueIndex("users_email_idx").on(table.email),
+    index("users_v2_id_idx").on(table.id),
+    uniqueIndex("users_v2_uuid_idx").on(table.uuid),
+    uniqueIndex("users_v2_email_idx").on(table.email),
     // GIN index for JSONB queries on org data
-    index("users_org_data_gin_idx").using("gin", table.orgData),
+    index("users_v2_org_data_gin_idx").using("gin", table.orgData),
   ],
 );
 

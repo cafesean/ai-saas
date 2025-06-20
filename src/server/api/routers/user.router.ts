@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 import { db } from '@/db';
-import { users, userRoles, roles, tenants, userTenants } from '@/db/schema';
+import { users, userRoles, roles, orgs } from '@/db/schema';
 import { eq, asc, desc, and, or, like, count, sql, not } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import bcrypt from 'bcrypt';
@@ -26,7 +26,7 @@ const userFiltersSchema = z.object({
   search: z.string().optional(),
   isActive: z.boolean().optional(),
   roleId: z.number().optional(),
-  tenantId: z.number().optional(),
+  orgId: z.number().optional(),
   limit: z.number().min(1).max(100).default(10),
   offset: z.number().min(0).default(0),
 });
@@ -36,7 +36,7 @@ export const userRouter = createTRPCRouter({
   getAll: withPermission('users:read')
     .input(userFiltersSchema)
     .query(async ({ ctx, input }) => {
-      const { search, isActive, roleId, tenantId, limit, offset } = input;
+      const { search, isActive, roleId, orgId, limit, offset } = input;
 
       // Build where conditions
       const whereConditions = [];
@@ -60,55 +60,64 @@ export const userRouter = createTRPCRouter({
         ? and(...whereConditions) 
         : undefined;
 
-      // Get users with basic info
-      const usersData = await db.select()
+      // Get users with basic info including org data
+      const usersData = await db.select({
+        id: users.id,
+        uuid: users.uuid,
+        name: users.name,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        phone: users.phone,
+        username: users.username,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+        orgData: users.orgData,
+      })
         .from(users)
         .where(whereClause)
         .orderBy(desc(users.createdAt))
         .limit(limit)
         .offset(offset);
 
-      // Get role and tenant counts for each user
+      // Get role and org counts for each user
       const usersWithStats = await Promise.all(
         usersData.map(async (user) => {
-          const [roleCountResult, tenantCountResult] = await Promise.all([
-            db.select({ count: count() })
-              .from(userRoles)
-              .where(and(
-                eq(userRoles.userId, user.id),
-                eq(userRoles.isActive, true)
-              )),
-            db.select({ count: count() })
-              .from(userTenants)
-              .where(and(
-                eq(userTenants.userId, user.id),
-                eq(userTenants.isActive, true)
-              ))
-          ]);
+          const roleCountResult = await db.select({ count: count() })
+            .from(userRoles)
+            .where(and(
+              eq(userRoles.userId, user.id),
+              eq(userRoles.isActive, true)
+            ));
 
-          // Get user roles with tenant info
+          // Get org count from JSONB data
+          const orgCount = user.orgData ? 
+            (user.orgData as any)?.orgs?.filter((org: any) => org.isActive)?.length || 0 : 0;
+
+          // Get user roles with org info
           const userRoleData = await db.select({
             roleId: roles.id,
             roleName: roles.name,
-            tenantId: tenants.id,
-            tenantName: tenants.name,
+            orgId: orgs.id,
+            orgName: orgs.name,
             isActive: userRoles.isActive,
           })
           .from(userRoles)
           .innerJoin(roles, eq(userRoles.roleId, roles.id))
-          .innerJoin(tenants, eq(userRoles.tenantId, tenants.id))
+          .innerJoin(orgs, eq(userRoles.orgId, orgs.id))
           .where(eq(userRoles.userId, user.id));
 
           return {
             ...user,
             roleCount: roleCountResult[0]?.count || 0,
-            tenantCount: tenantCountResult[0]?.count || 0,
+            orgCount: orgCount,
             lastLoginAt: null, // TODO: Implement last login tracking
             roles: userRoleData.map(role => ({
               id: role.roleId,
               name: role.roleName,
-              tenantId: role.tenantId,
-              tenantName: role.tenantName,
+              orgId: role.orgId,
+              orgName: role.orgName,
               isActive: role.isActive,
             })),
           };
@@ -143,19 +152,19 @@ export const userRouter = createTRPCRouter({
         });
       }
 
-      // Get user roles with tenant and role details
+      // Get user roles with org and role details
       const userRoleData = await db.select({
         roleId: roles.id,
         roleName: roles.name,
         roleDescription: roles.description,
-        tenantId: tenants.id,
-        tenantName: tenants.name,
+        orgId: orgs.id,
+        orgName: orgs.name,
         isActive: userRoles.isActive,
         assignedAt: userRoles.assignedAt,
       })
       .from(userRoles)
       .innerJoin(roles, eq(userRoles.roleId, roles.id))
-      .innerJoin(tenants, eq(userRoles.tenantId, tenants.id))
+      .innerJoin(orgs, eq(userRoles.orgId, orgs.id))
       .where(eq(userRoles.userId, input));
 
       return {
@@ -386,18 +395,18 @@ export const userRouter = createTRPCRouter({
   assignRole: withPermission('users:assign_roles')
     .input(z.object({
       userId: z.number(),
-      tenantId: z.number(),
+      orgId: z.number(),
       roleId: z.number(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const { userId, tenantId, roleId } = input;
+      const { userId, orgId, roleId } = input;
 
       // Check if assignment already exists
       const existingAssignment = await db.select()
         .from(userRoles)
         .where(and(
           eq(userRoles.userId, userId),
-          eq(userRoles.tenantId, tenantId),
+          eq(userRoles.orgId, orgId),
           eq(userRoles.roleId, roleId)
         ))
         .limit(1);
@@ -412,7 +421,7 @@ export const userRouter = createTRPCRouter({
             })
             .where(and(
               eq(userRoles.userId, userId),
-              eq(userRoles.tenantId, tenantId),
+              eq(userRoles.orgId, orgId),
               eq(userRoles.roleId, roleId)
             ));
           
@@ -420,7 +429,7 @@ export const userRouter = createTRPCRouter({
         } else {
           throw new TRPCError({
             code: 'CONFLICT',
-            message: 'User already has this role in this tenant'
+            message: 'User already has this role in this org'
           });
         }
       }
@@ -428,7 +437,7 @@ export const userRouter = createTRPCRouter({
       try {
         await db.insert(userRoles).values({
           userId,
-          tenantId,
+          orgId,
           roleId,
           isActive: true,
           assignedBy: ctx.session.user.id,
@@ -449,17 +458,17 @@ export const userRouter = createTRPCRouter({
   removeRole: withPermission('users:assign_roles')
     .input(z.object({
       userId: z.number(),
-      tenantId: z.number(),
+      orgId: z.number(),
       roleId: z.number(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const { userId, tenantId, roleId } = input;
+      const { userId, orgId, roleId } = input;
 
       try {
         const deletedAssignment = await db.delete(userRoles)
           .where(and(
             eq(userRoles.userId, userId),
-            eq(userRoles.tenantId, tenantId),
+            eq(userRoles.orgId, orgId),
             eq(userRoles.roleId, roleId)
           ))
           .returning();

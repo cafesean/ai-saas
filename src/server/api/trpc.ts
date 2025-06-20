@@ -50,17 +50,17 @@ export const createTRPCContextFetch = async (opts: { req: Request; resHeaders: H
   try {
     // Check for custom session headers from client
     const userId = opts.req.headers.get('x-user-id');
-    const tenantId = opts.req.headers.get('x-tenant-id');
+    const orgId = opts.req.headers.get('x-org-id');
     const sessionToken = opts.req.headers.get('x-session-token');
     
     if (process.env.NODE_ENV === 'development') {
       console.log('tRPC Headers Debug:', {
         hasUserId: !!userId,
-        hasTenantId: !!tenantId,
+        hasOrgId: !!orgId,
         hasSessionToken: !!sessionToken,
         sessionTokenValue: sessionToken,
         userIdValue: userId,
-        tenantIdValue: tenantId
+        orgIdValue: orgId
       });
     }
     
@@ -80,21 +80,26 @@ export const createTRPCContextFetch = async (opts: { req: Request; resHeaders: H
         }
 
         if (user) {
-          // Create session object with ALL permissions for admin users
+          // Get user's org context from JSONB data
+          const orgData = user.orgData as any;
+          const currentOrgId = orgData?.currentOrgId || (orgData?.orgs?.[0]?.orgId) || 1;
+          const userOrgInfo = orgData?.orgs?.find((org: any) => org.orgId === currentOrgId);
+          
+          // Create session object with org context
           session = {
             user: {
               id: user.id,
               email: user.email,
               name: user.name,
-              tenantId: parseInt(tenantId || '1'),
-              currentTenant: {
-                id: parseInt(tenantId || '1'),
-                name: 'Default Tenant'
+              orgId: currentOrgId,
+              currentOrg: {
+                id: currentOrgId,
+                name: 'Default Org' // TODO: Get actual org name
               },
               roles: [{
                 id: 1,
-                name: 'admin',
-                tenantId: parseInt(tenantId || '1'),
+                name: userOrgInfo?.role || 'admin',
+                orgId: currentOrgId,
                 policies: PERMISSION_SLUGS.map(slug => ({ name: slug }))
               }]
             },
@@ -253,48 +258,66 @@ export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 });
 
 /**
- * Helper function to get user's tenant ID securely
+ * Helper function to get user's org ID securely
  * 
- * Returns the user's tenant ID from their active roles.
- * For security, this ensures users can only access their assigned tenants.
+ * Returns the user's current org ID from their JSONB org data.
+ * For security, this ensures users can only access their assigned orgs.
  */
-export const getUserTenantId = async (userId: number): Promise<number> => {
-  const userRole = await db.query.userRoles.findFirst({
-    where: and(
-      eq(userRoles.userId, userId),
-      eq(userRoles.isActive, true)
-    ),
+export const getUserOrgId = async (userId: number): Promise<number> => {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
     columns: {
-      tenantId: true,
+      orgData: true,
     },
   });
 
-  if (!userRole) {
+  if (!user || !user.orgData) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "User is not assigned to any tenant",
+      message: "User is not assigned to any organization",
     });
   }
 
-  return userRole.tenantId;
+  const orgData = user.orgData as any;
+  const currentOrgId = orgData?.currentOrgId;
+
+  if (!currentOrgId) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "User does not have a current organization set",
+    });
+  }
+
+  return currentOrgId;
 };
 
 /**
- * Helper function to validate user has access to specific tenant
+ * Helper function to validate user has access to specific org
  */
-export const validateUserTenantAccess = async (userId: number, tenantId: number): Promise<void> => {
-  const userRole = await db.query.userRoles.findFirst({
-    where: and(
-      eq(userRoles.userId, userId),
-      eq(userRoles.tenantId, tenantId),
-      eq(userRoles.isActive, true)
-    ),
+export const validateUserOrgAccess = async (userId: number, orgId: number): Promise<void> => {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: {
+      orgData: true,
+    },
   });
 
-  if (!userRole) {
+  if (!user || !user.orgData) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "User does not have access to this tenant",
+      message: "User is not assigned to any organization",
+    });
+  }
+
+  const orgData = user.orgData as any;
+  const hasOrgAccess = orgData?.orgs?.some((org: any) => 
+    org.orgId === orgId && org.isActive
+  );
+
+  if (!hasOrgAccess) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "User does not have access to this organization",
     });
   }
 };

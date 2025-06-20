@@ -13,7 +13,7 @@ import {
 } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 import { DecisionStatus } from "@/constants/decisionTable";
-import { createTRPCRouter, publicProcedure, protectedProcedure, getUserTenantId, withPermission } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure, getUserOrgId, withPermission } from "../trpc";
 import { NOT_FOUND, INTERNAL_SERVER_ERROR } from "@/constants/errorCode";
 import {
   DECISION_TABLE_NOT_FOUND_ERROR,

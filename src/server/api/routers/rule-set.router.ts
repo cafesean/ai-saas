@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure, getUserTenantId } from "../trpc";
+import { createTRPCRouter, protectedProcedure, getUserOrgId } from "../trpc";
 import { desc, eq, and, asc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -57,7 +57,7 @@ const reorderStepsSchema = z.object({
 });
 
 export const ruleSetRouter = createTRPCRouter({
-  // Get all rule sets for current tenant
+  // Get all rule sets for current org
   getAll: protectedProcedure
     .input(
       z.object({
@@ -65,16 +65,15 @@ export const ruleSetRouter = createTRPCRouter({
       }).optional()
     )
     .query(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      if (!tenantId) {
+      const orgId = await getUserOrgId(ctx.session.user.id);
+      if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "No tenant access found",
+          message: "No org access found",
         });
       }
 
-      const whereConditions = [eq(rule_sets.tenantId, tenantId)];
+      const whereConditions = [eq(rule_sets.orgId, orgId)];
       
       if (input?.status) {
         whereConditions.push(eq(rule_sets.status, input.status));
@@ -91,12 +90,11 @@ export const ruleSetRouter = createTRPCRouter({
 
   // Get published rule sets only (for use in workflows)
   getPublished: protectedProcedure.query(async ({ ctx }) => {
-    // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = await getUserTenantId(ctx.session.user.id);
-    if (!tenantId) {
+    const orgId = await getUserOrgId(ctx.session.user.id);
+    if (!orgId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "No tenant access found",
+        message: "No org access found",
       });
     }
 
@@ -105,7 +103,7 @@ export const ruleSetRouter = createTRPCRouter({
       .from(rule_sets)
       .where(
         and(
-          eq(rule_sets.tenantId, tenantId),
+          eq(rule_sets.orgId, orgId),
           eq(rule_sets.status, RuleSetStatus.PUBLISHED)
         )
       )
@@ -118,19 +116,19 @@ export const ruleSetRouter = createTRPCRouter({
   getByUuid: protectedProcedure
     .input(z.string().uuid())
     .query(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      if (!tenantId) {
+      // TODO: Implement proper org lookup - using hardcoded orgId for now
+      const orgId = await getUserOrgId(ctx.session.user.id);
+      if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "No tenant access found",
+          message: "No org access found",
         });
       }
 
       const ruleSet = await db.query.rule_sets.findFirst({
         where: and(
           eq(rule_sets.uuid, input),
-          eq(rule_sets.tenantId, tenantId)
+          eq(rule_sets.orgId, orgId)
         ),
       });
 
@@ -158,14 +156,14 @@ export const ruleSetRouter = createTRPCRouter({
   create: protectedProcedure
     .input(createRuleSetSchema)
     .mutation(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
+      // TODO: Implement proper org lookup - using hardcoded orgId for now
+      const orgId = await getUserOrgId(ctx.session.user.id);
       const userId = ctx.session?.user?.id;
 
-      if (!tenantId) {
+      if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "No tenant access found",
+          message: "No org access found",
         });
       }
 
@@ -174,7 +172,7 @@ export const ruleSetRouter = createTRPCRouter({
           .insert(rule_sets)
           .values({
             ...input,
-            tenantId,
+            orgId,
             status: RuleSetStatus.DRAFT,
             version: 1,
           })
@@ -199,12 +197,12 @@ export const ruleSetRouter = createTRPCRouter({
   update: protectedProcedure
     .input(updateRuleSetSchema)
     .mutation(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      if (!tenantId) {
+      // TODO: Implement proper org lookup - using hardcoded orgId for now
+      const orgId = await getUserOrgId(ctx.session.user.id);
+      if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "No tenant access found",
+          message: "No org access found",
         });
       }
 
@@ -212,7 +210,7 @@ export const ruleSetRouter = createTRPCRouter({
       const existingRuleSet = await db.query.rule_sets.findFirst({
         where: and(
           eq(rule_sets.uuid, input.uuid),
-          eq(rule_sets.tenantId, tenantId)
+          eq(rule_sets.orgId, orgId)
         ),
       });
 
@@ -242,7 +240,7 @@ export const ruleSetRouter = createTRPCRouter({
           .where(
             and(
               eq(rule_sets.uuid, input.uuid),
-              eq(rule_sets.tenantId, tenantId)
+              eq(rule_sets.orgId, orgId)
             )
           )
           .returning();
@@ -266,21 +264,21 @@ export const ruleSetRouter = createTRPCRouter({
   publish: protectedProcedure
     .input(publishRuleSetSchema)
     .mutation(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
+      // TODO: Implement proper org lookup - using hardcoded orgId for now
+      const orgId = await getUserOrgId(ctx.session.user.id);
       const userId = ctx.session?.user?.id;
 
-      if (!tenantId) {
+      if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "No tenant access found",
+          message: "No org access found",
         });
       }
 
       const existingRuleSet = await db.query.rule_sets.findFirst({
         where: and(
           eq(rule_sets.uuid, input.uuid),
-          eq(rule_sets.tenantId, tenantId)
+          eq(rule_sets.orgId, orgId)
         ),
       });
 
@@ -322,7 +320,7 @@ export const ruleSetRouter = createTRPCRouter({
         .where(
           and(
             eq(rule_sets.uuid, input.uuid),
-            eq(rule_sets.tenantId, tenantId)
+            eq(rule_sets.orgId, orgId)
           )
         )
         .returning();
@@ -334,19 +332,19 @@ export const ruleSetRouter = createTRPCRouter({
   deprecate: protectedProcedure
     .input(z.string().uuid())
     .mutation(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      if (!tenantId) {
+      // TODO: Implement proper org lookup - using hardcoded orgId for now
+      const orgId = await getUserOrgId(ctx.session.user.id);
+      if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "No tenant access found",
+          message: "No org access found",
         });
       }
 
       const existingRuleSet = await db.query.rule_sets.findFirst({
         where: and(
           eq(rule_sets.uuid, input),
-          eq(rule_sets.tenantId, tenantId)
+          eq(rule_sets.orgId, orgId)
         ),
       });
 
@@ -373,7 +371,7 @@ export const ruleSetRouter = createTRPCRouter({
         .where(
           and(
             eq(rule_sets.uuid, input),
-            eq(rule_sets.tenantId, tenantId)
+            eq(rule_sets.orgId, orgId)
           )
         )
         .returning();
@@ -385,19 +383,19 @@ export const ruleSetRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.string().uuid())
     .mutation(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      if (!tenantId) {
+      // TODO: Implement proper org lookup - using hardcoded orgId for now
+      const orgId = await getUserOrgId(ctx.session.user.id);
+      if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "No tenant access found",
+          message: "No org access found",
         });
       }
 
       const existingRuleSet = await db.query.rule_sets.findFirst({
         where: and(
           eq(rule_sets.uuid, input),
-          eq(rule_sets.tenantId, tenantId)
+          eq(rule_sets.orgId, orgId)
         ),
       });
 
@@ -421,7 +419,7 @@ export const ruleSetRouter = createTRPCRouter({
         .where(
           and(
             eq(rule_sets.uuid, input),
-            eq(rule_sets.tenantId, tenantId)
+            eq(rule_sets.orgId, orgId)
           )
         );
 
@@ -434,12 +432,12 @@ export const ruleSetRouter = createTRPCRouter({
     create: protectedProcedure
       .input(createStepSchema)
       .mutation(async ({ ctx, input }) => {
-        // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-        const tenantId = await getUserTenantId(ctx.session.user.id);
-        if (!tenantId) {
+        // TODO: Implement proper org lookup - using hardcoded orgId for now
+        const orgId = await getUserOrgId(ctx.session.user.id);
+        if (!orgId) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
-            message: "No tenant access found",
+            message: "No org access found",
           });
         }
 
@@ -447,7 +445,7 @@ export const ruleSetRouter = createTRPCRouter({
         const ruleSet = await db.query.rule_sets.findFirst({
           where: and(
             eq(rule_sets.uuid, input.ruleSetId),
-            eq(rule_sets.tenantId, tenantId)
+            eq(rule_sets.orgId, orgId)
           ),
         });
 
@@ -490,12 +488,12 @@ export const ruleSetRouter = createTRPCRouter({
     update: protectedProcedure
       .input(updateStepSchema)
       .mutation(async ({ ctx, input }) => {
-        // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-        const tenantId = await getUserTenantId(ctx.session.user.id);
-        if (!tenantId) {
+        // TODO: Implement proper org lookup - using hardcoded orgId for now
+        const orgId = await getUserOrgId(ctx.session.user.id);
+        if (!orgId) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
-            message: "No tenant access found",
+            message: "No org access found",
           });
         }
 
@@ -514,7 +512,7 @@ export const ruleSetRouter = createTRPCRouter({
         const ruleSet = await db.query.rule_sets.findFirst({
           where: and(
             eq(rule_sets.uuid, step.ruleSetId),
-            eq(rule_sets.tenantId, tenantId)
+            eq(rule_sets.orgId, orgId)
           ),
         });
 
@@ -563,12 +561,12 @@ export const ruleSetRouter = createTRPCRouter({
     delete: protectedProcedure
       .input(z.string().uuid())
       .mutation(async ({ ctx, input }) => {
-        // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-        const tenantId = await getUserTenantId(ctx.session.user.id);
-        if (!tenantId) {
+        // TODO: Implement proper org lookup - using hardcoded orgId for now
+        const orgId = await getUserOrgId(ctx.session.user.id);
+        if (!orgId) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
-            message: "No tenant access found",
+            message: "No org access found",
           });
         }
 
@@ -587,7 +585,7 @@ export const ruleSetRouter = createTRPCRouter({
         const ruleSet = await db.query.rule_sets.findFirst({
           where: and(
             eq(rule_sets.uuid, step.ruleSetId),
-            eq(rule_sets.tenantId, tenantId)
+            eq(rule_sets.orgId, orgId)
           ),
         });
 
@@ -616,12 +614,12 @@ export const ruleSetRouter = createTRPCRouter({
     reorder: protectedProcedure
       .input(reorderStepsSchema)
       .mutation(async ({ ctx, input }) => {
-        // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-        const tenantId = await getUserTenantId(ctx.session.user.id);
-        if (!tenantId) {
+        // TODO: Implement proper org lookup - using hardcoded orgId for now
+        const orgId = await getUserOrgId(ctx.session.user.id);
+        if (!orgId) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
-            message: "No tenant access found",
+            message: "No org access found",
           });
         }
 
@@ -629,7 +627,7 @@ export const ruleSetRouter = createTRPCRouter({
         const ruleSet = await db.query.rule_sets.findFirst({
           where: and(
             eq(rule_sets.uuid, input.ruleSetId),
-            eq(rule_sets.tenantId, tenantId)
+            eq(rule_sets.orgId, orgId)
           ),
         });
 

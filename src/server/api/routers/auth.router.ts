@@ -5,7 +5,7 @@ import bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
 import { createTRPCRouter, publicProcedure, protectedProcedure } from '../trpc';
 import { z } from 'zod';
-import { userRoles, tenants } from '@/db/schema';
+import { userRoles, orgs } from '@/db/schema';
 import { and } from 'drizzle-orm';
 
 export const authRouter = createTRPCRouter({
@@ -65,24 +65,24 @@ export const authRouter = createTRPCRouter({
       }
     }),
 
-  switchTenant: protectedProcedure
+  switchOrg: protectedProcedure
     .input(z.object({
-      tenantId: z.number()
+      orgId: z.number()
     }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
-      const { tenantId } = input;
+      const { orgId } = input;
 
       try {
-        // Verify user has access to this tenant
+        // Verify user has access to this org
         const userRole = await ctx.db.query.userRoles.findFirst({
           where: and(
             eq(userRoles.userId, userId),
-            eq(userRoles.tenantId, tenantId),
+            eq(userRoles.orgId, orgId),
             eq(userRoles.isActive, true)
           ),
           with: {
-            tenant: true,
+            org: true,
             role: true
           }
         });
@@ -90,19 +90,19 @@ export const authRouter = createTRPCRouter({
         if (!userRole) {
           throw new TRPCError({
             code: 'FORBIDDEN',
-            message: 'You do not have access to this tenant'
+            message: 'You do not have access to this org'
           });
         }
 
-        // Store the selected tenant in the session or user preferences
-        // For now, we'll return the tenant info and let the client handle it
+        // Store the selected org in the session or user preferences
+        // For now, we'll return the org info and let the client handle it
         // In a production system, you might want to store this in a user preferences table
 
         return {
           success: true,
-          tenant: {
-            id: userRole.tenant.id,
-            name: userRole.tenant.name
+          org: {
+            id: userRole.org.id,
+            name: userRole.org.name
           },
           role: {
             id: userRole.role.id,
@@ -110,7 +110,7 @@ export const authRouter = createTRPCRouter({
           }
         };
       } catch (error) {
-        console.error('Error switching tenant:', error);
+        console.error('Error switching org:', error);
         
         if (error instanceof TRPCError) {
           throw error;
@@ -118,7 +118,7 @@ export const authRouter = createTRPCRouter({
         
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to switch tenant'
+          message: 'Failed to switch org'
         });
       }
     }),
@@ -134,7 +134,7 @@ export const authRouter = createTRPCRouter({
             userRoles: {
               where: eq(userRoles.isActive, true),
               with: {
-                tenant: true,
+                org: true,
                 role: {
                   with: {
                     rolePermissions: {
@@ -157,14 +157,14 @@ export const authRouter = createTRPCRouter({
         }
 
         // Transform data for client
-        const availableTenants = user.userRoles.map(ur => ({
-          id: ur.tenant.id,
-          name: ur.tenant.name,
+        const availableOrgs = user.userRoles.map(ur => ({
+          id: ur.org.id,
+          name: ur.org.name,
           roles: [ur.role.name],
           isActive: ur.isActive
         }));
 
-        const currentTenant = availableTenants[0] || null;
+        const currentOrg = availableOrgs[0] || null;
 
         const allPermissions = user.userRoles.flatMap(ur =>
           ur.role.rolePermissions.map(rp => rp.permission.name)
@@ -174,8 +174,8 @@ export const authRouter = createTRPCRouter({
           id: user.id,
           email: user.email,
           name: user.name,
-          currentTenant,
-          availableTenants,
+          currentOrg,
+          availableOrgs,
           permissions: [...new Set(allPermissions)] // Remove duplicates
         };
       } catch (error) {

@@ -76,11 +76,11 @@ export const variables = pgTable(
   (table) => [
     index("variable_id_idx").on(table.id),
     index("variable_uuid_idx").on(table.uuid), 
-    index("variable_tenant_id_idx").on(table.tenantId),
+    index("variable_org_id_idx").on(table.orgId),
     index("variable_status_idx").on(table.status),
     index("variable_logic_type_idx").on(table.logicType),
-    // Composite unique index for tenant + name combination
-    unique("variable_tenant_name_unique").on(table.tenantId, table.name),
+    // Composite unique index for org + name combination
+    unique("variable_org_name_unique").on(table.orgId, table.name),
   ],
 );
 
