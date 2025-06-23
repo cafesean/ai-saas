@@ -13,7 +13,13 @@ import {
 } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 import { DecisionStatus } from "@/constants/decisionTable";
-import { createTRPCRouter, publicProcedure, protectedProcedure, getUserTenantId, withPermission } from "../trpc";
+import {
+  createTRPCRouter,
+  publicProcedure,
+  protectedProcedure,
+  getUserTenantId,
+  withPermission,
+} from "../trpc";
 import { NOT_FOUND, INTERNAL_SERVER_ERROR } from "@/constants/errorCode";
 import {
   DECISION_TABLE_NOT_FOUND_ERROR,
@@ -30,6 +36,7 @@ const decisionTableSchema = z.object({
     z.object({
       uuid: z.string().min(36),
       order: z.number(),
+      type: z.string().optional(),
       decisionTableInputConditions: z.array(
         z.object({
           uuid: z.string().min(36),
@@ -52,74 +59,75 @@ const decisionTableSchema = z.object({
   decisionTableInputs: z.array(
     z.object({
       uuid: z.string().min(36),
-      name: z.string().min(1),
-      description: z.string().optional(),
-      dataType: z.string(),
+      variable_id: z.string().min(36),
     }),
   ),
   decisionTableOutputs: z.array(
     z.object({
       uuid: z.string().min(36),
-      name: z.string().min(1),
-      description: z.string().optional(),
-      dataType: z.string(),
+      variable_id: z.string().min(36),
     }),
   ),
 });
 
 export const decisionTableRouter = createTRPCRouter({
-  getAll: withPermission('rules:read').query(async () => {
+  getAll: withPermission("rules:read").query(async () => {
     try {
-      const decisionTablesData = await db.select().from(decision_tables)
+      const decisionTablesData = await db
+        .select()
+        .from(decision_tables)
         .orderBy(desc(decision_tables.updatedAt));
       return decisionTablesData;
     } catch (error) {
-      console.error('Error fetching decision tables:', error);
+      console.error("Error fetching decision tables:", error);
       return [];
     }
   }),
 
-  getByStatus: withPermission('rules:read')
+  getByStatus: withPermission("rules:read")
     .input(z.enum([DecisionStatus.ACTIVE, DecisionStatus.INACTIVE]))
     .query(async ({ input }) => {
       try {
-        const decisionTablesData = await db.select()
+        const decisionTablesData = await db
+          .select()
           .from(decision_tables)
           .where(eq(decision_tables.status, input))
           .orderBy(desc(decision_tables.updatedAt));
         return decisionTablesData;
       } catch (error) {
-        console.error('Error fetching decision tables by status:', error);
+        console.error("Error fetching decision tables by status:", error);
         return [];
       }
     }),
 
-  getByUUID: withPermission('rules:read').input(z.string()).query(async ({ input }) => {
-    const decisionTable = await db.query.decision_tables.findFirst({
-      where: eq(decision_tables.uuid, input),
-      with: {
-        rows: {
-          with: {
-            inputConditions: true,
-            outputResults: true,
+  getByUUID: withPermission("rules:read")
+    .input(z.string())
+    .query(async ({ input }) => {
+      const decisionTable = await db.query.decision_tables.findFirst({
+        where: eq(decision_tables.uuid, input),
+        with: {
+          rows: {
+            with: {
+              inputConditions: true,
+              outputResults: true,
+            },
           },
+          inputs: true,
+          outputs: true,
         },
-        inputs: true,
-        outputs: true,
-      },
-    });
-
-    if (!decisionTable) {
-      throw new TRPCError({
-        code: `${NOT_FOUND}` as TRPCError["code"],
-        message: DECISION_TABLE_NOT_FOUND_ERROR,
       });
-    }
 
-    return decisionTable;
-  }),
+      if (!decisionTable) {
+        throw new TRPCError({
+          code: `${NOT_FOUND}` as TRPCError["code"],
+          message: DECISION_TABLE_NOT_FOUND_ERROR,
+        });
+      }
 
-  create: withPermission('rules:create')
+      return decisionTable;
+    }),
+
+  create: withPermission("rules:create")
     .input(decisionTableSchema)
     .mutation(async ({ input, ctx }) => {
       try {
@@ -133,10 +141,10 @@ export const decisionTableRouter = createTRPCRouter({
             tenantId: ctx.session.user.tenantId,
           })
           .returning();
-        
+
         return decisionTable;
       } catch (error) {
-        console.error('Decision table creation error:', error);
+        console.error("Decision table creation error:", error);
         throw new TRPCError({
           code: `${INTERNAL_SERVER_ERROR}` as TRPCError["code"],
           message: DECISION_TABLE_CREATE_ERROR,
@@ -144,7 +152,7 @@ export const decisionTableRouter = createTRPCRouter({
       }
     }),
 
-  updateStatus: withPermission('rules:update')
+  updateStatus: withPermission("rules:update")
     .input(z.object({ uuid: z.string(), status: z.nativeEnum(DecisionStatus) }))
     .mutation(async ({ input }) => {
       try {
@@ -162,7 +170,7 @@ export const decisionTableRouter = createTRPCRouter({
       }
     }),
 
-  update: withPermission('rules:update')
+  update: withPermission("rules:update")
     .input(decisionTableSchema)
     .mutation(async ({ input }) => {
       try {
@@ -198,9 +206,7 @@ export const decisionTableRouter = createTRPCRouter({
                   input.decisionTableInputs.map((dt_input) => ({
                     uuid: dt_input.uuid,
                     dt_id: decisionTable.uuid,
-                    name: dt_input.name,
-                    description: dt_input.description,
-                    dataType: dt_input.dataType,
+                    variable_id: dt_input.variable_id,
                   })),
                 )
                 .returning();
@@ -213,9 +219,7 @@ export const decisionTableRouter = createTRPCRouter({
                   input.decisionTableOutputs.map((dt_output) => ({
                     uuid: dt_output.uuid,
                     dt_id: decisionTable.uuid,
-                    name: dt_output.name,
-                    description: dt_output.description,
-                    dataType: dt_output.dataType,
+                    variable_id: dt_output.variable_id,
                   })),
                 )
                 .returning();
@@ -229,6 +233,7 @@ export const decisionTableRouter = createTRPCRouter({
                     uuid: row.uuid,
                     dt_id: decisionTable.uuid,
                     order: row.order,
+                    type: row.type,
                   })),
                 )
                 .returning();
@@ -319,19 +324,21 @@ export const decisionTableRouter = createTRPCRouter({
       }
     }),
 
-  delete: withPermission('rules:delete').input(z.string()).mutation(async ({ input }) => {
-    const [decisionTable] = await db
-      .delete(decision_tables)
-      .where(eq(decision_tables.uuid, input))
-      .returning();
+  delete: withPermission("rules:delete")
+    .input(z.string())
+    .mutation(async ({ input }) => {
+      const [decisionTable] = await db
+        .delete(decision_tables)
+        .where(eq(decision_tables.uuid, input))
+        .returning();
 
-    if (!decisionTable) {
-      throw new TRPCError({
-        code: `${NOT_FOUND}` as TRPCError["code"],
-        message: DECISION_TABLE_NOT_FOUND_ERROR,
-      });
-    }
+      if (!decisionTable) {
+        throw new TRPCError({
+          code: `${NOT_FOUND}` as TRPCError["code"],
+          message: DECISION_TABLE_NOT_FOUND_ERROR,
+        });
+      }
 
-    return decisionTable;
-  }),
+      return decisionTable;
+    }),
 });

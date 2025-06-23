@@ -68,13 +68,13 @@ export const DecisionTableInputBooleanOperators = [
 
 export const DecisionDataTypes = [
   {
-    value: "String",
+    value: "string",
   },
   {
-    value: "Number",
+    value: "number",
   },
   {
-    value: "Boolean",
+    value: "boolean",
   },
   // {
   //   value: "Date",
@@ -110,4 +110,9 @@ export const DefaultDecisionTableInputCondition = {
 
 export const DefaultDecisionTableOutputResult = {
   result: "",
+};
+
+export const DecisionTableRowTypes = {
+  NORMAL: "Normal",
+  DEFAULT: "Default",
 };

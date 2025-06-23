@@ -115,18 +115,8 @@ const DecisionTablesPage = () => {
         name: newTableName,
         description: newTableDescription,
         status: newTableStatus,
-        decisionTableInputs: [
-          {
-            uuid: uuidv4(),
-            ...DefaultDecisionTableInputs,
-          },
-        ],
-        decisionTableOutputs: [
-          {
-            uuid: uuidv4(),
-            ...DefaultDecisionTableOutputs,
-          },
-        ],
+        decisionTableInputs: [],
+        decisionTableOutputs: [],
         decisionTableRows: [
           {
             uuid: uuidv4(),

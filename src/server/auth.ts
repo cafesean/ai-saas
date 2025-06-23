@@ -46,6 +46,7 @@ declare module "next-auth" {
       orgUser: OrgUser[];
       firstName: string;
       lastName: string;
+      tenantId: number;
       // ...other properties
       // role: UserRole;
     };

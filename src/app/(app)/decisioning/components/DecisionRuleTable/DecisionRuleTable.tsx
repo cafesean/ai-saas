@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Trash2 } from "lucide-react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -32,6 +32,7 @@ import {
   DecisionTableInputNumberOperators,
   DecisionTableInputStringOperators,
   DecisionTableInputBooleanOperators,
+  DecisionTableRowTypes,
 } from "@/constants/decisionTable";
 
 const validateValueByDataType = (value: string, dataType: string) => {
@@ -60,6 +61,7 @@ const DraggableRow = ({
   updateOutputResult,
   removeRow,
   moveRow,
+  variables,
 }: {
   row: DecisionTableRow;
   index: number;
@@ -79,12 +81,17 @@ const DraggableRow = ({
   ) => void;
   removeRow: (rowUUID: string | undefined) => void;
   moveRow: (dragIndex: number, hoverIndex: number) => void;
+  variables: any[];
 }) => {
   const ref = useRef<HTMLTableRowElement>(null);
+  const isDefaultRow = useMemo(() => {
+    return row.type === DecisionTableRowTypes.DEFAULT;
+  }, [row]);
 
   const [{ isDragging }, drag] = useDrag({
     type: ItemTypes.ROW,
     item: { index },
+    canDrag: !isDefaultRow,
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
@@ -92,8 +99,9 @@ const DraggableRow = ({
 
   const [, drop] = useDrop({
     accept: ItemTypes.ROW,
+    canDrop: () => !isDefaultRow,
     hover(item: { index: number }, monitor) {
-      if (!ref.current) return;
+      if (!ref.current || isDefaultRow) return;
       const dragIndex = item.index;
       const hoverIndex = index;
 
@@ -178,6 +186,7 @@ const DraggableRow = ({
       </TableCell>
 
       {inputs.map((input) => {
+        const variable = variables.find((v) => v.uuid === input.variable_id);
         const condition = row.decisionTableInputConditions.find(
           (c) => c.dt_input_id === input.uuid,
         );
@@ -192,16 +201,19 @@ const DraggableRow = ({
                 onValueChange={(value) =>
                   updateCondition(row.uuid, input.uuid, "condition", value)
                 }
+                disabled={isDefaultRow}
               >
                 <SelectTrigger className="w-32 border-0 bg-transparent">
                   <SelectValue />
                 </SelectTrigger>
-                {renderOpearators(input.dataType)}
+                {renderOpearators(variable.dataType)}
               </Select>
               <SampleInput
                 value={condition?.value || ""}
                 onChange={(e) => {
-                  if (validateValueByDataType(e.target.value, input.dataType)) {
+                  if (
+                    validateValueByDataType(e.target.value, variable.dataType)
+                  ) {
                     updateCondition(
                       row.uuid,
                       input.uuid,
@@ -212,7 +224,10 @@ const DraggableRow = ({
                 }}
                 className="flex-1 border-0 border-l"
                 placeholder="Enter value"
-                disabled={hideInputValue(input.dataType, condition?.condition)}
+                disabled={
+                  hideInputValue(variable.dataType, condition?.condition) ||
+                  isDefaultRow
+                }
               />
             </div>
           </TableCell>
@@ -220,6 +235,7 @@ const DraggableRow = ({
       })}
 
       {outputs.map((output) => {
+        const variable = variables.find((v) => v.uuid === output.variable_id);
         const outputResult = row.decisionTableOutputResults.find(
           (o) => o.dt_output_id === output.uuid,
         );
@@ -231,7 +247,9 @@ const DraggableRow = ({
             <SampleInput
               value={outputResult?.result || ""}
               onChange={(e) => {
-                if (validateValueByDataType(e.target.value, output.dataType)) {
+                if (
+                  validateValueByDataType(e.target.value, variable.dataType)
+                ) {
                   updateOutputResult(
                     row.uuid,
                     output.uuid,
@@ -270,6 +288,7 @@ const DecisionRuleTable = ({
   updateOutputResult,
   removeRow,
   updateRowOrder,
+  variables,
 }: {
   inputs: InputColumn[];
   outputs: OutputColumn[];
@@ -288,6 +307,7 @@ const DecisionRuleTable = ({
   ) => void;
   removeRow: (rowUUID: string | undefined) => void;
   updateRowOrder: (newOrder: DecisionTableRow[]) => void;
+  variables: any[];
 }) => {
   const [localRows, setLocalRows] = useState(rows);
 
@@ -305,6 +325,13 @@ const DecisionRuleTable = ({
     // insert the row to the new position
     newRows.splice(hoverIndex, 0, draggedRow);
 
+    // Exchange the order field of two rows
+    if (newRows[dragIndex]?.order && newRows[hoverIndex]?.order) {
+      const temp = newRows[dragIndex].order as number;
+      newRows[dragIndex].order = newRows[hoverIndex]?.order as number;
+      newRows[hoverIndex].order = temp as number;
+    }
+
     setLocalRows(newRows);
     updateRowOrder(newRows);
   };
@@ -317,27 +344,43 @@ const DecisionRuleTable = ({
             <TableRow className="bg-muted/50">
               <TableHead className="w-[100px] border-r">Rule #</TableHead>
 
-              {inputs.map((input) => (
-                <TableHead key={input.uuid} className="border-r min-w-[200px]">
-                  <div className="flex flex-col">
-                    <div className="font-medium">{input.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {input.dataType}
+              {inputs.map((input) => {
+                const variable = variables.find(
+                  (va) => va.uuid === input.variable_id,
+                );
+                return (
+                  <TableHead
+                    key={input.uuid}
+                    className="border-r min-w-[200px]"
+                  >
+                    <div className="flex flex-col">
+                      <div className="font-medium">{variable.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {variable.dataType}
+                      </div>
                     </div>
-                  </div>
-                </TableHead>
-              ))}
+                  </TableHead>
+                );
+              })}
 
-              {outputs.map((output) => (
-                <TableHead key={output.uuid} className="border-r min-w-[200px]">
-                  <div className="flex flex-col">
-                    <div className="font-medium">{output.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {output.dataType}
+              {outputs.map((output) => {
+                const variable = variables.find(
+                  (va) => va.uuid === output.variable_id,
+                );
+                return (
+                  <TableHead
+                    key={output.uuid}
+                    className="border-r min-w-[200px]"
+                  >
+                    <div className="flex flex-col">
+                      <div className="font-medium">{variable.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {variable.dataType}
+                      </div>
                     </div>
-                  </div>
-                </TableHead>
-              ))}
+                  </TableHead>
+                );
+              })}
 
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
@@ -354,6 +397,7 @@ const DecisionRuleTable = ({
                 updateOutputResult={updateOutputResult}
                 removeRow={removeRow}
                 moveRow={moveRow}
+                variables={variables}
               />
             ))}
 

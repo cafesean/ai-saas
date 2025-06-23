@@ -2,26 +2,22 @@
 export interface InputColumn {
   id?: number;
   uuid: string;
-  name: string;
-  dataType: string;
-  description?: string;
+  variable_id: string;
   dt_id?: number | string;
   createdAt?: Date | null;
   updatedAt?: Date | null;
 }
 
-export  interface OutputColumn {
+export interface OutputColumn {
   id?: number;
   uuid: string;
-  name: string;
-  dataType: string;
-  description?: string;
+  variable_id: string;
   dt_id?: number | string;
   createdAt?: Date | null;
   updatedAt?: Date | null;
 }
 
-export  interface Condition {
+export interface Condition {
   id?: number | undefined;
   uuid: string;
   dt_input_id?: number | string;
@@ -32,7 +28,7 @@ export  interface Condition {
   updatedAt?: Date | null;
 }
 
-export  interface OutputResult {
+export interface OutputResult {
   id?: number | undefined;
   uuid: string;
   dt_output_id?: number | string;
@@ -45,15 +41,16 @@ export  interface OutputResult {
 export interface DecisionTableRow {
   id?: number | undefined;
   uuid: string;
-  dt_id?: number | string; 
+  dt_id?: number | string;
   order: number;
   decisionTableInputConditions: Condition[];
   decisionTableOutputResults: OutputResult[];
   createdAt?: Date | null;
   updatedAt?: Date | null;
+  type?: string;
 }
 
-export  interface DecisionTable {
+export interface DecisionTable {
   id?: number | undefined;
   uuid: string;
   name: string;

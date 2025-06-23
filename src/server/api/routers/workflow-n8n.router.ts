@@ -1,13 +1,14 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import { db } from "@/db";
-import { 
+import {
   workflows,
   nodes,
   edges,
   endpoints,
   models,
   decision_tables,
+  variables,
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -28,8 +29,12 @@ import {
   n8nSplitOutNode,
   n8nSplitInBatchesNode,
 } from "@/constants/n8n";
-import { DecisionDataTypes } from "@/constants/decisionTable";
+import {
+  DecisionDataTypes,
+  DecisionTableRowTypes,
+} from "@/constants/decisionTable";
 import { ModelTypes, ThirdPartyModels } from "@/constants/model";
+import { VariableStatus } from "@/db/schema/variable";
 
 const instance = axios.create();
 
@@ -60,7 +65,7 @@ const workflowUpdateSchema = z.object({
 
 /**
  * Workflow N8N Integration Router
- * 
+ *
  * Handles the complex N8N integration logic that was extracted from the main workflow router.
  * This includes the complex workflow update procedure with N8N sync.
  */
@@ -84,15 +89,11 @@ export const workflowN8nRouter = createTRPCRouter({
               message: "Workflow not found",
             });
           }
-          
+
           // Delete all nodes and edges associated with the workflow
-          await tx
-            .delete(nodes)
-            .where(eq(nodes.workflowId, workflow.uuid));
-          await tx
-            .delete(edges)
-            .where(eq(edges.workflowId, workflow.uuid));
-          
+          await tx.delete(nodes).where(eq(nodes.workflowId, workflow.uuid));
+          await tx.delete(edges).where(eq(edges.workflowId, workflow.uuid));
+
           // Insert the new nodes and edges
           if (input.nodes.length > 0) {
             // Filter out node type is empty or undefined
@@ -109,7 +110,7 @@ export const workflowN8nRouter = createTRPCRouter({
               })),
             );
           }
-          
+
           if (input.edges.length > 0) {
             // Filter out edge type is empty or undefined
             const filteredEdges = input.edges.filter(
@@ -127,7 +128,7 @@ export const workflowN8nRouter = createTRPCRouter({
               })),
             );
           }
-          
+
           // Handle convert workflow to n8n workflow
           let flowId = workflow.flowId;
           const { n8nNodes, n8nConnections } =
@@ -136,7 +137,7 @@ export const workflowN8nRouter = createTRPCRouter({
               input.edges,
               tx,
             );
-          
+
           const payload = {
             name: workflow.name,
             nodes: n8nNodes,
@@ -148,7 +149,6 @@ export const workflowN8nRouter = createTRPCRouter({
               lastId: uuidv4(),
             },
           };
-          
           // If flow exists, update the n8n workflow
           if (flowId) {
             try {
@@ -183,7 +183,7 @@ export const workflowN8nRouter = createTRPCRouter({
               flowId = null;
             }
           }
-          
+
           // If flow does not exist, create a new n8n workflow
           if (!flowId) {
             const createApiURI = `${N8N_API.createWorkflow().uri}`;
@@ -228,7 +228,7 @@ export const workflowN8nRouter = createTRPCRouter({
               console.error(error);
             }
           }
-          
+
           // Create endpoints for webhook nodes
           const n8nWebhookNodes = n8nNodes.filter(
             (node: any) => node.type === n8nWebhookNode.type,
@@ -294,10 +294,12 @@ export const workflowN8nRouter = createTRPCRouter({
    * Sync workflow settings with N8N
    */
   syncSettings: publicProcedure
-    .input(z.object({
-      workflowId: z.string(),
-      name: z.string(),
-    }))
+    .input(
+      z.object({
+        workflowId: z.string(),
+        name: z.string(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       try {
         const workflow = await db.query.workflows.findFirst({
@@ -320,7 +322,9 @@ export const workflowN8nRouter = createTRPCRouter({
           if (response.status === 200) {
             const n8nWorkflow = response.data;
             // Update the n8n workflow for name
-            const updateApiURI = `${N8N_API.updateWorkflow(workflow.flowId).uri}`;
+            const updateApiURI = `${
+              N8N_API.updateWorkflow(workflow.flowId).uri
+            }`;
             const payload = {
               name: input.name,
               nodes: n8nWorkflow.nodes,
@@ -364,7 +368,7 @@ const generateN8NNodesAndN8NConnections = async (
 ) => {
   const n8nNodes: any[] = [];
   const n8nConnections: any = {};
-  
+
   for (const node of nodes) {
     switch (node.type) {
       case NodeTypes.trigger:
@@ -381,7 +385,7 @@ const generateN8NNodesAndN8NConnections = async (
           webhookId: uuidv4(),
         });
         break;
-        
+
       case NodeTypes.aiModel:
         // Find model
         if (node.data.type === ModelTypes[0]?.value) {
@@ -470,89 +474,159 @@ const generateN8NNodesAndN8NConnections = async (
           }
         }
         break;
-        
+
       case NodeTypes.decisionTable:
         const decisionTableUUID = node.data.decisionTable.uuid;
         const decisionTable = await tx.query.decision_tables.findFirst({
           where: eq(decision_tables.uuid, decisionTableUUID),
           with: {
-            decisionTableRows: {
+            rows: {
               with: {
-                decisionTableInputConditions: true,
-                decisionTableOutputResults: true,
+                inputConditions: true,
+                outputResults: true,
               },
             },
-            decisionTableInputs: true,
-            decisionTableOutputs: true,
+            inputs: {
+              with: {
+                variable: true,
+              },
+            },
+            outputs: {
+              with: {
+                variable: true,
+              },
+            },
           },
         });
-        
         if (decisionTable) {
           // Generate decision table logic
-          let codeString = "";
-          codeString += "let input = $input.all()[0].json;\n";
-          codeString += "let output = {};\n";
-          
-          if (decisionTable.decisionTableRows.length > 0) {
-            for (const [
-              decisionTableRowIndex,
-              decisionTableRow,
-            ] of decisionTable.decisionTableRows.entries()) {
-              if (decisionTableRowIndex === 0) {
-                codeString += "if (";
-              } else {
-                codeString += "else if (";
-              }
-              
-              for (const [
-                conditionIndex,
-                condition,
-              ] of decisionTableRow.decisionTableInputConditions.entries()) {
-                if (conditionIndex > 0) {
-                  codeString += " && ";
-                }
-                const input = decisionTable.decisionTableInputs.find(
-                  (input) => input.id === condition.decisionTableInputId,
-                );
-                if (input) {
-                  codeString += `input.${input.name}`;
-                  codeString += getInputOperatorAndValue(
-                    condition.operator,
-                    input.dataType,
-                    condition.value,
+          const decisionTableRows = decisionTable.rows || [];
+          const normalRows = decisionTableRows.filter(
+            (row: any) => row.type === DecisionTableRowTypes.NORMAL,
+          );
+          const defaultRows = decisionTableRows.filter(
+            (row: any) => row.type === DecisionTableRowTypes.DEFAULT,
+          );
+          const decisionTableInputs = decisionTable.inputs || [];
+          const decisionTableOutputs = decisionTable.outputs || [];
+          if (decisionTableRows.length > 0) {
+            const decisionTableJSCodeArray = [];
+            // Generate decision table array
+            let decisionTableCode = "const decisionTable = [\n";
+            normalRows.forEach((row: any, rn: number) => {
+              const decisionTableInputConditions = row.inputConditions;
+              const decisionTableOutputResults = row.outputResults;
+              decisionTableCode += "  {\n";
+              decisionTableCode += "    condition: (data) => ";
+              // Loop conditions
+              const conditions: any[] = [];
+              decisionTableInputConditions.forEach(
+                (condition: any, cn: number) => {
+                  const decisionTableInput = decisionTableInputs.find(
+                    (input: any) => input.uuid === condition.dt_input_id,
                   );
-                }
-              }
-              codeString += ") {\n";
-              
-              for (const result of decisionTableRow.decisionTableOutputResults) {
-                const output = decisionTable.decisionTableOutputs.find(
-                  (output) => output.id === result.decisionTableOutputId,
+                  if (
+                    decisionTableInput.variable.dataType ===
+                      DecisionDataTypes[1]?.value &&
+                    condition.value === ""
+                  ) {
+                    return;
+                  }
+                  conditions.push(
+                    `data.${
+                      decisionTableInput.variable.name
+                    }${getInputOperatorAndValue(
+                      condition.condition,
+                      decisionTableInput.variable.dataType,
+                      condition.value,
+                    )}`,
+                  );
+                },
+              );
+              decisionTableCode += conditions.join(" && ") + ",\n";
+              // Contact outputs
+              decisionTableCode += "    result: { ";
+              // Loop outputs
+              const results: any[] = [];
+              decisionTableOutputResults.forEach((result: any, rn: number) => {
+                const decisionTableOutput = decisionTableOutputs.find(
+                  (output: any) => output.uuid === result.dt_output_id,
                 );
-                if (output) {
-                  codeString += `  output.${output.name} =`;
-                  codeString += getOutputValue(result.value, output.dataType);
-                  codeString += ";\n";
-                }
+                results.push(
+                  `${decisionTableOutput.variable.name}:${getOutputValue(
+                    result.result,
+                    decisionTableOutput.variable.dataType,
+                  )}`,
+                );
+              });
+              decisionTableCode += results.join(", ");
+              decisionTableCode += " },\n";
+              decisionTableCode += "  },";
+              if (rn == normalRows.length - 1) {
+                decisionTableCode += "\n";
               }
-              codeString += "}\n";
+            });
+            decisionTableCode += "];\n";
+            decisionTableJSCodeArray.push(decisionTableCode);
+            // Node input data
+            const nodeInputCode =
+              "const data = $input.all()[0].json.body || $input.all()[0].json;\n";
+            decisionTableJSCodeArray.push(nodeInputCode);
+            // Default result
+            let defaultResult = 'let matchedResult = { message: "No Match" };';
+            if (defaultRows && defaultRows.length > 0) {
+              defaultResult = `let matchedResult = { `;
+
+              defaultRows.forEach((row: any, rn: number) => {
+                const decisionTableOutputResults = row.outputResults;
+                // Loop outputs
+                const defaultResults: any[] = [];
+                decisionTableOutputResults.forEach(
+                  (result: any, rn: number) => {
+                    const decisionTableOutput = decisionTableOutputs.find(
+                      (output: any) => output.uuid === result.dt_output_id,
+                    );
+                    defaultResults.push(
+                      `${decisionTableOutput.variable.name}:${getOutputValue(
+                        result.result,
+                        decisionTableOutput.variable.dataType,
+                      )}`,
+                    );
+                  },
+                );
+                defaultResult += defaultResults.join(", ");
+                defaultResult += "  };";
+                if (rn == defaultRows.length - 1) {
+                  defaultResult += "\n";
+                }
+              });
             }
+            decisionTableJSCodeArray.push(defaultResult);
+            // Detect matched result
+            const detectMatchedResult =
+              "for (const rule of decisionTable) {\n  if (rule.condition(data)) {\n    matchedResult = rule.result;\n    break;\n  }\n}\n";
+            decisionTableJSCodeArray.push(detectMatchedResult);
+            // Return matched result
+            const returnMatchedResult =
+              "return [\n  {\n    json: {\n     ...matchedResult,\n    },\n  },\n];";
+            decisionTableJSCodeArray.push(returnMatchedResult);
+            // Generate JS code
+            const jsCode = decisionTableJSCodeArray.join("\n");
+
+            n8nNodes.push({
+              ...n8nCodeNode,
+              parameters: {
+                ...n8nCodeNode.parameters,
+                jsCode: jsCode,
+              },
+              position: [node.position.x, node.position.y],
+              name: node.data.label,
+              id: uuidv4(),
+            });
           }
-          codeString += "return [{ json: output }];";
-          
-          n8nNodes.push({
-            ...n8nCodeNode,
-            parameters: {
-              ...n8nCodeNode.parameters,
-              jsCode: codeString,
-            },
-            position: [node.position.x, node.position.y],
-            name: node.data.label,
-            id: uuidv4(),
-          });
         }
         break;
-        
+
       case NodeTypes.logic:
         n8nNodes.push({
           ...n8nCodeNode,
@@ -565,7 +639,7 @@ const generateN8NNodesAndN8NConnections = async (
           id: uuidv4(),
         });
         break;
-        
+
       case NodeTypes.splitOut:
         n8nNodes.push({
           ...n8nSplitOutNode,
@@ -574,24 +648,30 @@ const generateN8NNodesAndN8NConnections = async (
           id: uuidv4(),
         });
         break;
-        
+
       case NodeTypes.whatsApp:
         const authValue = `Basic ${Buffer.from(
           `${process.env.WHATSAPP_PHONE_NUMBER_ID}:${process.env.WHATSAPP_ACCESS_TOKEN}`,
         ).toString("base64")}`;
-        
+
         let whatsAppPayload = {};
         if (node.data.type === WhatsAppSendTypes[0]?.value) {
           whatsAppPayload = {
             messaging_product: "whatsapp",
-            to: node.data.to.valueType === "Expression" ? `{{ ${node.data.to.value} }}` : node.data.to.value,
+            to:
+              node.data.to.valueType === "Expression"
+                ? `{{ ${node.data.to.value} }}`
+                : node.data.to.value,
             type: "text",
             text: {
-              body: node.data.message.valueType === "Expression" ? `{{ ${node.data.message.value} }}` : node.data.message.value,
+              body:
+                node.data.message.valueType === "Expression"
+                  ? `{{ ${node.data.message.value} }}`
+                  : node.data.message.value,
             },
           };
         }
-        
+
         n8nNodes.push({
           ...n8nHTTPRequestNode,
           parameters: {
@@ -616,35 +696,45 @@ const generateN8NNodesAndN8NConnections = async (
           id: uuidv4(),
         });
         break;
-        
+
       case NodeTypes.database:
         const insertNode: any = {
           ...n8nHTTPRequestNode,
           parameters: {
             ...n8nHTTPRequestNode.parameters,
             method: node.data.method,
-            url: node.data.url.valueType === "Expression" ? `={{ ${node.data.url.value} }}` : node.data.url.value,
+            url:
+              node.data.url.valueType === "Expression"
+                ? `={{ ${node.data.url.value} }}`
+                : node.data.url.value,
             sendQuery: node.data.queryParams.length > 0,
             queryParameters: {
               parameters: node.data.queryParams.map((item: any) => ({
                 name: item.name,
-                value: item.valueType === "Expression" ? `={{ ${item.value} }}` : item.value,
+                value:
+                  item.valueType === "Expression"
+                    ? `={{ ${item.value} }}`
+                    : item.value,
               })),
             },
             sendHeaders: node.data.headers.length > 0,
             headerParameters: {
               parameters: node.data.headers.map((item: any) => ({
                 name: item.name,
-                value: item.valueType === "Expression" ? `={{ ${item.value} }}` : item.value,
+                value:
+                  item.valueType === "Expression"
+                    ? `={{ ${item.value} }}`
+                    : item.value,
               })),
             },
-            sendBody: node.data.body.length > 0 || !!node.data.specifyBodyValue.value,
+            sendBody:
+              node.data.body.length > 0 || !!node.data.specifyBodyValue.value,
           },
           position: [node.position.x, node.position.y],
           name: node.data.label,
           id: uuidv4(),
         };
-        
+
         if (node.data.specifyBody === "json") {
           insertNode.parameters["specifyBody"] = "json";
           insertNode.parameters["jsonBody"] =
@@ -655,13 +745,16 @@ const generateN8NNodesAndN8NConnections = async (
           insertNode.parameters["bodyParameters"] = {
             parameters: node.data.body.map((item: any) => ({
               name: item.name,
-              value: item.valueType === "Expression" ? `={{ ${item.value} }}` : item.value,
+              value:
+                item.valueType === "Expression"
+                  ? `={{ ${item.value} }}`
+                  : item.value,
             })),
           };
         }
         n8nNodes.push(insertNode);
         break;
-        
+
       case NodeTypes.loop:
         n8nNodes.push({
           ...n8nSplitInBatchesNode,
@@ -674,7 +767,7 @@ const generateN8NNodesAndN8NConnections = async (
           id: uuidv4(),
         });
         break;
-        
+
       case NodeTypes.rag:
         n8nNodes.push({
           ...n8nHTTPRequestNode,
@@ -717,12 +810,12 @@ const generateN8NNodesAndN8NConnections = async (
           id: uuidv4(),
         });
         break;
-        
+
       default:
         break;
     }
   }
-  
+
   // Generate n8n connections
   edges.forEach((edge) => {
     const sourceNode = nodes.find((node) => node.id === edge.source);
@@ -766,7 +859,7 @@ const generateN8NNodesAndN8NConnections = async (
       }
     }
   });
-  
+
   return {
     n8nNodes,
     n8nConnections,
@@ -838,4 +931,4 @@ const getOutputValue = (value: string, dateType?: string) => {
     default:
       return ` ${value}`;
   }
-}; 
+};

@@ -61,3 +61,10 @@ export function formatSize(n: number) {
   if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
   return n.toString() + "B";
 }
+
+export const formatName = (name: string) => {
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_]/g, "");
+}
