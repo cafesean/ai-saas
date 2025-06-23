@@ -30,7 +30,7 @@ import { SampleButton } from "@/components/ui/sample-button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { WithPermission } from "@/components/auth/WithPermission";
-import { TenantSwitcher } from "@/components/auth/TenantSwitcher";
+import { OrgSwitcher } from "@/components/auth/OrgSwitcher";
 import { UserProfile } from "@/components/auth/UserProfile";
 
 interface NavItem {
@@ -303,9 +303,9 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
       "w-64 flex flex-col border-r bg-background",
       setOpen ? "relative h-screen" : "fixed top-16 bottom-0 left-0 z-40 h-[calc(100vh-4rem)]"
     )}>
-      {/* Tenant Switcher at the top */}
+      {/* Org Switcher at the top */}
       <div className="px-3 py-4 border-b">
-        <TenantSwitcher />
+        <OrgSwitcher />
       </div>
       
       <ScrollArea className="flex-1 px-2 py-4">

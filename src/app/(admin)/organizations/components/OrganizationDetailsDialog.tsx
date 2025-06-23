@@ -140,7 +140,7 @@ export function OrganizationDetailsDialog({
   }, [watchedName, mode, form]);
 
   // API queries and mutations
-  const createMutation = api.tenant.create.useMutation({
+  const createMutation = api.org.create.useMutation({
     onSuccess: () => {
       toast.success("Organization created successfully");
       onSuccess();
@@ -150,7 +150,7 @@ export function OrganizationDetailsDialog({
     },
   });
 
-  const updateMutation = api.tenant.update.useMutation({
+  const updateMutation = api.org.update.useMutation({
     onSuccess: () => {
       toast.success("Organization updated successfully");
       onSuccess();
@@ -161,7 +161,7 @@ export function OrganizationDetailsDialog({
   });
 
   // User management queries
-  const { data: organizationData, refetch: refetchUsers } = api.tenant.getById.useQuery(
+  const { data: organizationData, refetch: refetchUsers } = api.org.getById.useQuery(
     organization?.id ? Number(organization.id) : 0,
     { 
       enabled: !!organization?.id && mode === "edit" && open,
@@ -180,7 +180,7 @@ export function OrganizationDetailsDialog({
     }
   );
 
-  const addUserMutation = api.tenant.addUser.useMutation({
+  const addUserMutation = api.org.addUser.useMutation({
     onSuccess: () => {
       toast.success("User added to organization");
       refetchUsers();
@@ -191,7 +191,7 @@ export function OrganizationDetailsDialog({
     },
   });
 
-  const removeUserMutation = api.tenant.removeUser.useMutation({
+  const removeUserMutation = api.org.removeUser.useMutation({
     onSuccess: () => {
       toast.success("User removed from organization");
       refetchUsers();
@@ -201,7 +201,7 @@ export function OrganizationDetailsDialog({
     },
   });
 
-  const updateUserRoleMutation = api.tenant.updateUserRole.useMutation({
+  const updateUserRoleMutation = api.org.updateUserRole.useMutation({
     onSuccess: () => {
       toast.success("User role updated");
       refetchUsers();
@@ -228,7 +228,7 @@ export function OrganizationDetailsDialog({
     if (!organization) return;
     
     addUserMutation.mutate({
-      tenantId: Number(organization.id),
+      orgId: Number(organization.id),
       userId: Number(userId),
       role: selectedRole,
     });
@@ -238,7 +238,7 @@ export function OrganizationDetailsDialog({
     if (!organization) return;
     
     removeUserMutation.mutate({
-      tenantId: Number(organization.id),
+      orgId: Number(organization.id),
       userId: Number(userId),
     });
   };
@@ -247,7 +247,7 @@ export function OrganizationDetailsDialog({
     if (!organization) return;
     
     updateUserRoleMutation.mutate({
-      tenantId: Number(organization.id),
+      orgId: Number(organization.id),
       userId: Number(userId),
       role: newRole,
     });
@@ -680,7 +680,7 @@ export function OrganizationDetailsDialog({
 
                       <div className="flex items-center gap-2">
                         <Select
-                          value={user.tenantRole || "member"}
+                          value={user.orgRole || "member"}
                           onValueChange={(newRole) => handleUpdateUserRole(user.userId.toString(), newRole)}
                           disabled={updateUserRoleMutation.isPending}
                         >

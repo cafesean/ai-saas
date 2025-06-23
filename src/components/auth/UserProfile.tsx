@@ -15,8 +15,7 @@ import {
   User, 
   LogOut, 
   Settings, 
-  Building2,
-  Shield
+  Building2
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -28,7 +27,7 @@ export function UserProfile() {
   }
 
   const user = session.user;
-  const currentTenant = user.currentTenant;
+  const currentOrg = (user as any).currentOrg;
   const userInitials = user.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 
                       user.email?.charAt(0).toUpperCase() || 'U';
 
@@ -50,10 +49,10 @@ export function UserProfile() {
             <div className="text-sm font-medium truncate w-full">
               {user.name || user.email}
             </div>
-            {currentTenant && (
+            {currentOrg && (
               <div className="flex items-center text-xs text-muted-foreground">
                 <Building2 className="h-3 w-3 mr-1" />
-                <span className="truncate">{currentTenant.name}</span>
+                <span className="truncate">{currentOrg.name}</span>
               </div>
             )}
           </div>
@@ -80,13 +79,13 @@ export function UserProfile() {
               </div>
             </div>
             
-            {currentTenant && (
+            {currentOrg && (
               <div className="flex items-center justify-between pt-2 border-t">
                 <div className="flex items-center space-x-2">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
                   <div className="flex flex-col">
                     <span className="text-xs font-medium">
-                      {currentTenant.name}
+                      {currentOrg.name}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       Current Organization
@@ -96,20 +95,20 @@ export function UserProfile() {
               </div>
             )}
 
-            {user.availableTenants && user.availableTenants.length > 1 && (
+            {(user as any).availableOrgs && (user as any).availableOrgs.length > 1 && (
               <div className="pt-2">
                 <p className="text-xs text-muted-foreground mb-2">
-                  Available Organizations: {user.availableTenants.length}
+                  Available Organizations: {(user as any).availableOrgs.length}
                 </p>
                 <div className="flex flex-wrap gap-1">
-                  {user.availableTenants.slice(0, 3).map((tenant) => (
-                    <Badge key={tenant.id} variant="outline" className="text-xs">
-                      {tenant.name}
+                  {(user as any).availableOrgs.slice(0, 3).map((org: any) => (
+                    <Badge key={org.id} variant="outline" className="text-xs">
+                      {org.name}
                     </Badge>
                   ))}
-                  {user.availableTenants.length > 3 && (
+                  {(user as any).availableOrgs.length > 3 && (
                     <Badge variant="outline" className="text-xs">
-                      +{user.availableTenants.length - 3} more
+                      +{(user as any).availableOrgs.length - 3} more
                     </Badge>
                   )}
                 </div>
@@ -121,20 +120,20 @@ export function UserProfile() {
         <DropdownMenuSeparator />
         
         <DropdownMenuItem asChild>
-          <Link href="/profile" className="flex items-center">
+          <Link href="/users" className="flex items-center">
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </Link>
         </DropdownMenuItem>
         
         <DropdownMenuItem asChild>
-          <Link href="/settings" className="flex items-center">
+          <Link href="/users" className="flex items-center">
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </Link>
         </DropdownMenuItem>
 
-        {user.availableTenants && user.availableTenants.length > 1 && (
+        {(user as any).availableOrgs && (user as any).availableOrgs.length > 1 && (
           <DropdownMenuItem asChild>
             <Link href="/organizations" className="flex items-center">
               <Building2 className="mr-2 h-4 w-4" />

@@ -11,7 +11,6 @@ import { type OrganizationWithStats } from "@/types/organization";
 import { api } from "@/utils/trpc";
 import { toast } from "sonner";
 import { RouteGuard } from "@/components/auth/RouteGuard";
-
 export default function OrganizationsPage() {
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -24,15 +23,15 @@ export default function OrganizationsPage() {
     data: organizationsResponse, 
     isLoading, 
     refetch 
-  } = api.tenant.getAllWithStats.useQuery({
+  } = api.org.getAllWithStats.useQuery({
     limit: 100,
     offset: 0,
   });
 
-  const organizations = organizationsResponse?.tenants || [];
+  const organizations = organizationsResponse?.orgs || [];
 
   // Mutations
-  const deleteMutation = api.tenant.delete.useMutation({
+  const deleteMutation = api.org.delete.useMutation({
     onSuccess: () => {
       toast.success("Organization deleted successfully");
       refetch();
@@ -42,7 +41,7 @@ export default function OrganizationsPage() {
     },
   });
 
-  const updateMutation = api.tenant.update.useMutation({
+  const updateMutation = api.org.update.useMutation({
     onSuccess: () => {
       toast.success("Organization updated successfully");
       refetch();

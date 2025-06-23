@@ -12,13 +12,15 @@ export const n8nRouter = createTRPCRouter({
 		return db
 			.insert(templates)
 			.values({
-				templateId: parsedTemplate.templateId,
+				name: "Untitled Template", // Default name since parsedTemplate doesn't have name
+				description: undefined, // Default description since parsedTemplate doesn't have description
+				flowId: parsedTemplate.templateId || "unknown",
+				provider: "n8n", // Default provider since parsedTemplate doesn't have provider
 				versionId: parsedTemplate.versionId,
 				instanceId: parsedTemplate.instanceId,
 				userInputs: parsedTemplate.userInputs,
 				workflowJson: parsedTemplate.workflowJson,
-				createdAt: new Date(),
-				updatedAt: new Date(),
+				orgId: 1, // Default org for now
 			})
 			.returning();
 	}),
@@ -27,8 +29,8 @@ export const n8nRouter = createTRPCRouter({
 		return db.select().from(templates).orderBy(desc(templates.createdAt));
 	}),
 
-	getTemplate: publicProcedure.input(z.string().uuid()).query(async ({ input: id }) => {
-		const [template] = await db.select().from(templates).where(eq(templates.id, id)).limit(1);
+	getTemplate: publicProcedure.input(z.string().uuid()).query(async ({ input: uuid }) => {
+		const [template] = await db.select().from(templates).where(eq(templates.uuid, uuid)).limit(1);
 
 		if (!template) {
 			throw new Error("Template not found");
@@ -57,14 +59,14 @@ export const n8nRouter = createTRPCRouter({
 	updateNodeType: publicProcedure
 		.input(
 			z.object({
-				id: z.string().uuid(),
+				uuid: z.string().uuid(),
 				type: z.string(),
 				category: z.string(),
 				description: z.string().optional(),
 			})
 		)
-		.mutation(async ({ input: { id, ...data } }) => {
-			const [nodeType] = await db.update(nodeTypes).set(data).where(eq(nodeTypes.id, id)).returning();
+		.mutation(async ({ input: { uuid, ...data } }) => {
+			const [nodeType] = await db.update(nodeTypes).set(data).where(eq(nodeTypes.uuid, uuid)).returning();
 
 			if (!nodeType) {
 				throw new Error("Node type not found");
@@ -73,8 +75,8 @@ export const n8nRouter = createTRPCRouter({
 			return nodeType;
 		}),
 
-	deleteNodeType: publicProcedure.input(z.string().uuid()).mutation(async ({ input: id }) => {
-		await db.delete(nodeTypes).where(eq(nodeTypes.id, id));
+	deleteNodeType: publicProcedure.input(z.string().uuid()).mutation(async ({ input: uuid }) => {
+		await db.delete(nodeTypes).where(eq(nodeTypes.uuid, uuid));
 		return { success: true };
 	}),
 });

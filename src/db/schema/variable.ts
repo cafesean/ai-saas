@@ -63,7 +63,7 @@ export const variables = pgTable(
     
     // Multi-tenancy support
       orgId: integer("org_id")
-    .notNull()
+      .notNull()
     .references(() => orgs.id, { onDelete: "restrict" }),
       
     createdAt: timestamp("created_at", { withTimezone: true })

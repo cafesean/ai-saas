@@ -14,15 +14,17 @@ export interface User {
   updatedAt: Date;
 }
 
-export interface UserWithStats extends User {
+export interface UserWithStats extends Omit<User, 'password' | 'avatar'> {
+  password?: string | null;
+  avatar?: string | null;
   roleCount: number;
-  tenantCount: number;
+  orgCount: number;
   lastLoginAt: Date | null;
   roles: Array<{
     id: number;
     name: string;
-    tenantId: number;
-    tenantName: string;
+    orgId: number;
+    orgName: string;
     isActive: boolean;
   }>;
 }
@@ -51,7 +53,7 @@ export interface UserFilters {
   search: string;
   isActive?: boolean;
   roleId?: number;
-  tenantId?: number;
+  orgId?: number;
   lastLoginRange?: [Date, Date];
 }
 
@@ -62,7 +64,7 @@ export interface UserBulkActions {
 
 export interface UserRoleAssignment {
   userId: number;
-  tenantId: number;
+  orgId: number;
   roleId: number;
   isActive: boolean;
   assignedAt: Date;

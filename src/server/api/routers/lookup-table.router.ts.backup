@@ -2,7 +2,7 @@ import { z } from "zod";
 import { eq, and, desc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
-import { createTRPCRouter, protectedProcedure, getUserTenantId } from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure, getUserOrgId } from "@/server/api/trpc";
 import { db } from "@/db";
 import { lookup_tables, lookup_table_rows, LookupTableStatus } from "@/db/schema/lookup_table";
 import { variables } from "@/db/schema/variable";
@@ -62,8 +62,8 @@ export const lookupTableRouter = createTRPCRouter({
   // Get all lookup tables
   getAll: protectedProcedure.query(async ({ ctx }) => {
     try {
-      // 🔒 SECURITY FIX: Get tenant from authenticated user context
-      const tenantId = await getUserTenantId(ctx.session.user.id);
+      // 🔒 SECURITY FIX: Get org from authenticated user context
+      const orgId = await getUserOrgId(ctx.session.user.id);
 
       const lookupTables = await db
         .select({
@@ -79,7 +79,7 @@ export const lookupTableRouter = createTRPCRouter({
           status: lookup_tables.status,
           publishedAt: lookup_tables.publishedAt,
           publishedBy: lookup_tables.publishedBy,
-          tenantId: lookup_tables.tenantId,
+          orgId: lookup_tables.orgId,
           createdAt: lookup_tables.createdAt,
           updatedAt: lookup_tables.updatedAt,
           // Include input variable name for display
@@ -87,7 +87,7 @@ export const lookupTableRouter = createTRPCRouter({
         })
         .from(lookup_tables)
         .leftJoin(variables, eq(lookup_tables.inputVariableId, variables.uuid))
-        .where(eq(lookup_tables.tenantId, tenantId))
+        .where(eq(lookup_tables.orgId, orgId))
         .orderBy(desc(lookup_tables.updatedAt));
 
       return lookupTables;
@@ -105,8 +105,8 @@ export const lookupTableRouter = createTRPCRouter({
     .input(z.string().uuid())
     .query(async ({ input: uuid, ctx }) => {
       try {
-        // TODO: Replace hardcoded tenantId with actual tenant from context
-        const tenantId = 1;
+        // TODO: Replace hardcoded orgId with actual org from context
+        const orgId = 1;
 
         // Get the lookup table
         const lookupTable = await db
@@ -123,7 +123,7 @@ export const lookupTableRouter = createTRPCRouter({
             status: lookup_tables.status,
             publishedAt: lookup_tables.publishedAt,
             publishedBy: lookup_tables.publishedBy,
-            tenantId: lookup_tables.tenantId,
+            orgId: lookup_tables.orgId,
             createdAt: lookup_tables.createdAt,
             updatedAt: lookup_tables.updatedAt,
             // Include input variable name for display
@@ -133,7 +133,7 @@ export const lookupTableRouter = createTRPCRouter({
           .leftJoin(variables, eq(lookup_tables.inputVariableId, variables.uuid))
           .where(and(
             eq(lookup_tables.uuid, uuid),
-            eq(lookup_tables.tenantId, tenantId)
+            eq(lookup_tables.orgId, orgId)
           ))
           .limit(1);
 
@@ -172,8 +172,8 @@ export const lookupTableRouter = createTRPCRouter({
     .input(createLookupTableSchema)
     .mutation(async ({ input, ctx }) => {
       try {
-        // TODO: Replace hardcoded tenantId with actual tenant from context
-        const tenantId = 1;
+        // TODO: Replace hardcoded orgId with actual org from context
+        const orgId = 1;
 
         // Verify the input variable exists and is published
         const inputVariable = await db
@@ -181,7 +181,7 @@ export const lookupTableRouter = createTRPCRouter({
           .from(variables)
           .where(and(
             eq(variables.uuid, input.inputVariableId),
-            eq(variables.tenantId, tenantId)
+            eq(variables.orgId, orgId)
           ))
           .limit(1);
 
@@ -199,13 +199,13 @@ export const lookupTableRouter = createTRPCRouter({
           });
         }
 
-        // Check for duplicate name within tenant
+        // Check for duplicate name within org
         const existingTable = await db
           .select()
           .from(lookup_tables)
           .where(and(
             eq(lookup_tables.name, input.name),
-            eq(lookup_tables.tenantId, tenantId)
+            eq(lookup_tables.orgId, orgId)
           ))
           .limit(1);
 
@@ -225,7 +225,7 @@ export const lookupTableRouter = createTRPCRouter({
             outputName: input.outputName,
             outputDataType: input.outputDataType,
             defaultValue: input.defaultValue,
-            tenantId,
+            orgId,
             status: LookupTableStatus.DRAFT,
             version: 1,
           })
@@ -249,8 +249,8 @@ export const lookupTableRouter = createTRPCRouter({
     .input(updateLookupTableSchema)
     .mutation(async ({ input, ctx }) => {
       try {
-        // TODO: Replace hardcoded tenantId with actual tenant from context
-        const tenantId = 1;
+        // TODO: Replace hardcoded orgId with actual org from context
+        const orgId = 1;
 
         // Check if lookup table exists and is editable
         const existingTable = await db
@@ -258,7 +258,7 @@ export const lookupTableRouter = createTRPCRouter({
           .from(lookup_tables)
           .where(and(
             eq(lookup_tables.uuid, input.uuid),
-            eq(lookup_tables.tenantId, tenantId)
+            eq(lookup_tables.orgId, orgId)
           ))
           .limit(1);
 
@@ -283,7 +283,7 @@ export const lookupTableRouter = createTRPCRouter({
             .from(variables)
             .where(and(
               eq(variables.uuid, input.inputVariableId),
-              eq(variables.tenantId, tenantId)
+              eq(variables.orgId, orgId)
             ))
             .limit(1);
 
@@ -309,7 +309,7 @@ export const lookupTableRouter = createTRPCRouter({
             .from(lookup_tables)
             .where(and(
               eq(lookup_tables.name, input.name),
-              eq(lookup_tables.tenantId, tenantId)
+              eq(lookup_tables.orgId, orgId)
             ))
             .limit(1);
 
@@ -330,7 +330,7 @@ export const lookupTableRouter = createTRPCRouter({
           })
           .where(and(
             eq(lookup_tables.uuid, uuid),
-            eq(lookup_tables.tenantId, tenantId)
+            eq(lookup_tables.orgId, orgId)
           ))
           .returning();
 
@@ -352,8 +352,8 @@ export const lookupTableRouter = createTRPCRouter({
     .input(z.string().uuid())
     .mutation(async ({ input: uuid, ctx }) => {
       try {
-        // TODO: Replace hardcoded tenantId with actual tenant from context
-        const tenantId = 1;
+        // TODO: Replace hardcoded orgId with actual org from context
+        const orgId = 1;
 
         // Check if lookup table exists and is deletable
         const existingTable = await db
@@ -361,7 +361,7 @@ export const lookupTableRouter = createTRPCRouter({
           .from(lookup_tables)
           .where(and(
             eq(lookup_tables.uuid, uuid),
-            eq(lookup_tables.tenantId, tenantId)
+            eq(lookup_tables.orgId, orgId)
           ))
           .limit(1);
 
@@ -385,7 +385,7 @@ export const lookupTableRouter = createTRPCRouter({
           .from(variables)
           .where(and(
             eq(variables.lookupTableId, uuid),
-            eq(variables.tenantId, tenantId)
+            eq(variables.orgId, orgId)
           ))
           .limit(1);
 
@@ -400,7 +400,7 @@ export const lookupTableRouter = createTRPCRouter({
           .delete(lookup_tables)
           .where(and(
             eq(lookup_tables.uuid, uuid),
-            eq(lookup_tables.tenantId, tenantId)
+            eq(lookup_tables.orgId, orgId)
           ));
 
         return { success: true };
@@ -421,8 +421,8 @@ export const lookupTableRouter = createTRPCRouter({
     .input(z.object({ uuid: z.string().uuid() }))
     .mutation(async ({ input, ctx }) => {
       try {
-        // TODO: Replace hardcoded tenantId and userId with actual values from context
-        const tenantId = 1;
+        // TODO: Replace hardcoded orgId and userId with actual values from context
+        const orgId = 1;
         const userId = 1; // TODO: Get from ctx.session.user.id
 
         const existingTable = await db
@@ -430,7 +430,7 @@ export const lookupTableRouter = createTRPCRouter({
           .from(lookup_tables)
           .where(and(
             eq(lookup_tables.uuid, input.uuid),
-            eq(lookup_tables.tenantId, tenantId)
+            eq(lookup_tables.orgId, orgId)
           ))
           .limit(1);
 
@@ -472,7 +472,7 @@ export const lookupTableRouter = createTRPCRouter({
           })
           .where(and(
             eq(lookup_tables.uuid, input.uuid),
-            eq(lookup_tables.tenantId, tenantId)
+            eq(lookup_tables.orgId, orgId)
           ))
           .returning();
 
@@ -494,15 +494,15 @@ export const lookupTableRouter = createTRPCRouter({
     .input(z.string().uuid())
     .mutation(async ({ input: uuid, ctx }) => {
       try {
-        // TODO: Replace hardcoded tenantId with actual tenant from context
-        const tenantId = 1;
+        // TODO: Replace hardcoded orgId with actual org from context
+        const orgId = 1;
 
         const existingTable = await db
           .select()
           .from(lookup_tables)
           .where(and(
             eq(lookup_tables.uuid, uuid),
-            eq(lookup_tables.tenantId, tenantId)
+            eq(lookup_tables.orgId, orgId)
           ))
           .limit(1);
 
@@ -528,7 +528,7 @@ export const lookupTableRouter = createTRPCRouter({
           })
           .where(and(
             eq(lookup_tables.uuid, uuid),
-            eq(lookup_tables.tenantId, tenantId)
+            eq(lookup_tables.orgId, orgId)
           ))
           .returning();
 
@@ -552,8 +552,8 @@ export const lookupTableRouter = createTRPCRouter({
       .input(createLookupTableRowSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          // TODO: Replace hardcoded tenantId with actual tenant from context
-          const tenantId = 1;
+          // TODO: Replace hardcoded orgId with actual org from context
+          const orgId = 1;
 
           // Verify the lookup table exists and is editable
           const lookupTable = await db
@@ -561,7 +561,7 @@ export const lookupTableRouter = createTRPCRouter({
             .from(lookup_tables)
             .where(and(
               eq(lookup_tables.uuid, input.lookupTableId),
-              eq(lookup_tables.tenantId, tenantId)
+              eq(lookup_tables.orgId, orgId)
             ))
             .limit(1);
 
@@ -602,8 +602,8 @@ export const lookupTableRouter = createTRPCRouter({
       .input(updateLookupTableRowSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          // TODO: Replace hardcoded tenantId with actual tenant from context
-          const tenantId = 1;
+          // TODO: Replace hardcoded orgId with actual org from context
+          const orgId = 1;
 
           // Get the row and verify the lookup table is editable
           const row = await db
@@ -616,7 +616,7 @@ export const lookupTableRouter = createTRPCRouter({
             .innerJoin(lookup_tables, eq(lookup_table_rows.lookupTableId, lookup_tables.uuid))
             .where(and(
               eq(lookup_table_rows.uuid, input.uuid),
-              eq(lookup_tables.tenantId, tenantId)
+              eq(lookup_tables.orgId, orgId)
             ))
             .limit(1);
 
@@ -662,8 +662,8 @@ export const lookupTableRouter = createTRPCRouter({
       .input(z.string().uuid())
       .mutation(async ({ input: uuid, ctx }) => {
         try {
-          // TODO: Replace hardcoded tenantId with actual tenant from context
-          const tenantId = 1;
+          // TODO: Replace hardcoded orgId with actual org from context
+          const orgId = 1;
 
           // Get the row and verify the lookup table is editable
           const row = await db
@@ -676,7 +676,7 @@ export const lookupTableRouter = createTRPCRouter({
             .innerJoin(lookup_tables, eq(lookup_table_rows.lookupTableId, lookup_tables.uuid))
             .where(and(
               eq(lookup_table_rows.uuid, uuid),
-              eq(lookup_tables.tenantId, tenantId)
+              eq(lookup_tables.orgId, orgId)
             ))
             .limit(1);
 
@@ -716,8 +716,8 @@ export const lookupTableRouter = createTRPCRouter({
       .input(batchUpdateRowsSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          // TODO: Replace hardcoded tenantId with actual tenant from context
-          const tenantId = 1;
+          // TODO: Replace hardcoded orgId with actual org from context
+          const orgId = 1;
 
           // Verify the lookup table exists and is editable
           const lookupTable = await db
@@ -725,7 +725,7 @@ export const lookupTableRouter = createTRPCRouter({
             .from(lookup_tables)
             .where(and(
               eq(lookup_tables.uuid, input.lookupTableId),
-              eq(lookup_tables.tenantId, tenantId)
+              eq(lookup_tables.orgId, orgId)
             ))
             .limit(1);
 
@@ -792,8 +792,8 @@ export const lookupTableRouter = createTRPCRouter({
   // Get published lookup tables for variable selection
   getPublishedForSelection: protectedProcedure.query(async ({ ctx }) => {
     try {
-      // TODO: Replace hardcoded tenantId with actual tenant from context
-      const tenantId = 1;
+      // TODO: Replace hardcoded orgId with actual org from context
+      const orgId = 1;
 
       const publishedTables = await db
         .select({
@@ -805,7 +805,7 @@ export const lookupTableRouter = createTRPCRouter({
         })
         .from(lookup_tables)
         .where(and(
-          eq(lookup_tables.tenantId, tenantId),
+          eq(lookup_tables.orgId, orgId),
           eq(lookup_tables.status, LookupTableStatus.PUBLISHED)
         ))
         .orderBy(lookup_tables.name);

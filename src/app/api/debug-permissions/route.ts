@@ -21,7 +21,7 @@ export async function GET() {
       where: eq(userRoles.userId, userId),
       with: {
         role: true,
-        tenant: true
+        org: true
       }
     });
 
@@ -38,8 +38,8 @@ export async function GET() {
       rolePermissionDetails.push({
         roleId: userRole.roleId,
         roleName: userRole.role.name,
-        tenantId: userRole.tenantId,
-        tenantName: userRole.tenant.name,
+        orgId: userRole.orgId,
+        orgName: userRole.org.name,
         isActive: userRole.isActive,
         permissions: rolePerms.map(rp => ({
           id: rp.permission.id,
@@ -63,13 +63,13 @@ export async function GET() {
         name: user.name
       },
       userRoles: userRoleRecords.length,
-      userRoleDetails: userRoleRecords.map(ur => ({
-        id: ur.id,
+      userRoleDetails: userRoleRecords.map((ur, index) => ({
+        id: index + 1, // Use index as ID since userRoles table doesn't have an ID field
         userId: ur.userId,
         roleId: ur.roleId,
         roleName: ur.role.name,
-        tenantId: ur.tenantId,
-        tenantName: ur.tenant.name,
+        orgId: ur.orgId,
+        orgName: ur.org.name,
         isActive: ur.isActive
       })),
       rolePermissionDetails,

@@ -10,7 +10,7 @@ export interface UserProfile {
   email: string;
   name?: string;
   image?: string;
-  tenantId?: string;
+  orgId?: string;
 }
 
 export interface UserRole {
@@ -48,7 +48,7 @@ export interface UserProfile {
   email: string;
   name?: string;
   image?: string;
-  tenantId?: string;
+  orgId?: string;
 }
 
 export interface UserRole {

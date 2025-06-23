@@ -5,12 +5,12 @@ import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Building2, Users, Shield, Key, Refresh } from 'lucide-react';
-import { TenantSwitcher } from '@/components/auth/TenantSwitcher';
+import { Building2, Users, Shield, Key, RefreshCw } from 'lucide-react';
+// import { OrgSwitcher } from '@/components/auth/OrgSwitcher';
 import { api } from '@/utils/trpc';
 import { toast } from 'sonner';
 
-export default function MultiTenantDebugPage() {
+export default function MultiOrgDebugPage() {
   const { data: session, status, update } = useSession();
   const getCurrentUserQuery = api.auth.getCurrentUser.useQuery();
 
@@ -41,7 +41,7 @@ export default function MultiTenantDebugPage() {
           <CardHeader>
             <CardTitle className="text-red-600">Not Authenticated</CardTitle>
             <CardDescription>
-              Please log in to view multi-tenant debug information.
+              Please log in to view multi-org debug information.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -50,38 +50,38 @@ export default function MultiTenantDebugPage() {
   }
 
   const user = session?.user;
-  const currentTenant = user?.currentTenant;
-  const availableTenants = user?.availableTenants || [];
-  const allPermissions = user?.roles?.flatMap(role => role.policies?.map(p => p.name)) || [];
+  const currentOrg = (user as any)?.currentOrg;
+  const availableOrgs = (user as any)?.availableOrgs || [];
+  const allPermissions = user?.roles?.flatMap(role => (role as any).policies?.map((p: any) => p.name)) || [];
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Multi-Tenant Debug</h1>
+          <h1 className="text-3xl font-bold">Multi-Org Debug</h1>
           <p className="text-muted-foreground">
-            Debug information for multi-tenant session management
+            Debug information for multi-org session management
           </p>
         </div>
         <Button onClick={handleRefreshSession} variant="outline">
-          <Refresh className="mr-2 h-4 w-4" />
+          <RefreshCw className="mr-2 h-4 w-4" />
           Refresh Session
         </Button>
       </div>
 
-      {/* Tenant Switcher Test */}
+      {/* Org Switcher Test */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
             <Building2 className="mr-2 h-5 w-5" />
-            Tenant Switcher Component
+            Org Switcher Component
           </CardTitle>
           <CardDescription>
-            Test the tenant switching functionality
+            Test the org switching functionality
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <TenantSwitcher />
+          <div className="text-muted-foreground">OrgSwitcher component temporarily disabled</div>
         </CardContent>
       </Card>
 
@@ -106,51 +106,51 @@ export default function MultiTenantDebugPage() {
             </div>
             
             <div>
-              <h4 className="font-semibold mb-2">Tenant Context</h4>
+              <h4 className="font-semibold mb-2">Org Context</h4>
               <div className="space-y-1 text-sm">
-                <div><strong>Current Tenant ID:</strong> {user?.tenantId}</div>
-                <div><strong>Current Tenant Name:</strong> {currentTenant?.name || 'None'}</div>
-                <div><strong>Available Tenants:</strong> {availableTenants.length}</div>
+                <div><strong>Current Org ID:</strong> {(user as any)?.orgId}</div>
+                <div><strong>Current Org Name:</strong> {currentOrg?.name || 'None'}</div>
+                <div><strong>Available Orgs:</strong> {availableOrgs.length}</div>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Available Tenants */}
+      {/* Available Orgs */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
             <Building2 className="mr-2 h-5 w-5" />
-            Available Tenants ({availableTenants.length})
+            Available Orgs ({availableOrgs.length})
           </CardTitle>
           <CardDescription>
-            All tenants this user has access to
+            All orgs this user has access to
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {availableTenants.length === 0 ? (
-            <div className="text-muted-foreground">No tenants available</div>
+          {availableOrgs.length === 0 ? (
+            <div className="text-muted-foreground">No orgs available</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {availableTenants.map((tenant) => (
+              {availableOrgs.map((org: any) => (
                 <div
-                  key={tenant.id}
+                  key={org.id}
                   className={`p-4 border rounded-lg ${
-                    tenant.isActive ? 'border-primary bg-primary/5' : 'border-border'
+                    org.isActive ? 'border-primary bg-primary/5' : 'border-border'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <h5 className="font-medium">{tenant.name}</h5>
-                    {tenant.isActive && (
+                    <h5 className="font-medium">{org.name}</h5>
+                    {org.isActive && (
                       <Badge variant="default" className="text-xs">
                         Active
                       </Badge>
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    <div><strong>ID:</strong> {tenant.id}</div>
-                    <div><strong>Roles:</strong> {tenant.roles.join(', ')}</div>
+                    <div><strong>ID:</strong> {org.id}</div>
+                    <div><strong>Roles:</strong> {org.roles.join(', ')}</div>
                   </div>
                 </div>
               ))}
@@ -167,7 +167,7 @@ export default function MultiTenantDebugPage() {
             Current Permissions ({allPermissions.length})
           </CardTitle>
           <CardDescription>
-            All permissions available in the current tenant context
+            All permissions available in the current org context
           </CardDescription>
         </CardHeader>
         <CardContent>

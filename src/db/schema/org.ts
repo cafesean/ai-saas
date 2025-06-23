@@ -53,7 +53,7 @@ export const users = pgTable(
   ],
 );
 
-// Organizations table (renamed from tenants - SAAS-140)
+// Organizations table (renamed from orgs - SAAS-140)
 export const orgs = pgTable(
   "orgs",
   {
@@ -144,7 +144,7 @@ export const userOrgsRelations = relations(userOrgs, ({ one }) => ({
 }));
 
 // Legacy exports for backward compatibility during migration
-export const tenants = orgs;
-export const userTenants = userOrgs;
-export const tenantsRelations = orgsRelations;
-export const userTenantsRelations = userOrgsRelations; 
+// export const orgs;
+// export const userOrgs;
+// export const orgsRelations;
+// export const userOrgsRelations; 

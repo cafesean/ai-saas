@@ -6,6 +6,7 @@ import { eq, asc, desc, and, or, like, count, sql, not } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+import type { ExtendedSession } from '@/db/auth-hydration';
 
 const userSchema = z.object({
   name: z.string().min(1),
@@ -440,7 +441,7 @@ export const userRouter = createTRPCRouter({
           orgId,
           roleId,
           isActive: true,
-          assignedBy: ctx.session.user.id,
+          assignedBy: (ctx.session as ExtendedSession).user.id,
         });
 
         return { success: true, action: 'assigned' };

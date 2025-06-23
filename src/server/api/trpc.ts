@@ -12,6 +12,7 @@ import { type Session } from "next-auth";
 import { getServerSession } from "next-auth/next";
 import superjson from "superjson";
 import { ZodError } from "zod";
+import type { ExtendedSession } from "@/db/auth-hydration";
 
 import { authOptions } from "@/server/auth-simple";
 import { db } from "@/db";
@@ -85,17 +86,25 @@ export const createTRPCContextFetch = async (opts: { req: Request; resHeaders: H
           const currentOrgId = orgData?.currentOrgId || (orgData?.orgs?.[0]?.orgId) || 1;
           const userOrgInfo = orgData?.orgs?.find((org: any) => org.orgId === currentOrgId);
           
-          // Create session object with org context
+          // Create session object with org context matching NextAuth interface
           session = {
             user: {
               id: user.id,
+              uuid: user.uuid,
+              name: user.name || '',
+              username: user.username || '',
               email: user.email,
-              name: user.name,
+              avatar: user.avatar || '',
+              firstName: user.firstName || '',
+              lastName: user.lastName || '',
+              orgUser: [],
+              // Multi-org support properties
               orgId: currentOrgId,
               currentOrg: {
                 id: currentOrgId,
                 name: 'Default Org' // TODO: Get actual org name
               },
+              availableOrgs: [],
               roles: [{
                 id: 1,
                 name: userOrgInfo?.role || 'admin',
@@ -130,11 +139,12 @@ export const createTRPCContextFetch = async (opts: { req: Request; resHeaders: H
   }
 
   if (process.env.NODE_ENV === 'development') {
+    const extendedSession = session as ExtendedSession;
     console.log('tRPC Context Debug (Header-based):', {
       hasSession: !!session,
-      userId: session?.user?.id,
-      email: session?.user?.email,
-      permissionsCount: session?.user?.roles?.flatMap(r => r.policies).length || 0
+      userId: extendedSession?.user?.id,
+      email: extendedSession?.user?.email,
+      permissionsCount: extendedSession?.user?.roles?.flatMap((r: any) => r.policies).length || 0
     });
   }
 
@@ -233,13 +243,14 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
  */
 export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   // Check if user has admin permissions
-  const userPermissions = ctx.session.user.roles?.flatMap(role => 
-    role.policies?.map(policy => policy.name) || []
+  const session = ctx.session as ExtendedSession;
+  const userPermissions = session.user.roles?.flatMap((role: any) => 
+    role.policies?.map((policy: any) => policy.name) || []
   ) || [];
   
   const hasAdminAccess = userPermissions.includes('admin:full_access') || 
                         userPermissions.includes('admin:role_management') ||
-                        ctx.session.user.roles?.some(role => 
+                        session.user.roles?.some((role: any) => 
                           ['admin', 'owner', 'super'].includes(role.name.toLowerCase())
                         );
 
@@ -328,7 +339,8 @@ export const validateUserOrgAccess = async (userId: number, orgId: number): Prom
 export const withRateLimit = (procedure?: string) => {
   return protectedProcedure.use(async ({ ctx, next, path }) => {
     const { checkTRPCRateLimit } = await import("@/lib/rate-limit");
-    await checkTRPCRateLimit(ctx.session.user.id, procedure || path);
+    const session = ctx.session as ExtendedSession;
+    await checkTRPCRateLimit(session.user.id, procedure || path);
     return next();
   });
 };
@@ -340,7 +352,8 @@ export const withRateLimit = (procedure?: string) => {
  */
 export const protectedMutationWithRateLimit = protectedProcedure.use(async ({ ctx, next, path }) => {
   const { checkTRPCRateLimit } = await import("@/lib/rate-limit");
-  await checkTRPCRateLimit(ctx.session.user.id, path);
+  const session = ctx.session as ExtendedSession;
+  await checkTRPCRateLimit(session.user.id, path);
   return next();
 });
 
@@ -351,8 +364,9 @@ export const protectedMutationWithRateLimit = protectedProcedure.use(async ({ ct
  */
 export const withPermission = (requiredPermission: string) => {
   return protectedProcedure.use(({ ctx, next }) => {
-    const userPermissions = ctx.session.user.roles?.flatMap(role => 
-      role.policies?.map(policy => policy.name) || []
+    const session = ctx.session as ExtendedSession;
+    const userPermissions = session.user.roles?.flatMap((role: any) => 
+      role.policies?.map((policy: any) => policy.name) || []
     ) || [];
     
     const hasPermission = userPermissions.includes(requiredPermission) ||
@@ -366,7 +380,7 @@ export const withPermission = (requiredPermission: string) => {
         hasAdminFullAccess: userPermissions.includes('admin:full_access'),
         hasPermission,
         firstFewPermissions: userPermissions.slice(0, 5),
-        userEmail: ctx.session.user.email
+        userEmail: session.user.email
       });
     }
 

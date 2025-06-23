@@ -9,6 +9,7 @@ import {
   lookup_table_outputs
 } from "@/db/schema/lookup_table"
 import { TRPCError } from "@trpc/server"
+import type { ExtendedSession } from "@/db/auth-hydration"
 
 const createLookupTableSchema = z.object({
   name: z.string().min(1).max(255),
@@ -52,7 +53,8 @@ export const lookupTableRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       // TODO: Implement proper org lookup - using hardcoded orgId for now
-      const orgId = await getUserOrgId(ctx.session.user.id);
+      const session = ctx.session as ExtendedSession;
+      const orgId = await getUserOrgId(session.user.id);
       if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -82,7 +84,8 @@ export const lookupTableRouter = createTRPCRouter({
 
   getById: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ ctx, input }) => {
     // TODO: Implement proper org lookup - using hardcoded orgId for now
-    const orgId = await getUserOrgId(ctx.session.user.id);
+    const session = ctx.session as ExtendedSession;
+    const orgId = await getUserOrgId(session.user.id);
     if (!orgId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
@@ -122,7 +125,8 @@ export const lookupTableRouter = createTRPCRouter({
 
   getByUuid: protectedProcedure.input(z.object({ uuid: z.string() })).query(async ({ ctx, input }) => {
     // TODO: Implement proper org lookup - using hardcoded orgId for now
-    const orgId = await getUserOrgId(ctx.session.user.id);
+    const session = ctx.session as ExtendedSession;
+    const orgId = await getUserOrgId(session.user.id);
     if (!orgId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
@@ -164,12 +168,13 @@ export const lookupTableRouter = createTRPCRouter({
     console.log("Create lookup table input:", input)
     
     // TODO: Implement proper org lookup - using hardcoded orgId for now
-    const orgId = await getUserOrgId(ctx.session.user.id);
-    const userId = ctx.session?.user?.id || 1 // Fallback to user ID 1 for now
+    const session = ctx.session as ExtendedSession;
+    const orgId = await getUserOrgId(session.user.id);
+    const userId = session.user.id || 1 // Fallback to user ID 1 for now
     
     console.log("Session:", ctx.session)
     console.log("User ID:", userId)
-    console.log("Tenant ID:", orgId)
+    console.log("Org ID:", orgId)
     
     if (!orgId) {
       throw new TRPCError({
@@ -283,8 +288,9 @@ export const lookupTableRouter = createTRPCRouter({
 
   update: protectedProcedure.input(updateLookupTableSchema).mutation(async ({ ctx, input }) => {
     // TODO: Implement proper org lookup - using hardcoded orgId for now
-    const orgId = await getUserOrgId(ctx.session.user.id);
-    const userId = ctx.session?.user?.id
+    const session = ctx.session as ExtendedSession;
+    const orgId = await getUserOrgId(session.user.id);
+    const userId = session.user.id
     if (!orgId || !userId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
@@ -400,8 +406,9 @@ export const lookupTableRouter = createTRPCRouter({
 
   publish: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
     // TODO: Implement proper org lookup - using hardcoded orgId for now
-    const orgId = await getUserOrgId(ctx.session.user.id);
-    const userId = ctx.session?.user?.id
+    const session = ctx.session as ExtendedSession;
+    const orgId = await getUserOrgId(session.user.id);
+    const userId = session.user.id
     if (!orgId || !userId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
@@ -446,8 +453,9 @@ export const lookupTableRouter = createTRPCRouter({
 
   deprecate: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
     // TODO: Implement proper org lookup - using hardcoded orgId for now
-    const orgId = await getUserOrgId(ctx.session.user.id);
-    const userId = ctx.session?.user?.id
+    const session = ctx.session as ExtendedSession;
+    const orgId = await getUserOrgId(session.user.id);
+    const userId = session.user.id
     if (!orgId || !userId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
@@ -477,7 +485,8 @@ export const lookupTableRouter = createTRPCRouter({
 
   delete: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
     // TODO: Implement proper org lookup - using hardcoded orgId for now
-    const orgId = await getUserOrgId(ctx.session.user.id);
+    const session = ctx.session as ExtendedSession;
+    const orgId = await getUserOrgId(session.user.id);
     if (!orgId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",

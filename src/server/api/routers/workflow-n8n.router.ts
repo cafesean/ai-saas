@@ -512,7 +512,7 @@ const generateN8NNodesAndN8NConnections = async (
                   codeString += " && ";
                 }
                 const input = decisionTable.decisionTableInputs.find(
-                  (input) => input.id === condition.decisionTableInputId,
+                  (inputItem: any) => inputItem.id === condition.decisionTableInputId,
                 );
                 if (input) {
                   codeString += `input.${input.name}`;
@@ -527,7 +527,7 @@ const generateN8NNodesAndN8NConnections = async (
               
               for (const result of decisionTableRow.decisionTableOutputResults) {
                 const output = decisionTable.decisionTableOutputs.find(
-                  (output) => output.id === result.decisionTableOutputId,
+                  (outputItem: any) => outputItem.id === result.decisionTableOutputId,
                 );
                 if (output) {
                   codeString += `  output.${output.name} =`;

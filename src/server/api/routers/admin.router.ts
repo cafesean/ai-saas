@@ -3,14 +3,16 @@ import { createTRPCRouter, publicProcedure, protectedProcedure, withPermission }
 import { db } from "@/db";
 import { roles, permissions, rolePermissions, userRoles, orgs } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
+import type { ExtendedSession } from "@/db/auth-hydration";
 
 export const adminRouter = createTRPCRouter({
 	debugContext: withPermission('admin:debug_context').query(async ({ ctx }) => {
+		const session = ctx.session as ExtendedSession | null;
 		return {
-			hasSession: !!ctx.session,
-			hasUser: !!ctx.session?.user,
-			userId: ctx.session?.user?.id || null,
-			orgId: ctx.session?.user?.orgId || null,
+			hasSession: !!session,
+			hasUser: !!session?.user,
+			userId: session?.user?.id || null,
+			orgId: session?.user?.orgId || null,
 			nodeEnv: process.env.NODE_ENV,
 			mockUserId: process.env.NEXT_PUBLIC_MOCK_USER_ID,
 		};
@@ -18,9 +20,10 @@ export const adminRouter = createTRPCRouter({
 
 	seedRBAC: withPermission('admin:seed_rbac').mutation(async ({ ctx }) => {
 		// Rate limiting for admin operations
+		const session = ctx.session as ExtendedSession | null;
 		try {
 			const { checkTRPCRateLimit } = await import("@/lib/rate-limit");
-			await checkTRPCRateLimit(ctx.session?.user?.id, "admin.seedRBAC");
+			await checkTRPCRateLimit(session?.user?.id, "admin.seedRBAC");
 		} catch (error) {
 			if (error instanceof Error && error.message.includes("Rate limit exceeded")) {
 				throw error;
@@ -227,13 +230,13 @@ export const adminRouter = createTRPCRouter({
 			}
 
 			// Assign current user to owner role
-			if (ownerRole && ctx.session?.user?.id) {
+			if (ownerRole && session?.user?.id) {
 				await db
 					.insert(userRoles)
 					.values({
-						userId: ctx.session.user.id,
+						userId: session.user.id,
 						roleId: ownerRole.id,
-						orgId: ctx.session.user.orgId,
+						orgId: session.user.orgId || 1, // Fallback to org 1 if not set
 						isActive: true,
 					})
 					.onConflictDoNothing();
@@ -266,34 +269,34 @@ export const adminRouter = createTRPCRouter({
 	seedOrgs: withPermission('admin:seed_orgs').mutation(async ({ ctx }) => {
 		try {
 			// Check if any orgs exist
-			const existingTenants = await db.select().from(orgs);
+			const existingOrgs = await db.select().from(orgs);
 			
-			if (existingTenants.length === 0) {
-				// Create default tenant
-				const [defaultTenant] = await db.insert(orgs).values({
+			if (existingOrgs.length === 0) {
+				// Create default org
+				const [defaultOrg] = await db.insert(orgs).values({
 					name: 'Default Organization',
-					description: 'Default tenant for initial setup and development',
+					description: 'Default org for initial setup and development',
 					slug: 'default-org',
 					isActive: true,
 				}).returning();
 
 				return {
 					success: true,
-					message: "Default tenant created successfully!",
-					tenant: defaultTenant,
+					message: "Default org created successfully!",
+					org: defaultOrg,
 				};
 			} else {
 				return {
 					success: true,
-					message: "Tenants already exist, no seeding needed",
-					existingCount: existingTenants.length,
+					message: "Orgs already exist, no seeding needed",
+					existingCount: existingOrgs.length,
 				};
 			}
 		} catch (error) {
-			console.error("❌ Error during tenant seeding:", error);
+			console.error("❌ Error during org seeding:", error);
 			throw new TRPCError({
 				code: "INTERNAL_SERVER_ERROR",
-				message: "Failed to seed tenant data",
+				message: "Failed to seed org data",
 			});
 		}
 	}),

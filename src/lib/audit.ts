@@ -6,7 +6,7 @@ export type AuditAction =
   | 'LOGIN_FAILED'
   | 'LOGIN_SUCCESS'
   | 'ROLE_CHANGED'
-  | 'TENANT_SWITCHED'
+  | 'org_SWITCHED'
   | 'SESSION_REVOKED'
   | 'UNAUTHORIZED_ACCESS'
   | 'API_ACCESS_DENIED'
@@ -19,7 +19,7 @@ export interface AuditLogData {
   action: AuditAction;
   resource?: string;
   userId?: number;
-  tenantId?: number;
+  orgId?: number;
   ipAddress?: string;
   userAgent?: string;
   details?: Record<string, any>;
@@ -35,7 +35,7 @@ export async function createAuditLog(data: AuditLogData): Promise<void> {
       action: data.action,
       resource: data.resource,
       userId: data.userId,
-      tenantId: data.tenantId,
+      orgId: data.orgId,
       ipAddress: data.ipAddress,
       userAgent: data.userAgent,
       details: data.details,
@@ -52,7 +52,7 @@ export async function createAuditLog(data: AuditLogData): Promise<void> {
  */
 export async function logPermissionDenied(
   userId: number | undefined,
-  tenantId: number | undefined,
+  orgId: number | undefined,
   resource: string,
   requiredPermission: string,
   ipAddress?: string,
@@ -62,7 +62,7 @@ export async function logPermissionDenied(
     action: 'PERMISSION_DENIED',
     resource,
     userId,
-    tenantId,
+    orgId,
     ipAddress,
     userAgent,
     details: {
@@ -78,7 +78,7 @@ export async function logPermissionDenied(
  */
 export async function logTrpcAccessDenied(
   userId: number | undefined,
-  tenantId: number | undefined,
+  orgId: number | undefined,
   procedure: string,
   requiredPermission: string,
   ipAddress?: string,
@@ -88,7 +88,7 @@ export async function logTrpcAccessDenied(
     action: 'TRPC_ACCESS_DENIED',
     resource: `tRPC:${procedure}`,
     userId,
-    tenantId,
+    orgId,
     ipAddress,
     userAgent,
     details: {

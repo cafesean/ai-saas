@@ -31,7 +31,7 @@ export function DeleteOrganizationDialog({
 }: DeleteOrganizationDialogProps) {
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const deleteOrganizationMutation = api.tenant.delete.useMutation();
+  const deleteOrganizationMutation = api.org.delete.useMutation();
   const utils = api.useUtils();
 
   const handleClose = () => {
@@ -50,9 +50,9 @@ export function DeleteOrganizationDialog({
 
       // Invalidate and refetch relevant queries
       await Promise.all([
-        utils.tenant.getAllWithStats.invalidate(),
-        utils.tenant.getAll.invalidate(),
-        utils.tenant.getById.invalidate(),
+        utils.org.getAllWithStats.invalidate(),
+        utils.org.getAll.invalidate(),
+        utils.org.getById.invalidate(),
       ]);
       
       toast.success(`Organization "${organization.name}" has been deleted successfully`);

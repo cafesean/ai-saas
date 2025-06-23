@@ -5,6 +5,7 @@ import { workflows, workflowRunHistory } from "@/db/schema";
 import { eq, desc, count, inArray, max } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { WorkflowStatus } from "@/constants/general";
+import type { ExtendedSession } from "@/db/auth-hydration";
 
 // Validation schemas
 const workflowCreateSchema = z.object({
@@ -96,8 +97,9 @@ export const workflowCoreRouter = createTRPCRouter({
     .input(workflowCreateSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        // 🔒 SECURITY FIX: Get tenant from authenticated user context
-        const orgId = await getUserOrgId(ctx.session.user.id);
+        // 🔒 SECURITY FIX: Get org from authenticated user context
+        const session = ctx.session as ExtendedSession;
+        const orgId = session.user.orgId || 1;
         const workflowData = await db
           .insert(workflows)
           .values({

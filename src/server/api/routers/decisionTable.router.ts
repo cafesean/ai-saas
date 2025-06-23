@@ -13,13 +13,14 @@ import {
 } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 import { DecisionStatus } from "@/constants/decisionTable";
-import { createTRPCRouter, publicProcedure, protectedProcedure, getUserOrgId, withPermission } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure, withPermission } from "../trpc";
 import { NOT_FOUND, INTERNAL_SERVER_ERROR } from "@/constants/errorCode";
 import {
   DECISION_TABLE_NOT_FOUND_ERROR,
   DECISION_TABLE_CREATE_ERROR,
   DECISION_TABLE_UPDATE_ERROR,
 } from "@/constants/errorMessage";
+import type { ExtendedSession } from "@/db/auth-hydration";
 
 const decisionTableSchema = z.object({
   uuid: z.string().min(36),
@@ -123,6 +124,7 @@ export const decisionTableRouter = createTRPCRouter({
     .input(decisionTableSchema)
     .mutation(async ({ input, ctx }) => {
       try {
+        const session = ctx.session as ExtendedSession;
         const [decisionTable] = await db
           .insert(decision_tables)
           .values({
@@ -130,7 +132,7 @@ export const decisionTableRouter = createTRPCRouter({
             name: input.name,
             description: input.description,
             status: input.status,
-            tenantId: ctx.session.user.tenantId,
+            orgId: session.user.orgId || 1, // Fallback to org 1 if not set
           })
           .returning();
         

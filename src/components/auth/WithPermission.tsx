@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useSession } from "next-auth/react";
+import type { ExtendedSession } from "../../db/auth-hydration";
 
 /**
  * Props for the WithPermission component
@@ -75,10 +76,10 @@ export interface WithPermissionProps {
  * // Custom authorization logic
  * <WithPermission 
  *   customCheck={(user, role, permissions) => 
- *     user?.tenantId === "specific-tenant" && permissions.includes("tenant:admin")
+ *     user?.orgId === "specific-org" && permissions.includes("org:admin")
  *   }
  * >
- *   <TenantSpecificContent />
+ *   <OrgSpecificContent />
  * </WithPermission>
  * 
  * @example
@@ -104,6 +105,9 @@ export function WithPermission({
   loadingComponent = <div className="animate-pulse">Loading...</div>,
 }: WithPermissionProps) {
   const { data: session, status } = useSession();
+  
+  // Cast session to our extended type
+  const extendedSession = session as ExtendedSession | null;
 
   // Handle loading state
   if (status === 'loading' && showLoading) {
@@ -111,13 +115,13 @@ export function WithPermission({
   }
 
   // If not authenticated, always deny access
-  if (status !== 'authenticated' || !session?.user) {
+  if (status !== 'authenticated' || !extendedSession?.user) {
     if (hideWhenUnauthorized) return null;
     return fallback ? <div className={className}>{fallback}</div> : null;
   }
 
   // Extract permissions from session
-  const userPermissions = session.user.roles?.flatMap(role => 
+  const userPermissions = extendedSession.user.roles?.flatMap(role => 
     role.policies?.map(policy => policy.name) || []
   ) || [];
 
@@ -135,8 +139,8 @@ export function WithPermission({
 
   // Custom check takes precedence
   if (customCheck) {
-    const primaryRole = session.user.roles?.[0];
-    hasAccess = customCheck(session.user, primaryRole, userPermissions);
+    const primaryRole = extendedSession.user.roles?.[0];
+    hasAccess = customCheck(extendedSession.user, primaryRole, userPermissions);
   }
   // Check single permission
   else if (permission) {
@@ -152,7 +156,7 @@ export function WithPermission({
   }
   // Check role(s)
   else if (role) {
-    const primaryRole = session.user.roles?.[0];
+    const primaryRole = extendedSession.user.roles?.[0];
     if (!primaryRole) {
       hasAccess = false;
     } else if (Array.isArray(role)) {
@@ -170,7 +174,7 @@ export function WithPermission({
       hasRequiredPermission: userPermissions.includes(permission),
       hasAdminFullAccess: userPermissions.includes('admin:full_access'),
       hasAccess,
-      userEmail: session.user.email,
+      userEmail: extendedSession.user.email,
       sessionStatus: status
     });
   }
@@ -206,16 +210,19 @@ export function WithPermission({
  */
 export function useWithPermission(props: Omit<WithPermissionProps, 'children' | 'fallback' | 'hideWhenUnauthorized' | 'className' | 'showLoading' | 'loadingComponent'>) {
   const { data: session, status } = useSession();
+  
+  // Cast session to our extended type
+  const extendedSession = session as ExtendedSession | null;
 
   // If loading or not authenticated, deny access
-  if (status === 'loading' || status !== 'authenticated' || !session?.user) {
+  if (status === 'loading' || status !== 'authenticated' || !extendedSession?.user) {
     return false;
   }
 
   const { permission, permissions = [], anyPermissions = [], role, customCheck } = props;
 
   // Extract permissions from session
-  const userPermissions = session.user.roles?.flatMap(role => 
+  const userPermissions = extendedSession.user.roles?.flatMap(role => 
     role.policies?.map(policy => policy.name) || []
   ) || [];
 
@@ -230,8 +237,8 @@ export function useWithPermission(props: Omit<WithPermissionProps, 'children' | 
 
   // Custom check takes precedence
   if (customCheck) {
-    const primaryRole = session.user.roles?.[0];
-    return customCheck(session.user, primaryRole, userPermissions);
+    const primaryRole = extendedSession.user.roles?.[0];
+    return customCheck(extendedSession.user, primaryRole, userPermissions);
   }
   // Check single permission
   if (permission) {
@@ -247,7 +254,7 @@ export function useWithPermission(props: Omit<WithPermissionProps, 'children' | 
   }
   // Check role(s)
   if (role) {
-    const primaryRole = session.user.roles?.[0];
+    const primaryRole = extendedSession.user.roles?.[0];
     if (!primaryRole) return false;
     if (Array.isArray(role)) {
       return role.includes(primaryRole.name);

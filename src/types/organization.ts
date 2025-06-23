@@ -1,5 +1,5 @@
 // Organization types for UI components
-// Based on the tenant router and database schema
+// Based on the org router and database schema
 
 export interface OrganizationUser {
   userId: number;
@@ -7,7 +7,7 @@ export interface OrganizationUser {
   userName: string | null;
   userEmail: string;
   userIsActive: boolean; 
-  tenantRole: string;
+  orgRole: string;
   relationshipIsActive: boolean;
   joinedAt: Date;
 }
@@ -50,7 +50,7 @@ export interface UpdateOrganizationData extends Partial<CreateOrganizationData> 
 }
 
 export interface OrganizationUserManagement {
-  tenantId: number;
+  orgId: number;
   userId: number;
   role: string;
 }
@@ -64,7 +64,7 @@ export interface OrganizationFilters {
 }
 
 export interface OrganizationListResponse {
-  tenants: OrganizationWithStats[];
+  orgs: OrganizationWithStats[];
   totalCount: number;
   hasMore: boolean;
 }

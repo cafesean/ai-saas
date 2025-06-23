@@ -9,49 +9,42 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Building2, ChevronDown } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 import { api } from '@/utils/trpc';
 import { toast } from 'sonner';
 
-interface TenantInfo {
-  id: number;
-  name: string;
-  roles: string[];
-  isActive: boolean;
-}
-
-export function TenantSwitcher() {
+export function OrgSwitcher() {
   const { data: session, update } = useSession();
   const router = useRouter();
-  const switchTenantMutation = api.auth.switchTenant.useMutation();
+  const switchOrgMutation = api.auth.switchOrg.useMutation();
 
-  const currentTenant = session?.user?.currentTenant;
-  const availableTenants = session?.user?.availableTenants || [];
+  const currentOrg = (session?.user as any)?.currentOrg;
+  const availableOrgs = (session?.user as any)?.availableOrgs || [];
 
-  const handleTenantSwitch = async (tenantId: string) => {
+  const handleOrgSwitch = async (orgId: string) => {
     try {
-      const result = await switchTenantMutation.mutateAsync({
-        tenantId: parseInt(tenantId)
+      const result = await switchOrgMutation.mutateAsync({
+        orgId: parseInt(orgId)
       });
 
       if (result.success) {
-        // Update the session with new tenant data
+        // Update the session with new org data
         await update();
         
-        toast.success(`Switched to ${result.tenant.name}`);
+        toast.success(`Switched to ${result.org.name}`);
         
-        // Refresh the page to reload with new tenant context
+        // Refresh the page to reload with new org context
         router.refresh();
       } else {
-        toast.error(result.error || 'Failed to switch tenant');
+        toast.error((result as any).error || 'Failed to switch org');
       }
     } catch (error) {
-      console.error('Error switching tenant:', error);
-      toast.error('Failed to switch tenant');
+      console.error('Error switching org:', error);
+      toast.error('Failed to switch org');
     }
   };
 
-  if (!session?.user || availableTenants.length <= 1) {
+  if (!session?.user || availableOrgs.length <= 1) {
     return null;
   }
 
@@ -59,20 +52,20 @@ export function TenantSwitcher() {
     <div className="flex items-center space-x-2">
       <Building2 className="h-4 w-4 text-muted-foreground" />
       <Select
-        value={currentTenant?.id?.toString()}
-        onValueChange={handleTenantSwitch}
-        disabled={switchTenantMutation.isLoading}
+        value={currentOrg?.id?.toString()}
+        onValueChange={handleOrgSwitch}
+        disabled={switchOrgMutation.isPending}
       >
         <SelectTrigger className="w-[200px] h-8">
           <SelectValue>
             <div className="flex items-center space-x-2">
               <span className="truncate">
-                {currentTenant?.name || 'Select Tenant'}
+                {currentOrg?.name || 'Select Org'}
               </span>
-              {currentTenant && (
+              {currentOrg && (
                 <Badge variant="secondary" className="text-xs">
-                  {availableTenants
-                    .find(t => t.id === currentTenant.id)
+                  {availableOrgs
+                    .find((org: any) => org.id === currentOrg.id)
                     ?.roles.join(', ') || ''}
                 </Badge>
               )}
@@ -80,19 +73,19 @@ export function TenantSwitcher() {
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {availableTenants.map((tenant) => (
-            <SelectItem key={tenant.id} value={tenant.id.toString()}>
+          {availableOrgs.map((org: any) => (
+            <SelectItem key={org.id} value={org.id.toString()}>
               <div className="flex flex-col space-y-1">
                 <div className="flex items-center space-x-2">
-                  <span className="font-medium">{tenant.name}</span>
-                  {tenant.isActive && (
+                  <span className="font-medium">{org.name}</span>
+                  {org.isActive && (
                     <Badge variant="default" className="text-xs">
                       Active
                     </Badge>
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Roles: {tenant.roles.join(', ')}
+                  Roles: {org.roles.join(', ')}
                 </div>
               </div>
             </SelectItem>
@@ -103,4 +96,4 @@ export function TenantSwitcher() {
   );
 }
 
-export default TenantSwitcher; 
+export default OrgSwitcher; 

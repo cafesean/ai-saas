@@ -5,11 +5,11 @@ import { userRoles, rolePermissions, permissions } from '@/db/schema';
 import { logTrpcAccessDenied } from '@/lib/audit';
 
 /**
- * Get all permissions for a user in a specific tenant with caching
+ * Get all permissions for a user in a specific org with caching
  */
 export async function getUserPermissions(
   userId: number,
-  tenantId: number
+  orgId: number
 ): Promise<string[]> {
   try {
     // Query database for user permissions
@@ -23,7 +23,7 @@ export async function getUserPermissions(
       .where(
         and(
           eq(userRoles.userId, userId),
-          eq(userRoles.tenantId, tenantId),
+          eq(userRoles.orgId, orgId),
           eq(userRoles.isActive, true),
           eq(permissions.isActive, true)
         )
@@ -42,10 +42,10 @@ export async function getUserPermissions(
  */
 export async function checkUserPermission(
   userId: number,
-  tenantId: number,
+  orgId: number,
   requiredPermission: string
 ): Promise<boolean> {
-  const userPermissions = await getUserPermissions(userId, tenantId);
+  const userPermissions = await getUserPermissions(userId, orgId);
   return userPermissions.includes(requiredPermission);
 }
 
@@ -57,7 +57,7 @@ export function hasPermission(requiredPermission: string) {
     ctx: {
       session: any | null;
       user: any | null;
-      tenantId: number | null;
+      orgId: number | null;
     };
     next: () => any;
     path?: string;
@@ -78,8 +78,8 @@ export function hasPermission(requiredPermission: string) {
       });
     }
 
-    // Check tenant association
-    if (!ctx.tenantId) {
+    // Check org association
+    if (!ctx.orgId) {
       await logTrpcAccessDenied(
         ctx.user.id,
         undefined,
@@ -88,14 +88,14 @@ export function hasPermission(requiredPermission: string) {
       );
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "User must be associated with a tenant to perform this action."
+        message: "User must be associated with a org to perform this action."
       });
     }
 
     // Check permission
     const hasRequiredPermission = await checkUserPermission(
       ctx.user.id,
-      ctx.tenantId,
+      ctx.orgId,
       requiredPermission
     );
 
@@ -103,7 +103,7 @@ export function hasPermission(requiredPermission: string) {
       // Log the permission denial
       await logTrpcAccessDenied(
         ctx.user.id,
-        ctx.tenantId,
+        ctx.orgId,
         path || 'unknown',
         requiredPermission
       );

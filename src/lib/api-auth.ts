@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/server/auth-simple';
 import { db } from '@/db';
 import { eq, and, count } from 'drizzle-orm';
-import { users, userTenants, userRoles, rolePermissions, permissions } from '@/db/schema';
+import { users, userOrgs, userRoles, rolePermissions, permissions } from '@/db/schema';
+import type { ExtendedSession } from '@/db/auth-hydration';
 
 /**
  * API Authentication and Authorization Middleware for Next.js App Router
@@ -14,7 +15,7 @@ export interface AuthenticatedUser {
   id: number;
   email: string;
   name?: string;
-  tenantId: number;
+  orgId: number;
 }
 
 export interface ApiAuthOptions {
@@ -84,7 +85,7 @@ export async function authenticateApiRequest(
 
   // Check admin permission if required
   if (requireAdmin) {
-    const isAdmin = await checkUserPermission(user.id, user.tenantId, 'admin:full_access');
+    const isAdmin = await checkUserPermission(user.id, user.orgId, 'admin:full_access');
     if (!isAdmin) {
       return { 
         success: false, 
@@ -96,7 +97,7 @@ export async function authenticateApiRequest(
 
   // Check specific permission if required
   if (requiredPermission) {
-    const hasPermission = await checkUserPermission(user.id, user.tenantId, requiredPermission);
+    const hasPermission = await checkUserPermission(user.id, user.orgId, requiredPermission);
     if (!hasPermission) {
       return { 
         success: false, 
@@ -110,7 +111,7 @@ export async function authenticateApiRequest(
 }
 
 /**
- * Get current authenticated user with tenant information
+ * Get current authenticated user with org information
  */
 async function getCurrentUser(): Promise<AuthenticatedUser | null> {
   // For development, use mock user system (same as tRPC)
@@ -125,20 +126,20 @@ async function getCurrentUser(): Promise<AuthenticatedUser | null> {
       });
 
       if (mockUser) {
-        // Get user's tenant
-        const userTenant = await db.query.userTenants.findFirst({
-          where: eq(userTenants.userId, mockUser.id),
+        // Get user's org
+        const userOrg = await db.query.userOrgs.findFirst({
+          where: eq(userOrgs.userId, mockUser.id),
           with: {
-            tenant: true,
+            org: true,
           },
         });
 
-        if (userTenant?.tenantId) {
+        if (userOrg?.orgId) {
           return {
             id: mockUser.id,
             email: mockUser.email,
             name: mockUser.name || undefined,
-            tenantId: userTenant.tenantId,
+            orgId: userOrg.orgId,
           };
         }
       }
@@ -146,27 +147,33 @@ async function getCurrentUser(): Promise<AuthenticatedUser | null> {
       console.error('Error loading mock user:', error);
     }
   } else {
-    // Production: Use NextAuth
+    // Production: Use NextAuth with ExtendedSession
     try {
-      const session = await getServerSession(authOptions);
+      const session = await getServerSession(authOptions) as ExtendedSession | null;
       
       if (session?.user?.id) {
         const userId = typeof session.user.id === 'string' ? parseInt(session.user.id) : session.user.id;
         
-        // Get user's primary tenant
-        const userTenant = await db.query.userTenants.findFirst({
-          where: eq(userTenants.userId, userId),
-          with: {
-            tenant: true,
-          },
-        });
+        // Try to get orgId from session first (from JSONB approach)
+        let orgId = session.user.orgId || null;
+        
+        // Fallback to database query if not in session
+        if (!orgId) {
+          const userOrg = await db.query.userOrgs.findFirst({
+            where: eq(userOrgs.userId, userId),
+            with: {
+              org: true,
+            },
+          });
+          orgId = userOrg?.orgId || null;
+        }
 
-        if (userTenant?.tenantId) {
+        if (orgId) {
           return {
             id: userId,
             email: session.user.email!,
             name: session.user.name || undefined,
-            tenantId: userTenant.tenantId,
+            orgId: orgId,
           };
         }
       }
@@ -197,7 +204,7 @@ async function getMockUserForPublicEndpoint(): Promise<AuthenticatedUser | null>
  */
 async function checkUserPermission(
   userId: number,
-  tenantId: number,
+  orgId: number,
   permissionSlug: string
 ): Promise<boolean> {
   try {
@@ -210,7 +217,7 @@ async function checkUserPermission(
       .where(
         and(
           eq(userRoles.userId, userId),
-          eq(userRoles.tenantId, tenantId),
+          eq(userRoles.orgId, orgId),
           eq(permissions.slug, permissionSlug),
           eq(permissions.isActive, true)
         )
@@ -279,11 +286,11 @@ export function createApiSuccess<T>(data: T, status: number = 200): NextResponse
 }
 
 /**
- * Tenant isolation helper - adds tenant filtering to database queries
+ * Org isolation helper - adds org filtering to database queries
  */
-export function addTenantFilter<T extends { tenantId?: number }>(
+export function addOrgFilter<T extends { orgId?: number }>(
   baseQuery: T,
-  tenantId: number
-): T & { tenantId: number } {
-  return { ...baseQuery, tenantId };
+  orgId: number
+): T & { orgId: number } {
+  return { ...baseQuery, orgId };
 } 

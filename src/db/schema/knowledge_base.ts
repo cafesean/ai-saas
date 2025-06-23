@@ -154,7 +154,7 @@ export const knowledgeBaseRelations = relations(
       org: one(orgs, {
     fields: [knowledge_bases.orgId],
     references: [orgs.id],
-  }),
+    }),
     documents: many(knowledge_base_documents),
     conversations: many(conversations),
   }),

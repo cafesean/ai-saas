@@ -4,7 +4,8 @@ import { checkUserPermission } from '@/lib/trpc-permissions';
 import { logPermissionDenied, logUnauthorizedAccess } from '@/lib/audit';
 import { db } from '@/db';
 import { eq } from 'drizzle-orm';
-import { userTenants } from '@/db/schema';
+import { userOrgs } from '@/db/schema';
+import type { ExtendedSession } from '@/db/auth-hydration';
 
 export interface ServerActionContext {
   user: {
@@ -12,14 +13,14 @@ export interface ServerActionContext {
     email: string;
     name: string;
   };
-  tenantId: number;
-  session: any;
+  orgId: number;
+  session: ExtendedSession;
 }
 
 export interface ServerActionOptions {
   requiredPermission?: string;
   requireAuth?: boolean;
-  requireTenant?: boolean;
+  requireOrg?: boolean;
 }
 
 /**
@@ -37,10 +38,10 @@ export interface ServerActionOptions {
  * 
  * export const createWorkflow = withServerActionAuth(
  *   async (ctx, data: { name: string; description?: string }) => {
- *     // Your action logic here - ctx contains authenticated user and tenant
+ *     // Your action logic here - ctx contains authenticated user and org
  *     return await db.insert(workflows).values({
  *       ...data,
- *       tenantId: ctx.tenantId,
+ *       orgId: ctx.orgId,
  *     });
  *   },
  *   { requiredPermission: 'workflow:create' }
@@ -54,13 +55,13 @@ export function withServerActionAuth<T extends any[], R>(
   const {
     requiredPermission,
     requireAuth = true,
-    requireTenant = true,
+    requireOrg = true,
   } = options;
 
   return async (...args: T): Promise<R> => {
     try {
-      // Get session
-      const session = await getServerSession(authOptions);
+      // Get session and cast to our extended type
+      const session = await getServerSession(authOptions) as ExtendedSession | null;
 
       // Check authentication if required
       if (requireAuth && (!session || !session.user)) {
@@ -73,19 +74,25 @@ export function withServerActionAuth<T extends any[], R>(
         throw new Error('Authentication required for this action');
       }
 
-      let tenantId: number | null = null;
+      let orgId: number | null = null;
 
-      // Get user's tenant if required
-      if (requireTenant && session?.user?.id) {
-        const userTenant = await db.query.userTenants.findFirst({
-          where: eq(userTenants.userId, session.user.id),
-          with: {
-            tenant: true,
-          },
-        });
-        tenantId = userTenant?.tenantId || null;
+      // Get user's org if required
+      if (requireOrg && session?.user?.id) {
+        // Try to get orgId from session first (from JSONB approach)
+        orgId = session.user.orgId || null;
+        
+        // Fallback to database query if not in session
+        if (!orgId) {
+          const userOrg = await db.query.userOrgs.findFirst({
+            where: eq(userOrgs.userId, session.user.id),
+            with: {
+              org: true,
+            },
+          });
+          orgId = userOrg?.orgId || null;
+        }
 
-        if (!tenantId) {
+        if (!orgId) {
           await logUnauthorizedAccess(
             'SERVER_ACTION',
             undefined,
@@ -93,26 +100,26 @@ export function withServerActionAuth<T extends any[], R>(
             { 
               action: action.name, 
               userId: session.user.id,
-              error: 'No tenant association',
+              error: 'No org association',
               timestamp: new Date().toISOString() 
             }
           );
-          throw new Error('User must be associated with a tenant to perform this action');
+          throw new Error('User must be associated with an org to perform this action');
         }
       }
 
       // Check permission if required
-      if (requiredPermission && session?.user?.id && tenantId) {
+      if (requiredPermission && session?.user?.id && orgId) {
         const hasPermission = await checkUserPermission(
           session.user.id,
-          tenantId,
+          orgId,
           requiredPermission
         );
 
         if (!hasPermission) {
           await logPermissionDenied(
             session.user.id,
-            tenantId,
+            orgId,
             `SERVER_ACTION:${action.name}`,
             requiredPermission
           );
@@ -127,8 +134,8 @@ export function withServerActionAuth<T extends any[], R>(
           email: session!.user!.email!,
           name: session!.user!.name!,
         },
-        tenantId: tenantId!,
-        session,
+        orgId: orgId!,
+        session: session!,
       };
 
       // Execute the action

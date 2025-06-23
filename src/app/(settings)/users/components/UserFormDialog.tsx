@@ -18,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -96,8 +95,8 @@ const createUserFormSchema = (isCreateMode: boolean, changePassword: boolean) =>
 type UserFormData = z.infer<ReturnType<typeof createUserFormSchema>>;
 
 interface UserRoleAssignment {
-  tenantId: number;
-  tenantName: string;
+  orgId: number;
+  orgName: string;
   roleId: number;
   roleName: string;
   isActive: boolean;
@@ -124,7 +123,7 @@ export function UserFormDialog({
   const [activeTab, setActiveTab] = useState("basic");
   const [roleAssignments, setRoleAssignments] = useState<UserRoleAssignment[]>([]);
   const [newAssignment, setNewAssignment] = useState({
-    tenantId: "",
+    orgId: "",
     roleId: "",
   });
   const [isEditingPassword, setIsEditingPassword] = useState(false);
@@ -160,31 +159,31 @@ export function UserFormDialog({
 
   // API queries
   const { data: roles = [] } = api.role.getAll.useQuery();
-  const { data: tenants = [] } = api.tenant.getAll.useQuery();
+  const { data: orgs = [] } = api.org.getAll.useQuery();
   
   // API mutations
   const createUserMutation = api.user.create.useMutation();
   const updateUserMutation = api.user.update.useMutation();
   const assignRoleMutation = api.user.assignRole.useMutation();
   const removeRoleMutation = api.user.removeRole.useMutation();
-  const ensureDefaultTenantMutation = api.tenant.ensureDefaultTenant.useMutation();
+  const ensureDefaultOrgMutation = api.org.ensureDefaultOrg.useMutation();
   
   const utils = api.useUtils();
 
   const isActive = watch("isActive");
   const isCreateMode = mode === "create";
 
-  // Ensure default tenant exists on component mount
+  // Ensure default org exists on component mount
   useEffect(() => {
-    if (open && tenants.length === 0) {
-      ensureDefaultTenantMutation.mutate();
+    if (open && orgs.length === 0) {
+      ensureDefaultOrgMutation.mutate();
     }
-  }, [open, tenants.length, ensureDefaultTenantMutation]);
+  }, [open, orgs.length, ensureDefaultOrgMutation]);
 
-  // Available tenants and roles for new assignments
-  const availableTenants = useMemo(() => {
-    return tenants.filter(tenant => tenant.isActive);
-  }, [tenants]);
+  // Available orgs and roles for new assignments
+  const availableOrgs = useMemo(() => {
+    return orgs.filter(org => org.isActive);
+  }, [orgs]);
 
   const availableRoles = useMemo(() => {
     return roles.filter(role => role.isActive);
@@ -194,7 +193,7 @@ export function UserFormDialog({
   useEffect(() => {
     if (user && open && mode === "edit") {
       // Get user's primary organization (first active role assignment)
-      const primaryOrg = user.roles?.find(role => role.isActive)?.tenantId || 0;
+      const primaryOrg = user.roles?.find(role => role.isActive)?.orgId || 0;
       
       reset({
         name: user.name || "",
@@ -210,8 +209,8 @@ export function UserFormDialog({
 
       // Set role assignments
       const assignments: UserRoleAssignment[] = user.roles?.map(role => ({
-        tenantId: role.tenantId,
-        tenantName: role.tenantName,
+        orgId: role.orgId,
+        orgName: role.orgName,
         roleId: role.id,
         roleName: role.name,
         isActive: role.isActive,
@@ -224,7 +223,7 @@ export function UserFormDialog({
       setIsEditingPassword(false);
     } else if (isCreateMode && open) {
       // Set default organization for create mode
-      const defaultOrgId = availableTenants.length > 0 ? availableTenants[0]!.id : 0;
+      const defaultOrgId = availableOrgs.length > 0 ? availableOrgs[0]!.id : 0;
       
       reset({
         name: "",
@@ -242,7 +241,7 @@ export function UserFormDialog({
       setChangePassword(true); // Always allow password setting in create mode
       setIsEditingPassword(false);
     }
-  }, [user, open, mode, reset, availableTenants]);
+  }, [user, open, mode, reset, availableOrgs]);
 
   // Reset state when dialog closes
   useEffect(() => {
@@ -251,7 +250,7 @@ export function UserFormDialog({
       setShowPassword(false);
       setGeneratedPassword("");
       setRoleAssignments([]);
-      setNewAssignment({ tenantId: "", roleId: "" });
+      setNewAssignment({ orgId: "", roleId: "" });
       setChangePassword(false);
       setIsEditingPassword(false);
     }
@@ -269,23 +268,23 @@ export function UserFormDialog({
 
   // Role assignment management
   const handleAddRoleAssignment = () => {
-    if (!newAssignment.tenantId || !newAssignment.roleId) {
-      toast.error("Please select both tenant and role");
+    if (!newAssignment.orgId || !newAssignment.roleId) {
+      toast.error("Please select both org and role");
       return;
     }
 
-    const tenant = tenants.find(t => t.id.toString() === newAssignment.tenantId);
+    const org = orgs.find(t => t.id.toString() === newAssignment.orgId);
     const role = roles.find(r => r.id.toString() === newAssignment.roleId);
 
-    if (!tenant || !role) {
-      toast.error("Invalid tenant or role selection");
+    if (!org || !role) {
+      toast.error("Invalid org or role selection");
       return;
     }
 
     // Check for duplicates
     const exists = roleAssignments.some(
       assignment => 
-        assignment.tenantId.toString() === newAssignment.tenantId && 
+        assignment.orgId.toString() === newAssignment.orgId && 
         assignment.roleId.toString() === newAssignment.roleId
     );
 
@@ -295,29 +294,29 @@ export function UserFormDialog({
     }
 
     const newRoleAssignment: UserRoleAssignment = {
-      tenantId: tenant.id,
-      tenantName: tenant.name,
+      orgId: org.id,
+      orgName: org.name,
       roleId: role.id,
       roleName: role.name,
       isActive: true,
     };
 
     setRoleAssignments(prev => [...prev, newRoleAssignment]);
-    setNewAssignment({ tenantId: "", roleId: "" });
+    setNewAssignment({ orgId: "", roleId: "" });
   };
 
-  const handleRemoveRoleAssignment = (tenantId: number, roleId: number) => {
+  const handleRemoveRoleAssignment = (orgId: number, roleId: number) => {
     setRoleAssignments(prev => 
       prev.filter(assignment => 
-        !(assignment.tenantId === tenantId && assignment.roleId === roleId)
+        !(assignment.orgId === orgId && assignment.roleId === roleId)
       )
     );
   };
 
-  const handleToggleRoleAssignment = (tenantId: number, roleId: number) => {
+  const handleToggleRoleAssignment = (orgId: number, roleId: number) => {
     setRoleAssignments(prev =>
       prev.map(assignment =>
-        assignment.tenantId === tenantId && assignment.roleId === roleId
+        assignment.orgId === orgId && assignment.roleId === roleId
           ? { ...assignment, isActive: !assignment.isActive }
           : assignment
       )
@@ -396,7 +395,7 @@ export function UserFormDialog({
             await removeRoleMutation.mutateAsync({
               userId: userId,
               roleId: existingRole.id,
-              tenantId: existingRole.tenantId,
+              orgId: existingRole.orgId,
             });
           }
         }
@@ -406,7 +405,7 @@ export function UserFormDialog({
           await assignRoleMutation.mutateAsync({
             userId: userId,
             roleId: assignment.roleId,
-            tenantId: assignment.tenantId,
+            orgId: assignment.orgId,
           });
         }
       }
@@ -415,7 +414,7 @@ export function UserFormDialog({
       await Promise.all([
         utils.user.getAll.invalidate(),
         utils.user.getById.invalidate(),
-        utils.tenant.getAll.invalidate(),
+        utils.org.getAll.invalidate(),
       ]);
 
       // Close dialog and reset form
@@ -445,7 +444,7 @@ export function UserFormDialog({
           </DialogTitle>
           <DialogDescription>
             {isCreateMode 
-              ? "Create a new user account and assign roles across tenants."
+              ? "Create a new user account and assign roles across orgs."
               : "Update user information and manage role assignments."
             }
           </DialogDescription>
@@ -528,11 +527,11 @@ export function UserFormDialog({
                     <SelectValue placeholder="Select organization" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableTenants.map((tenant) => (
-                      <SelectItem key={tenant.id} value={tenant.id.toString()}>
+                    {availableOrgs.map((org) => (
+                      <SelectItem key={org.id} value={org.id.toString()}>
                         <div className="flex items-center gap-2">
                           <Building2 className="h-4 w-4" />
-                          {tenant.name}
+                          {org.name}
                         </div>
                       </SelectItem>
                     ))}
@@ -705,22 +704,22 @@ export function UserFormDialog({
                 </h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label>Tenant</Label>
+                    <Label>Org</Label>
                     <Select
-                      value={newAssignment.tenantId}
+                      value={newAssignment.orgId}
                       onValueChange={(value) => 
-                        setNewAssignment(prev => ({ ...prev, tenantId: value }))
+                        setNewAssignment(prev => ({ ...prev, orgId: value }))
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select tenant" />
+                        <SelectValue placeholder="Select org" />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableTenants.map((tenant) => (
-                          <SelectItem key={tenant.id} value={tenant.id.toString()}>
+                        {availableOrgs.map((org) => (
+                          <SelectItem key={org.id} value={org.id.toString()}>
                             <div className="flex items-center gap-2">
                               <Building2 className="h-4 w-4" />
-                              {tenant.name}
+                              {org.name}
                             </div>
                           </SelectItem>
                         ))}
@@ -761,7 +760,7 @@ export function UserFormDialog({
                   variant="outline"
                   size="sm"
                   onClick={handleAddRoleAssignment}
-                  disabled={!newAssignment.tenantId || !newAssignment.roleId}
+                  disabled={!newAssignment.orgId || !newAssignment.roleId}
                   className="mt-3"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -781,20 +780,20 @@ export function UserFormDialog({
                     <div className="space-y-2">
                       {roleAssignments.map((assignment, index) => (
                         <div
-                          key={`${assignment.tenantId}-${assignment.roleId}`}
+                          key={`${assignment.orgId}-${assignment.roleId}`}
                           className="flex items-center justify-between p-3 border rounded-lg"
                         >
                           <div className="flex items-center gap-3">
                             <Checkbox
                               checked={assignment.isActive}
                               onChange={() => 
-                                handleToggleRoleAssignment(assignment.tenantId, assignment.roleId)
+                                handleToggleRoleAssignment(assignment.orgId, assignment.roleId)
                               }
                             />
                             <div>
                               <div className="flex items-center gap-2">
                                 <Building2 className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">{assignment.tenantName}</span>
+                                <span className="font-medium">{assignment.orgName}</span>
                               </div>
                               <div className="flex items-center gap-2 mt-1">
                                 <Shield className="h-4 w-4 text-muted-foreground" />
@@ -813,7 +812,7 @@ export function UserFormDialog({
                               variant="outline"
                               size="sm"
                               onClick={() => 
-                                handleRemoveRoleAssignment(assignment.tenantId, assignment.roleId)
+                                handleRemoveRoleAssignment(assignment.orgId, assignment.roleId)
                               }
                             >
                               <X className="h-4 w-4" />

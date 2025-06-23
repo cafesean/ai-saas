@@ -35,8 +35,8 @@ export function getRedisClient(): Redis | null {
 }
 
 // Permission cache key generator
-export function getPermissionCacheKey(userId: number, tenantId: number): string {
-  return `permissions:${userId}:${tenantId}`;
+export function getPermissionCacheKey(userId: number, orgId: number): string {
+  return `permissions:${userId}:${orgId}`;
 }
 
 // Cache TTL (Time To Live) in seconds - 1 hour
@@ -45,14 +45,14 @@ export const PERMISSION_CACHE_TTL = 3600;
 // Cache user permissions
 export async function cacheUserPermissions(
   userId: number, 
-  tenantId: number, 
+  orgId: number, 
   permissions: string[]
 ): Promise<void> {
   const client = getRedisClient();
   if (!client) return;
 
   try {
-    const key = getPermissionCacheKey(userId, tenantId);
+    const key = getPermissionCacheKey(userId, orgId);
     await client.setex(key, PERMISSION_CACHE_TTL, JSON.stringify(permissions));
   } catch (error) {
     console.error('Failed to cache user permissions:', error);
@@ -62,13 +62,13 @@ export async function cacheUserPermissions(
 // Get cached user permissions
 export async function getCachedUserPermissions(
   userId: number, 
-  tenantId: number
+  orgId: number
 ): Promise<string[] | null> {
   const client = getRedisClient();
   if (!client) return null;
 
   try {
-    const key = getPermissionCacheKey(userId, tenantId);
+    const key = getPermissionCacheKey(userId, orgId);
     const cached = await client.get(key);
     return cached ? JSON.parse(cached) : null;
   } catch (error) {
@@ -80,20 +80,20 @@ export async function getCachedUserPermissions(
 // Invalidate user permission cache
 export async function invalidateUserPermissionCache(
   userId: number, 
-  tenantId: number
+  orgId: number
 ): Promise<void> {
   const client = getRedisClient();
   if (!client) return;
 
   try {
-    const key = getPermissionCacheKey(userId, tenantId);
+    const key = getPermissionCacheKey(userId, orgId);
     await client.del(key);
   } catch (error) {
     console.error('Failed to invalidate user permission cache:', error);
   }
 }
 
-// Invalidate all permission caches for a user (across all tenants)
+// Invalidate all permission caches for a user (across all orgs)
 export async function invalidateAllUserPermissionCaches(userId: number): Promise<void> {
   const client = getRedisClient();
   if (!client) return;

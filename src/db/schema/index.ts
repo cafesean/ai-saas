@@ -62,11 +62,6 @@ import {
   usersRelations,
   orgsRelations,
   userOrgsRelations,
-  // Legacy exports for backward compatibility
-  tenants,
-  userTenants,
-  tenantsRelations,
-  userTenantsRelations,
 } from "./org";
 import {
   roles,
@@ -167,11 +162,6 @@ export {
   usersRelations,
   orgsRelations,
   userOrgsRelations,
-  // Legacy exports for backward compatibility
-  tenants,
-  userTenants,
-  tenantsRelations,
-  userTenantsRelations,
   roles,
   permissions,
   rolePermissions,
@@ -261,11 +251,6 @@ export default {
   usersRelations,
   orgsRelations,
   userOrgsRelations,
-  // Legacy exports for backward compatibility  
-  tenants,
-  userTenants,
-  tenantsRelations,
-  userTenantsRelations,
   roles,
   permissions,
   rolePermissions,

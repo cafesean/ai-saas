@@ -236,7 +236,7 @@ export const decisionTablesRelations = relations(
       org: one(orgs, {
     fields: [decision_tables.orgId],
     references: [orgs.id],
-  }),
+    }),
     rows: many(decision_table_rows),
     inputs: many(decision_table_inputs),
     outputs: many(decision_table_outputs),

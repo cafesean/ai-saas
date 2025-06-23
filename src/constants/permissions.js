@@ -12,7 +12,7 @@
  * - rule: Business rule management permissions
  * - knowledge_base: Knowledge base management permissions
  * - admin: Administrative permissions
- * - tenant: Tenant management permissions
+ * - org: Org management permissions
  * - user: User management permissions
  */
 var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
@@ -25,7 +25,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEFAULT_ROLES = exports.PERMISSION_SLUGS = exports.ALL_PERMISSIONS = exports.TWILIO_PERMISSIONS = exports.WORKFLOW_ADDITIONAL_PERMISSIONS = exports.FILE_PERMISSIONS = exports.ENDPOINT_PERMISSIONS = exports.WIDGET_PERMISSIONS = exports.ADMIN_PERMISSIONS = exports.TENANT_PERMISSIONS = exports.USER_PERMISSIONS = exports.DECISION_TESTING_PERMISSIONS = exports.RULE_SET_PERMISSIONS = exports.LOOKUP_TABLE_PERMISSIONS = exports.VARIABLE_PERMISSIONS = exports.KNOWLEDGE_BASE_PERMISSIONS = exports.RULE_PERMISSIONS = exports.DECISION_TABLE_PERMISSIONS = exports.MODEL_PERMISSIONS = exports.WORKFLOW_PERMISSIONS = void 0;
+exports.DEFAULT_ROLES = exports.PERMISSION_SLUGS = exports.ALL_PERMISSIONS = exports.TWILIO_PERMISSIONS = exports.WORKFLOW_ADDITIONAL_PERMISSIONS = exports.FILE_PERMISSIONS = exports.ENDPOINT_PERMISSIONS = exports.WIDGET_PERMISSIONS = exports.ADMIN_PERMISSIONS = exports.org_PERMISSIONS = exports.USER_PERMISSIONS = exports.DECISION_TESTING_PERMISSIONS = exports.RULE_SET_PERMISSIONS = exports.LOOKUP_TABLE_PERMISSIONS = exports.VARIABLE_PERMISSIONS = exports.KNOWLEDGE_BASE_PERMISSIONS = exports.RULE_PERMISSIONS = exports.DECISION_TABLE_PERMISSIONS = exports.MODEL_PERMISSIONS = exports.WORKFLOW_PERMISSIONS = void 0;
 exports.getPermissionsByCategory = getPermissionsByCategory;
 exports.getPermissionBySlug = getPermissionBySlug;
 exports.validatePermissionSlugs = validatePermissionSlugs;
@@ -415,35 +415,35 @@ exports.USER_PERMISSIONS = [
     {
         slug: "user:assign_role",
         name: "Assign User Roles",
-        description: "Assign roles to users within tenant",
+        description: "Assign roles to users within org",
         category: "user",
     },
 ];
-// Tenant Management Permissions
-exports.TENANT_PERMISSIONS = [
+// Org Management Permissions
+exports.org_PERMISSIONS = [
     {
-        slug: "tenant:create",
-        name: "Create Tenant",
-        description: "Create new tenant organizations",
-        category: "tenant",
+        slug: "org:create",
+        name: "Create Org",
+        description: "Create new org organizations",
+        category: "org",
     },
     {
-        slug: "tenant:read",
-        name: "View Tenant",
-        description: "View tenant information and settings",
-        category: "tenant",
+        slug: "org:read",
+        name: "View Org",
+        description: "View org information and settings",
+        category: "org",
     },
     {
-        slug: "tenant:update",
-        name: "Edit Tenant",
-        description: "Edit tenant settings and configuration",
-        category: "tenant",
+        slug: "org:update",
+        name: "Edit Org",
+        description: "Edit org settings and configuration",
+        category: "org",
     },
     {
-        slug: "tenant:delete",
-        name: "Delete Tenant",
-        description: "Delete tenant organizations",
-        category: "tenant",
+        slug: "org:delete",
+        name: "Delete Org",
+        description: "Delete org organizations",
+        category: "org",
     },
 ];
 // Administrative Permissions
@@ -598,7 +598,7 @@ exports.TWILIO_PERMISSIONS = [
     },
 ];
 // All permissions combined
-exports.ALL_PERMISSIONS = __spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray([], exports.WORKFLOW_PERMISSIONS, true), exports.WORKFLOW_ADDITIONAL_PERMISSIONS, true), exports.MODEL_PERMISSIONS, true), exports.DECISION_TABLE_PERMISSIONS, true), exports.RULE_PERMISSIONS, true), exports.VARIABLE_PERMISSIONS, true), exports.LOOKUP_TABLE_PERMISSIONS, true), exports.RULE_SET_PERMISSIONS, true), exports.DECISION_TESTING_PERMISSIONS, true), exports.KNOWLEDGE_BASE_PERMISSIONS, true), exports.USER_PERMISSIONS, true), exports.TENANT_PERMISSIONS, true), exports.ADMIN_PERMISSIONS, true), exports.WIDGET_PERMISSIONS, true), exports.ENDPOINT_PERMISSIONS, true), exports.FILE_PERMISSIONS, true), exports.TWILIO_PERMISSIONS, true);
+exports.ALL_PERMISSIONS = __spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray(__spreadArray([], exports.WORKFLOW_PERMISSIONS, true), exports.WORKFLOW_ADDITIONAL_PERMISSIONS, true), exports.MODEL_PERMISSIONS, true), exports.DECISION_TABLE_PERMISSIONS, true), exports.RULE_PERMISSIONS, true), exports.VARIABLE_PERMISSIONS, true), exports.LOOKUP_TABLE_PERMISSIONS, true), exports.RULE_SET_PERMISSIONS, true), exports.DECISION_TESTING_PERMISSIONS, true), exports.KNOWLEDGE_BASE_PERMISSIONS, true), exports.USER_PERMISSIONS, true), exports.org_PERMISSIONS, true), exports.ADMIN_PERMISSIONS, true), exports.WIDGET_PERMISSIONS, true), exports.ENDPOINT_PERMISSIONS, true), exports.FILE_PERMISSIONS, true), exports.TWILIO_PERMISSIONS, true);
 // Permission slugs for easy reference
 exports.PERMISSION_SLUGS = exports.ALL_PERMISSIONS.map(function (p) { return p.slug; });
 exports.DEFAULT_ROLES = [

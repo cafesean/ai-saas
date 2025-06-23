@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { db } from "@/db";
 import { rule_sets, rule_set_steps } from "@/db/schema";
 import { RuleSetStatus } from "@/db/schema/rule_set";
+import type { ExtendedSession } from "@/db/auth-hydration";
 
 // Validation schemas
 const createRuleSetSchema = z.object({
@@ -65,7 +66,8 @@ export const ruleSetRouter = createTRPCRouter({
       }).optional()
     )
     .query(async ({ ctx, input }) => {
-      const orgId = await getUserOrgId(ctx.session.user.id);
+      const session = ctx.session as ExtendedSession;
+      const orgId = await getUserOrgId(session.user.id);
       if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -90,7 +92,8 @@ export const ruleSetRouter = createTRPCRouter({
 
   // Get published rule sets only (for use in workflows)
   getPublished: protectedProcedure.query(async ({ ctx }) => {
-    const orgId = await getUserOrgId(ctx.session.user.id);
+    const session = ctx.session as ExtendedSession;
+    const orgId = await getUserOrgId(session.user.id);
     if (!orgId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
@@ -117,7 +120,8 @@ export const ruleSetRouter = createTRPCRouter({
     .input(z.string().uuid())
     .query(async ({ ctx, input }) => {
       // TODO: Implement proper org lookup - using hardcoded orgId for now
-      const orgId = await getUserOrgId(ctx.session.user.id);
+      const session = ctx.session as ExtendedSession;
+      const orgId = await getUserOrgId(session.user.id);
       if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -157,8 +161,9 @@ export const ruleSetRouter = createTRPCRouter({
     .input(createRuleSetSchema)
     .mutation(async ({ ctx, input }) => {
       // TODO: Implement proper org lookup - using hardcoded orgId for now
-      const orgId = await getUserOrgId(ctx.session.user.id);
-      const userId = ctx.session?.user?.id;
+      const session = ctx.session as ExtendedSession;
+      const orgId = await getUserOrgId(session.user.id);
+      const userId = session.user.id;
 
       if (!orgId) {
         throw new TRPCError({
@@ -198,7 +203,8 @@ export const ruleSetRouter = createTRPCRouter({
     .input(updateRuleSetSchema)
     .mutation(async ({ ctx, input }) => {
       // TODO: Implement proper org lookup - using hardcoded orgId for now
-      const orgId = await getUserOrgId(ctx.session.user.id);
+      const session = ctx.session as ExtendedSession;
+      const orgId = await getUserOrgId(session.user.id);
       if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -265,8 +271,9 @@ export const ruleSetRouter = createTRPCRouter({
     .input(publishRuleSetSchema)
     .mutation(async ({ ctx, input }) => {
       // TODO: Implement proper org lookup - using hardcoded orgId for now
-      const orgId = await getUserOrgId(ctx.session.user.id);
-      const userId = ctx.session?.user?.id;
+      const session = ctx.session as ExtendedSession;
+      const orgId = await getUserOrgId(session.user.id);
+      const userId = session.user.id;
 
       if (!orgId) {
         throw new TRPCError({
@@ -302,7 +309,7 @@ export const ruleSetRouter = createTRPCRouter({
         .from(rule_set_steps)
         .where(eq(rule_set_steps.ruleSetId, input.uuid));
 
-      if (!stepCount.length || stepCount[0].count === 0) {
+      if (!stepCount.length || stepCount[0]?.count === 0) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Rule set must have at least one step before publishing",
@@ -333,7 +340,8 @@ export const ruleSetRouter = createTRPCRouter({
     .input(z.string().uuid())
     .mutation(async ({ ctx, input }) => {
       // TODO: Implement proper org lookup - using hardcoded orgId for now
-      const orgId = await getUserOrgId(ctx.session.user.id);
+      const session = ctx.session as ExtendedSession;
+      const orgId = await getUserOrgId(session.user.id);
       if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -384,7 +392,8 @@ export const ruleSetRouter = createTRPCRouter({
     .input(z.string().uuid())
     .mutation(async ({ ctx, input }) => {
       // TODO: Implement proper org lookup - using hardcoded orgId for now
-      const orgId = await getUserOrgId(ctx.session.user.id);
+      const session = ctx.session as ExtendedSession;
+      const orgId = await getUserOrgId(session.user.id);
       if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -433,7 +442,8 @@ export const ruleSetRouter = createTRPCRouter({
       .input(createStepSchema)
       .mutation(async ({ ctx, input }) => {
         // TODO: Implement proper org lookup - using hardcoded orgId for now
-        const orgId = await getUserOrgId(ctx.session.user.id);
+        const session = ctx.session as ExtendedSession;
+        const orgId = await getUserOrgId(session.user.id);
         if (!orgId) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -489,7 +499,8 @@ export const ruleSetRouter = createTRPCRouter({
       .input(updateStepSchema)
       .mutation(async ({ ctx, input }) => {
         // TODO: Implement proper org lookup - using hardcoded orgId for now
-        const orgId = await getUserOrgId(ctx.session.user.id);
+        const session = ctx.session as ExtendedSession;
+        const orgId = await getUserOrgId(session.user.id);
         if (!orgId) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -562,7 +573,8 @@ export const ruleSetRouter = createTRPCRouter({
       .input(z.string().uuid())
       .mutation(async ({ ctx, input }) => {
         // TODO: Implement proper org lookup - using hardcoded orgId for now
-        const orgId = await getUserOrgId(ctx.session.user.id);
+        const session = ctx.session as ExtendedSession;
+        const orgId = await getUserOrgId(session.user.id);
         if (!orgId) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -615,7 +627,8 @@ export const ruleSetRouter = createTRPCRouter({
       .input(reorderStepsSchema)
       .mutation(async ({ ctx, input }) => {
         // TODO: Implement proper org lookup - using hardcoded orgId for now
-        const orgId = await getUserOrgId(ctx.session.user.id);
+        const session = ctx.session as ExtendedSession;
+        const orgId = await getUserOrgId(session.user.id);
         if (!orgId) {
           throw new TRPCError({
             code: "UNAUTHORIZED",

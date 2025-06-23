@@ -11,13 +11,15 @@ export const templatesRouter = createTRPCRouter({
 		return db
 			.insert(templates)
 			.values({
-				templateId: parsedTemplate.templateId,
+				name: "Untitled Template", // Default name since parser doesn't return name
+				description: undefined, // Default description since parser doesn't return description
+				flowId: parsedTemplate.templateId || "unknown",
+				provider: "n8n",
 				versionId: parsedTemplate.versionId,
 				instanceId: parsedTemplate.instanceId,
 				userInputs: parsedTemplate.userInputs,
 				workflowJson: parsedTemplate.workflowJson,
-				createdAt: new Date(),
-				updatedAt: new Date(),
+				orgId: 1, // Default org for now
 			})
 			.returning();
 	}),
@@ -26,8 +28,8 @@ export const templatesRouter = createTRPCRouter({
 		return db.select().from(templates).orderBy(desc(templates.createdAt));
 	}),
 
-	get: publicProcedure.input(z.string().uuid()).query(async ({ input: id }) => {
-		const [template] = await db.select().from(templates).where(eq(templates.id, id)).limit(1);
+	get: publicProcedure.input(z.string().uuid()).query(async ({ input: uuid }) => {
+		const [template] = await db.select().from(templates).where(eq(templates.uuid, uuid)).limit(1);
 
 		if (!template) {
 			throw new Error("Template not found");

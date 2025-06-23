@@ -12,6 +12,7 @@ import {
 } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 import { RuleTypes, ConditionDataTypes } from "@/constants/rule";
+import type { ExtendedSession } from "@/db/auth-hydration";
 
 const releCreateSchema = z.object({
   name: z.string().min(1),
@@ -91,10 +92,11 @@ export const rulesRouter = createTRPCRouter({
       try {
         const newRule = await db.transaction(async (tx) => {
           // Insert rules table
+          const session = ctx.session as ExtendedSession;
           const [rule] = await tx
             .insert(rules)
             .values({
-              tenantId: ctx.session?.user?.orgUser?.[0]?.tenantId,
+              orgId: session.user.orgId || 1, // Fallback to org 1 if not set
               name: input.name,
               description: input.description,
             })
