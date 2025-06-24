@@ -476,155 +476,53 @@ const generateN8NNodesAndN8NConnections = async (
         break;
 
       case NodeTypes.decisionTable:
-        const decisionTableUUID = node.data.decisionTable.uuid;
-        const decisionTable = await tx.query.decision_tables.findFirst({
-          where: eq(decision_tables.uuid, decisionTableUUID),
-          with: {
-            rows: {
-              with: {
-                inputConditions: true,
-                outputResults: true,
-              },
-            },
-            inputs: {
-              with: {
-                variable: true,
-              },
-            },
-            outputs: {
-              with: {
-                variable: true,
-              },
-            },
-          },
-        });
-        if (decisionTable) {
-          // Generate decision table logic
-          const decisionTableRows = decisionTable.rows || [];
-          const normalRows = decisionTableRows.filter(
-            (row: any) => row.type === DecisionTableRowTypes.NORMAL,
-          );
-          const defaultRows = decisionTableRows.filter(
-            (row: any) => row.type === DecisionTableRowTypes.DEFAULT,
-          );
-          const decisionTableInputs = decisionTable.inputs || [];
-          const decisionTableOutputs = decisionTable.outputs || [];
-          if (decisionTableRows.length > 0) {
-            const decisionTableJSCodeArray = [];
-            // Generate decision table array
-            let decisionTableCode = "const decisionTable = [\n";
-            normalRows.forEach((row: any, rn: number) => {
-              const decisionTableInputConditions = row.inputConditions;
-              const decisionTableOutputResults = row.outputResults;
-              decisionTableCode += "  {\n";
-              decisionTableCode += "    condition: (data) => ";
-              // Loop conditions
-              const conditions: any[] = [];
-              decisionTableInputConditions.forEach(
-                (condition: any, cn: number) => {
-                  const decisionTableInput = decisionTableInputs.find(
-                    (input: any) => input.uuid === condition.dt_input_id,
-                  );
-                  if (
-                    decisionTableInput.variable.dataType ===
-                      DecisionDataTypes[1]?.value &&
-                    condition.value === ""
-                  ) {
-                    return;
-                  }
-                  conditions.push(
-                    `data.${
-                      decisionTableInput.variable.name
-                    }${getInputOperatorAndValue(
-                      condition.condition,
-                      decisionTableInput.variable.dataType,
-                      condition.value,
-                    )}`,
-                  );
-                },
-              );
-              decisionTableCode += conditions.join(" && ") + ",\n";
-              // Contact outputs
-              decisionTableCode += "    result: { ";
-              // Loop outputs
-              const results: any[] = [];
-              decisionTableOutputResults.forEach((result: any, rn: number) => {
-                const decisionTableOutput = decisionTableOutputs.find(
-                  (output: any) => output.uuid === result.dt_output_id,
-                );
-                results.push(
-                  `${decisionTableOutput.variable.name}:${getOutputValue(
-                    result.result,
-                    decisionTableOutput.variable.dataType,
-                  )}`,
-                );
-              });
-              decisionTableCode += results.join(", ");
-              decisionTableCode += " },\n";
-              decisionTableCode += "  },";
-              if (rn == normalRows.length - 1) {
-                decisionTableCode += "\n";
-              }
-            });
-            decisionTableCode += "];\n";
-            decisionTableJSCodeArray.push(decisionTableCode);
-            // Node input data
-            const nodeInputCode =
-              "const data = $input.all()[0].json.body || $input.all()[0].json;\n";
-            decisionTableJSCodeArray.push(nodeInputCode);
-            // Default result
-            let defaultResult = 'let matchedResult = { message: "No Match" };';
-            if (defaultRows && defaultRows.length > 0) {
-              defaultResult = `let matchedResult = { `;
-
-              defaultRows.forEach((row: any, rn: number) => {
-                const decisionTableOutputResults = row.outputResults;
-                // Loop outputs
-                const defaultResults: any[] = [];
-                decisionTableOutputResults.forEach(
-                  (result: any, rn: number) => {
-                    const decisionTableOutput = decisionTableOutputs.find(
-                      (output: any) => output.uuid === result.dt_output_id,
-                    );
-                    defaultResults.push(
-                      `${decisionTableOutput.variable.name}:${getOutputValue(
-                        result.result,
-                        decisionTableOutput.variable.dataType,
-                      )}`,
-                    );
-                  },
-                );
-                defaultResult += defaultResults.join(", ");
-                defaultResult += "  };";
-                if (rn == defaultRows.length - 1) {
-                  defaultResult += "\n";
-                }
-              });
-            }
-            decisionTableJSCodeArray.push(defaultResult);
-            // Detect matched result
-            const detectMatchedResult =
-              "for (const rule of decisionTable) {\n  if (rule.condition(data)) {\n    matchedResult = rule.result;\n    break;\n  }\n}\n";
-            decisionTableJSCodeArray.push(detectMatchedResult);
-            // Return matched result
-            const returnMatchedResult =
-              "return [\n  {\n    json: {\n     ...matchedResult,\n    },\n  },\n];";
-            decisionTableJSCodeArray.push(returnMatchedResult);
-            // Generate JS code
-            const jsCode = decisionTableJSCodeArray.join("\n");
-
-            n8nNodes.push({
-              ...n8nCodeNode,
-              parameters: {
-                ...n8nCodeNode.parameters,
-                jsCode: jsCode,
-              },
-              position: [node.position.x, node.position.y],
-              name: node.data.label,
-              id: uuidv4(),
-            });
-          }
+        // Find the node which connect the decisionTable
+        const connection = edges.find((edge) => edge.target === node.id);
+        if (!connection) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Decision table connection not found",
+          });
         }
+        // Find the source node of the connection
+        const sourceNode = nodes.find((n) => n.id === connection.source);
+        if (!sourceNode) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Decision table source node not found",
+          });
+        }
+        n8nNodes.push({
+          ...n8nHTTPRequestNode,
+          parameters: {
+            ...n8nHTTPRequestNode.parameters,
+            method: "POST",
+            url: process.env.AI_SAAS_DECISION_TABLE_API,
+            sendHeaders: true,
+            headerParameters: {
+              parameters: [
+                {
+                  name: "Authorization",
+                  value: `Basic ${process.env.N8N_BASIC_AUTH_TOKEN}`,
+                },
+                {
+                  name: "x-ai-saas-client-id",
+                  value: process.env.AI_SAAS_CLIENT_id,
+                },
+                {
+                  name: "x-ai-sass-client-secret",
+                  value: process.env.AI_SAAS_CLIENT_SECRET,
+                },
+              ],
+            },
+            sendBody: true,
+            specifyBody: "json",
+            jsonBody: `={{ { dtId: "${node.data.decisionTable.uuid}", ...$node["${sourceNode.data.label}"].json.body } }}`,
+          },
+          position: [node.position.x, node.position.y],
+          name: node.data.label,
+          id: uuidv4(),
+        });
         break;
 
       case NodeTypes.logic:

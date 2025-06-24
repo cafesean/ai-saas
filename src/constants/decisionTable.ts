@@ -49,6 +49,12 @@ export const DecisionTableInputStringOperators = [
   {
     operator: "does not contain",
   },
+  {
+    operator: "starts-with",
+  },
+  {
+    operator: "ends-with",
+  },
 ];
 
 export const DecisionTableInputBooleanOperators = [
