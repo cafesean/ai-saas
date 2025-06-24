@@ -129,7 +129,10 @@ export const POST = async (request: NextRequest) => {
     decisionService.registerTable(newDecisionTable);
     const result = decisionService.evaluate(newDecisionTable.uuid, inputs);
 
-    return createApiSuccess(result);
+    return NextResponse.json(
+      { ...result },
+      { status: 200 }
+    );
   } catch (error: any) {
     console.log(error);
     if (
