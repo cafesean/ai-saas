@@ -60,3 +60,4 @@ docs/
 
 .env.local*
 .env
+.mcp.json
