@@ -503,7 +503,7 @@ const generateN8NNodesAndN8NConnections = async (
               parameters: [
                 {
                   name: "Authorization",
-                  value: `Basic ${process.env.N8N_BASIC_AUTH_TOKEN}`,
+                  value: `Basic ${process.env.AI_SAAS_BASIC_TOKEN}`,
                 },
                 {
                   name: "x-ai-saas-client-id",
