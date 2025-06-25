@@ -52,6 +52,7 @@ import {
 import { api } from "@/utils/trpc";
 import { toast } from "sonner";
 import { type OrganizationWithStats } from "@/types/organization";
+import { FormSubmissionProvider, useFormSubmission } from "@/contexts/FormSubmissionContext";
 
 // Organization form schema
 const organizationFormSchema = z.object({
@@ -74,7 +75,7 @@ interface OrganizationDetailsDialogProps {
   mode: "create" | "edit";
 }
 
-export function OrganizationDetailsDialog({
+function OrganizationDetailsDialogContent({
   open,
   onClose,
   onSuccess,
@@ -84,6 +85,7 @@ export function OrganizationDetailsDialog({
   const [activeTab, setActiveTab] = useState("details");
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [selectedRole, setSelectedRole] = useState("member");
+  const { setIsSubmitting } = useFormSubmission();
 
   // Organization form
   const form = useForm<OrganizationFormData>({
@@ -143,7 +145,11 @@ export function OrganizationDetailsDialog({
 
   // API queries and mutations
   const createMutation = api.org.create.useMutation({
+    onMutate: () => {
+      setIsSubmitting(true);
+    },
     onSuccess: () => {
+      setIsSubmitting(false);
       toast.success("Organization created successfully");
       // Reset form to clear values after successful creation
       form.reset({
@@ -158,16 +164,22 @@ export function OrganizationDetailsDialog({
       onSuccess();
     },
     onError: (error) => {
+      setIsSubmitting(false);
       toast.error(`Failed to create organization: ${error.message}`);
     },
   });
 
   const updateMutation = api.org.update.useMutation({
+    onMutate: () => {
+      setIsSubmitting(true);
+    },
     onSuccess: () => {
+      setIsSubmitting(false);
       toast.success("Organization updated successfully");
       onSuccess();
     },
     onError: (error) => {
+      setIsSubmitting(false);
       toast.error(`Failed to update organization: ${error.message}`);
     },
   });
@@ -736,4 +748,12 @@ export function OrganizationDetailsDialog({
       </DialogContent>
     </Dialog>
   );
-} 
+}
+
+export function OrganizationDetailsDialog(props: OrganizationDetailsDialogProps) {
+  return (
+    <FormSubmissionProvider>
+      <OrganizationDetailsDialogContent {...props} />
+    </FormSubmissionProvider>
+  );
+}
