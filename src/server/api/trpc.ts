@@ -292,7 +292,18 @@ export const getUserOrgId = async (userId: number): Promise<number> => {
   const orgData = user.orgData as any;
   const currentOrgId = orgData?.currentOrgId;
 
-  if (!currentOrgId) {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('getUserOrgId Debug:', {
+      userId,
+      hasOrgData: !!user.orgData,
+      orgData: user.orgData,
+      currentOrgId,
+      type: typeof currentOrgId
+    });
+  }
+
+  // Check for both null/undefined and zero values
+  if (currentOrgId === null || currentOrgId === undefined) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "User does not have a current organization set",

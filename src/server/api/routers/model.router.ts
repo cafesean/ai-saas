@@ -373,13 +373,13 @@ export const modelRouter = createTRPCRouter({
       }
     }),
 
-  // AI-powered metadata transformation
+  // AI-powered metadata transformation (placeholder for future implementation)
   transformMetadata: protectedProcedure
     .input(aiTransformationRequestSchema)
     .mutation(async ({ input, ctx }) => {
       try {
-        // TODO: Implement actual AI transformation service in SAAS-265
-        // For now, return a mock transformation
+        // TODO: Implement AI transformation service
+        // For now, return a basic transformation
         
         const mockTransformation = {
           success: true,

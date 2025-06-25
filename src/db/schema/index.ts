@@ -108,6 +108,9 @@ import {
   test_scenarios,
   testScenariosRelations,
 } from "./test_scenario";
+import {
+  providers,
+} from "./provider";
 
 export {
   templates,
@@ -201,6 +204,7 @@ export {
   ruleSetStepsRelations,
   test_scenarios,
   testScenariosRelations,
+  providers,
 };
 
 export default {
@@ -290,4 +294,5 @@ export default {
   ruleSetStepsRelations,
   test_scenarios,
   testScenariosRelations,
+  providers,
 };

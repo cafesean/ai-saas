@@ -3,6 +3,7 @@ import { n8nRouter } from "./routers/n8n";
 import { modelRouter } from "./routers/model.router";
 import { modelGroupRouter } from "./routers/model-group.router";
 import { inferenceTableRouter } from "./routers/inference-table.router";
+import { providerRouter } from "./routers/provider.router";
 import { workflowRouter } from "./routers/workflow.router";
 import { templateRouter } from "./routers/template.router";
 import { widgetsRouter } from "./routers/widget.router";
@@ -38,6 +39,7 @@ export const appRouter = createTRPCRouter({
   model: modelRouter,
   modelGroup: modelGroupRouter,
   inferenceTable: inferenceTableRouter,
+  provider: providerRouter,
   workflow: workflowRouter,
   template: templateRouter,
   widget: widgetsRouter,
