@@ -13,6 +13,7 @@
     "lint": "next lint",
     "terser": "npx terser --compress --mangle --output $npm_config_output -- $npm_config_input",
     "migrate:permissions": "tsx src/db/seeds/rbac-seed.ts",
+    "seed:initial-user": "tsx src/db/seeds/initial-user-org-seed.ts",
     "migrate:twilio-permissions": "tsx src/db/seeds/migrate-twilio-permissions.ts",
     "fix:permissions": "tsx src/db/seeds/fix-permissions-migration.ts",
     "fix:roles": "tsx src/db/seeds/comprehensive-role-permissions-fix.ts",

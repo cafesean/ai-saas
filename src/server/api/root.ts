@@ -1,6 +1,7 @@
 import { createTRPCRouter } from "./trpc";
 import { n8nRouter } from "./routers/n8n";
 import { modelRouter } from "./routers/model.router";
+import { modelGroupRouter } from "./routers/model-group.router";
 import { workflowRouter } from "./routers/workflow.router";
 import { templateRouter } from "./routers/template.router";
 import { widgetsRouter } from "./routers/widget.router";
@@ -34,6 +35,7 @@ import { ruleSetRouter } from "./routers/rule-set.router";
 export const appRouter = createTRPCRouter({
   n8n: n8nRouter,
   model: modelRouter,
+  modelGroup: modelGroupRouter,
   workflow: workflowRouter,
   template: templateRouter,
   widget: widgetsRouter,
