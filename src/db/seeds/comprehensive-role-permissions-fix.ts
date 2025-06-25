@@ -116,7 +116,7 @@ async function comprehensiveRolePermissionsFix() {
         await db.insert(userRoles).values({
           userId: 1,
           roleId: ownerRoleId,
-          tenantId: 1, // Assuming tenant ID 1
+          orgId: 1, // Assuming org ID 1
         });
         console.log('   ✅ Assigned user 1 to owner role');
       } catch (error) {

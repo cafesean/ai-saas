@@ -1,18 +1,14 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useEffect } from "react";
-import { useAuthHydration, stopSessionMonitoring } from "@/db/auth-hydration";
-import { useAuthStore } from "@/framework/store/auth.store";
+import { useMemo } from "react";
+import type { ExtendedSession, ExtendedUser } from "../../db/auth-hydration";
 
 /**
- * Custom hook that integrates NextAuth session with our RBAC auth store
+ * Custom hook that provides pure session-based authentication
  * 
- * This hook automatically:
- * - Hydrates the auth store when session changes
- * - Starts session monitoring when authenticated
- * - Cleans up session monitoring on logout
- * - Provides loading states and auth status
+ * This hook directly uses NextAuth session without any client-side state management.
+ * All authentication state comes from the JWT session.
  * 
  * Usage:
  * ```tsx
@@ -25,7 +21,7 @@ import { useAuthStore } from "@/framework/store/auth.store";
  *   return (
  *     <div>
  *       Welcome {user?.name}!
- *       {hasPermission('workflow:create') && (
+ *       {hasPermission('workflows:create') && (
  *         <button>Create Workflow</button>
  *       )}
  *     </div>
@@ -35,70 +31,76 @@ import { useAuthStore } from "@/framework/store/auth.store";
  */
 export function useAuthSession() {
   const { data: session, status } = useSession();
-  const { 
-    authenticated, 
-    loading: storeLoading, 
-    user, 
-    role, 
-    permissions,
-    hasPermission 
-  } = useAuthStore();
-
-  // Hydrate the auth store when session changes
-  useAuthHydration(session, status);
-
-  // Handle cleanup when component unmounts or user logs out
-  useEffect(() => {
-    return () => {
-      // Clean up session monitoring if the component unmounts
-      // and the user is not authenticated
-      if (!authenticated) {
-        stopSessionMonitoring();
-      }
-    };
-  }, [authenticated]);
-
-  // Determine overall loading state
-  const isLoading = status === "loading" || storeLoading;
   
-  // Determine authentication state
-  const isAuthenticated = status === "authenticated" && authenticated && !!user;
+  // Cast session to our extended type
+  const extendedSession = session as ExtendedSession | null;
 
-  return {
-    // Loading state
-    isLoading,
+  // Memoized computed values based on session
+  const computedValues = useMemo(() => {
+    const isLoading = status === "loading";
+    const isAuthenticated = status === "authenticated" && !!extendedSession?.user;
+    const user = extendedSession?.user || null;
+    const roles = user?.roles || [];
+    const primaryRole = roles[0] || null;
     
-    // Authentication state
-    isAuthenticated,
-    isUnauthenticated: status === "unauthenticated" || !authenticated,
+    // Extract all permissions from roles
+    const permissions = roles.flatMap(role => 
+      role.policies?.map(policy => ({
+        id: `${policy.id || role.id}-${policy.name}`,
+        slug: policy.name,
+        name: policy.description || policy.name,
+        category: policy.name.split(':')[0] || 'general',
+      })) || []
+    );
     
-    // User data
-    user,
-    role,
-    permissions,
+    // Permission checking functions
+    const hasPermission = (slug: string): boolean => {
+      return permissions.some(p => p.slug === slug);
+    };
     
-    // Session data
-    session,
-    sessionStatus: status,
+    const hasAnyPermission = (slugs: string[]): boolean => {
+      return slugs.some(slug => hasPermission(slug));
+    };
     
-    // Permission helpers
-    hasPermission,
+    const hasAllPermissions = (slugs: string[]): boolean => {
+      return slugs.every(slug => hasPermission(slug));
+    };
     
-    // Utility functions
-    checkPermission: (slug: string) => hasPermission(slug),
-    checkMultiplePermissions: (slugs: string[]) => slugs.every(slug => hasPermission(slug)),
-    checkAnyPermission: (slugs: string[]) => slugs.some(slug => hasPermission(slug)),
-  };
+    const hasRole = (roleName: string): boolean => {
+      return roles.some(role => role.name.toLowerCase() === roleName.toLowerCase());
+    };
+
+    return {
+      isLoading,
+      isAuthenticated,
+      isUnauthenticated: status === "unauthenticated" || !isAuthenticated,
+      user,
+      roles,
+      primaryRole,
+      permissions,
+      session: extendedSession,
+      sessionStatus: status,
+      hasPermission,
+      hasAnyPermission,
+      hasAllPermissions,
+      hasRole,
+      // Convenience methods
+      checkPermission: hasPermission,
+      checkMultiplePermissions: hasAllPermissions,
+      checkAnyPermission: hasAnyPermission,
+    };
+  }, [extendedSession, status]);
+
+  return computedValues;
 }
 
 /**
- * Hook for checking permissions without full auth session data
- * Useful for small components that only need permission checking
+ * Hook for checking a single permission without full auth session data
  * 
  * Usage:
  * ```tsx
  * function PermissionButton() {
- *   const canCreate = usePermission('workflow:create');
+ *   const canCreate = usePermission('workflows:create');
  *   
  *   if (!canCreate) return null;
  *   
@@ -107,7 +109,7 @@ export function useAuthSession() {
  * ```
  */
 export function usePermission(slug: string): boolean {
-  const { hasPermission } = useAuthStore();
+  const { hasPermission } = useAuthSession();
   return hasPermission(slug);
 }
 
@@ -120,7 +122,7 @@ export function usePermission(slug: string): boolean {
  *   const { hasAll, hasAny, permissions } = usePermissions([
  *     'admin:full_access',
  *     'admin:role_management',
- *     'user:create'
+ *     'users:create'
  *   ]);
  *   
  *   if (!hasAny) return <div>Access denied</div>;
@@ -128,31 +130,33 @@ export function usePermission(slug: string): boolean {
  *   return (
  *     <div>
  *       {hasAll && <div>Full admin access</div>}
- *       {permissions['user:create'] && <button>Create User</button>}
+ *       {permissions['users:create'] && <button>Create User</button>}
  *     </div>
  *   );
  * }
  * ```
  */
 export function usePermissions(slugs: string[]) {
-  const { hasPermission, permissions: userPermissions } = useAuthStore();
+  const { hasPermission, permissions: userPermissions } = useAuthSession();
   
-  const permissions = slugs.reduce((acc, slug) => {
-    acc[slug] = hasPermission(slug);
-    return acc;
-  }, {} as Record<string, boolean>);
-  
-  const hasAll = slugs.every(slug => hasPermission(slug));
-  const hasAny = slugs.some(slug => hasPermission(slug));
-  const hasNone = !hasAny;
-  
-  return {
-    permissions,
-    hasAll,
-    hasAny,
-    hasNone,
-    userPermissions,
-  };
+  return useMemo(() => {
+    const permissions = slugs.reduce((acc, slug) => {
+      acc[slug] = hasPermission(slug);
+      return acc;
+    }, {} as Record<string, boolean>);
+    
+    const hasAll = slugs.every(slug => hasPermission(slug));
+    const hasAny = slugs.some(slug => hasPermission(slug));
+    const hasNone = !hasAny;
+    
+    return {
+      permissions,
+      hasAll,
+      hasAny,
+      hasNone,
+      userPermissions,
+    };
+  }, [slugs, hasPermission, userPermissions]);
 }
 
 /**
@@ -176,12 +180,60 @@ export function usePermissions(slugs: string[]) {
  * ```
  */
 export function useCurrentUser() {
-  const { user, role, loading, authenticated } = useAuthStore();
+  const { user, primaryRole, isLoading, isAuthenticated } = useAuthSession();
   
   return {
     user,
-    role,
-    isLoading: loading,
-    isAuthenticated: authenticated && !!user,
+    role: primaryRole,
+    isLoading,
+    isAuthenticated,
   };
-} 
+}
+
+/**
+ * Utility functions for server-side or imperative access to session data
+ */
+export const AuthUtils = {
+  /**
+   * Extract permissions from a session object
+   */
+  getPermissionsFromSession: (session: ExtendedSession | null): string[] => {
+    if (!session?.user?.roles) return [];
+    
+    return session.user.roles.flatMap(role => 
+      role.policies?.map(policy => policy.name) || []
+    );
+  },
+  
+  /**
+   * Check if session has a specific permission
+   */
+  sessionHasPermission: (session: ExtendedSession | null, slug: string): boolean => {
+    const permissions = AuthUtils.getPermissionsFromSession(session);
+    return permissions.includes(slug);
+  },
+  
+  /**
+   * Check if session has any of the provided permissions
+   */
+  sessionHasAnyPermission: (session: ExtendedSession | null, slugs: string[]): boolean => {
+    const permissions = AuthUtils.getPermissionsFromSession(session);
+    return slugs.some(slug => permissions.includes(slug));
+  },
+  
+  /**
+   * Check if session has all of the provided permissions
+   */
+  sessionHasAllPermissions: (session: ExtendedSession | null, slugs: string[]): boolean => {
+    const permissions = AuthUtils.getPermissionsFromSession(session);
+    return slugs.every(slug => permissions.includes(slug));
+  },
+  
+  /**
+   * Check if session has a specific role
+   */
+  sessionHasRole: (session: ExtendedSession | null, roleName: string): boolean => {
+    if (!session?.user?.roles) return false;
+    return session.user.roles.some(role => role.name.toLowerCase() === roleName.toLowerCase());
+  },
+}; 

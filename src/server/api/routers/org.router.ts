@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 import { db } from '@/db';
-import { tenants, users, userTenants, userRoles, roles } from '@/db/schema';
+import { orgs, users, userOrgs, userRoles, roles } from '@/db/schema';
 import { eq, asc, desc, and, or, like, count, sql, not } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 
-// Type for tenant with stats
-type TenantWithStats = typeof tenants.$inferSelect & {
+// Type for org with stats
+type OrgWithStats = typeof orgs.$inferSelect & {
   userCount: number;
   activeUserCount: number;
   _count: {
@@ -14,20 +14,20 @@ type TenantWithStats = typeof tenants.$inferSelect & {
   };
 };
 
-// Type for tenant user
-type TenantUser = {
+// Type for org user
+type OrgUser = {
   userId: number;
   userUuid: string;
   userName: string | null;
   userEmail: string;
   userIsActive: boolean;
-  tenantRole: string;
+  orgRole: string;
   relationshipIsActive: boolean;
   joinedAt: Date;
 };
 
 // Validation schemas
-const tenantSchema = z.object({
+const orgSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   description: z.string().optional(),
   slug: z.string().min(1).max(255).regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens").optional(),
@@ -37,27 +37,27 @@ const tenantSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
-const tenantUpdateSchema = tenantSchema.partial().extend({
+const orgUpdateSchema = orgSchema.partial().extend({
   id: z.number(),
 });
 
-const tenantFiltersSchema = z.object({
+const orgFiltersSchema = z.object({
   search: z.string().optional(),
   isActive: z.boolean().optional(),
   limit: z.number().min(1).max(100).default(10),
   offset: z.number().min(0).default(0),
 });
 
-const tenantUserManagementSchema = z.object({
-  tenantId: z.number(),
+const orgUserManagementSchema = z.object({
+  orgId: z.number(),
   userId: z.number(),
   role: z.string().min(1, "Role is required"),
 });
 
-export const tenantRouter = createTRPCRouter({
-  // Get all tenants with stats (user counts, etc.)
+export const orgRouter = createTRPCRouter({
+  // Get all orgs with stats (user counts, etc.)
   getAllWithStats: protectedProcedure
-    .input(tenantFiltersSchema)
+    .input(orgFiltersSchema)
     .query(async ({ ctx, input }) => {
       const { search, isActive, limit, offset } = input;
 
@@ -67,46 +67,46 @@ export const tenantRouter = createTRPCRouter({
       if (search) {
         whereConditions.push(
           or(
-            like(tenants.name, `%${search}%`),
-            like(tenants.description, `%${search}%`),
-            like(tenants.slug, `%${search}%`)
+            like(orgs.name, `%${search}%`),
+            like(orgs.description, `%${search}%`),
+            like(orgs.slug, `%${search}%`)
           )
         );
       }
       
       if (typeof isActive === 'boolean') {
-        whereConditions.push(eq(tenants.isActive, isActive));
+        whereConditions.push(eq(orgs.isActive, isActive));
       }
 
       const whereClause = whereConditions.length > 0 
         ? and(...whereConditions) 
         : undefined;
 
-      // Get tenants with basic info
-      const tenantsData = await db.select()
-        .from(tenants)
+      // Get orgs with basic info
+      const orgsData = await db.select()
+        .from(orgs)
         .where(whereClause)
-        .orderBy(desc(tenants.createdAt))
+        .orderBy(desc(orgs.createdAt))
         .limit(limit)
         .offset(offset);
 
-      // Get user counts for each tenant
-      const tenantsWithStats: TenantWithStats[] = await Promise.all(
-        tenantsData.map(async (tenant: typeof tenants.$inferSelect) => {
+      // Get user counts for each org
+      const orgsWithStats: OrgWithStats[] = await Promise.all(
+        orgsData.map(async (org: typeof orgs.$inferSelect) => {
           const [userCountResult, activeUserCountResult] = await Promise.all([
             db.select({ count: count() })
-              .from(userTenants)
-              .where(eq(userTenants.tenantId, tenant.id)),
+              .from(userOrgs)
+              .where(eq(userOrgs.orgId, org.id)),
             db.select({ count: count() })
-              .from(userTenants)
+              .from(userOrgs)
               .where(and(
-                eq(userTenants.tenantId, tenant.id),
-                eq(userTenants.isActive, true)
+                eq(userOrgs.orgId, org.id),
+                eq(userOrgs.isActive, true)
               ))
           ]);
 
           return {
-            ...tenant,
+            ...org,
             userCount: userCountResult[0]?.count || 0,
             activeUserCount: activeUserCountResult[0]?.count || 0,
             _count: {
@@ -118,252 +118,252 @@ export const tenantRouter = createTRPCRouter({
 
       // Get total count for pagination
       const totalCountResult = await db.select({ count: count() })
-        .from(tenants)
+        .from(orgs)
         .where(whereClause);
 
       return {
-        tenants: tenantsWithStats,
+        orgs: orgsWithStats,
         totalCount: totalCountResult[0]?.count || 0,
         hasMore: offset + limit < (totalCountResult[0]?.count || 0),
       };
     }),
 
-  // Get all active tenants (legacy method for compatibility)
+  // Get all active orgs (legacy method for compatibility)
   getAll: protectedProcedure
     .query(async ({ ctx }) => {
       return await db.select()
-        .from(tenants)
-        .where(eq(tenants.isActive, true))
-        .orderBy(asc(tenants.name));
+        .from(orgs)
+        .where(eq(orgs.isActive, true))
+        .orderBy(asc(orgs.name));
     }),
 
-  // Get tenant by ID with detailed information
+  // Get org by ID with detailed information
   getById: protectedProcedure
     .input(z.number())
     .query(async ({ ctx, input }) => {
-      const [tenant] = await db.select()
-        .from(tenants)
-        .where(eq(tenants.id, input))
+      const [org] = await db.select()
+        .from(orgs)
+        .where(eq(orgs.id, input))
         .limit(1);
 
-      if (!tenant) {
+      if (!org) {
         throw new TRPCError({
           code: 'NOT_FOUND',
-          message: `Tenant with ID ${input} not found`
+          message: `Org with ID ${input} not found`
         });
       }
 
-      // Get tenant users with their roles
-      const tenantUsers: TenantUser[] = await db.select({
+      // Get org users with their roles
+      const orgUsers: OrgUser[] = await db.select({
         userId: users.id,
         userUuid: users.uuid,
         userName: users.name,
         userEmail: users.email,
         userIsActive: users.isActive,
-        tenantRole: userTenants.role,
-        relationshipIsActive: userTenants.isActive,
-        joinedAt: userTenants.createdAt,
+        orgRole: userOrgs.role,
+        relationshipIsActive: userOrgs.isActive,
+        joinedAt: userOrgs.createdAt,
       })
-      .from(userTenants)
-      .innerJoin(users, eq(userTenants.userId, users.id))
-      .where(eq(userTenants.tenantId, input))
-      .orderBy(desc(userTenants.createdAt));
+      .from(userOrgs)
+      .innerJoin(users, eq(userOrgs.userId, users.id))
+      .where(eq(userOrgs.orgId, input))
+      .orderBy(desc(userOrgs.createdAt));
 
       return {
-        ...tenant,
-        users: tenantUsers,
-        userCount: tenantUsers.length,
-        activeUserCount: tenantUsers.filter((u: TenantUser) => u.relationshipIsActive && u.userIsActive).length,
+        ...org,
+        users: orgUsers,
+        userCount: orgUsers.length,
+        activeUserCount: orgUsers.filter((u: OrgUser) => u.relationshipIsActive && u.userIsActive).length,
       };
     }),
 
-  // Create new tenant
+  // Create new org
   create: protectedProcedure
-    .input(tenantSchema)
+    .input(orgSchema)
     .mutation(async ({ ctx, input }) => {
       // Check if name already exists
-      const existingTenant = await db.select()
-        .from(tenants)
-        .where(eq(tenants.name, input.name))
+      const existingOrg = await db.select()
+        .from(orgs)
+        .where(eq(orgs.name, input.name))
         .limit(1);
 
-      if (existingTenant[0]) {
+      if (existingOrg[0]) {
         throw new TRPCError({
           code: 'CONFLICT',
-          message: 'A tenant with this name already exists'
+          message: 'An org with this name already exists'
         });
       }
 
       // Check if slug already exists (if provided)
       if (input.slug) {
         const existingSlug = await db.select()
-          .from(tenants)
-          .where(eq(tenants.slug, input.slug))
+          .from(orgs)
+          .where(eq(orgs.slug, input.slug))
           .limit(1);
 
         if (existingSlug[0]) {
           throw new TRPCError({
             code: 'CONFLICT',
-            message: 'A tenant with this slug already exists'
+            message: 'An org with this slug already exists'
           });
         }
       }
 
       try {
-        const [newTenant] = await db.insert(tenants).values({
+        const [newOrg] = await db.insert(orgs).values({
           ...input,
           // Auto-generate slug from name if not provided
           slug: input.slug || input.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''),
         }).returning();
 
-        return newTenant;
+        return newOrg;
       } catch (error) {
-        console.error("Error creating tenant:", error);
+        console.error("Error creating org:", error);
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to create tenant',
+          message: 'Failed to create org',
           cause: error,
         });
       }
     }),
 
-  // Update tenant
+  // Update org
   update: protectedProcedure
-    .input(tenantUpdateSchema)
+    .input(orgUpdateSchema)
     .mutation(async ({ ctx, input }) => {
       const { id, ...updateData } = input;
 
-      // Check if tenant exists
-      const existingTenant = await db.select()
-        .from(tenants)
-        .where(eq(tenants.id, id))
+      // Check if org exists
+      const existingOrg = await db.select()
+        .from(orgs)
+        .where(eq(orgs.id, id))
         .limit(1);
 
-      if (!existingTenant[0]) {
+      if (!existingOrg[0]) {
         throw new TRPCError({
           code: 'NOT_FOUND',
-          message: 'Tenant not found'
+          message: 'Org not found'
         });
       }
 
       // Check name uniqueness if name is being updated
-      if (updateData.name && updateData.name !== existingTenant[0].name) {
+      if (updateData.name && updateData.name !== existingOrg[0].name) {
         const nameExists = await db.select()
-          .from(tenants)
+          .from(orgs)
           .where(and(
-            eq(tenants.name, updateData.name),
-            not(eq(tenants.id, id))
+            eq(orgs.name, updateData.name),
+            not(eq(orgs.id, id))
           ))
           .limit(1);
 
         if (nameExists[0]) {
           throw new TRPCError({
             code: 'CONFLICT',
-            message: 'A tenant with this name already exists'
+            message: 'An org with this name already exists'
           });
         }
       }
 
       // Check slug uniqueness if slug is being updated
-      if (updateData.slug && updateData.slug !== existingTenant[0].slug) {
+      if (updateData.slug && updateData.slug !== existingOrg[0].slug) {
         const slugExists = await db.select()
-          .from(tenants)
+          .from(orgs)
           .where(and(
-            eq(tenants.slug, updateData.slug),
-            not(eq(tenants.id, id))
+            eq(orgs.slug, updateData.slug),
+            not(eq(orgs.id, id))
           ))
           .limit(1);
 
         if (slugExists[0]) {
           throw new TRPCError({
             code: 'CONFLICT',
-            message: 'A tenant with this slug already exists'
+            message: 'An org with this slug already exists'
           });
         }
       }
 
       try {
-        const [updatedTenant] = await db.update(tenants)
+        const [updatedOrg] = await db.update(orgs)
           .set({
             ...updateData,
             updatedAt: new Date(),
           })
-          .where(eq(tenants.id, id))
+          .where(eq(orgs.id, id))
           .returning();
 
-        return updatedTenant;
+        return updatedOrg;
       } catch (error) {
-        console.error("Error updating tenant:", error);
+        console.error("Error updating org:", error);
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to update tenant',
+          message: 'Failed to update org',
           cause: error,
         });
       }
     }),
 
-  // Delete tenant (soft delete by setting isActive = false)
+  // Delete org (soft delete by setting isActive = false)
   delete: protectedProcedure
     .input(z.number())
     .mutation(async ({ ctx, input }) => {
-      // Check if tenant exists
-      const existingTenant = await db.select()
-        .from(tenants)
-        .where(eq(tenants.id, input))
+      // Check if org exists
+      const existingOrg = await db.select()
+        .from(orgs)
+        .where(eq(orgs.id, input))
         .limit(1);
 
-      if (!existingTenant[0]) {
+      if (!existingOrg[0]) {
         throw new TRPCError({
           code: 'NOT_FOUND',
-          message: 'Tenant not found'
+          message: 'Org not found'
         });
       }
 
-      // Prevent deletion of system default tenant
-      if (existingTenant[0].slug === 'default-org' || existingTenant[0].name === 'Default Organization') {
+      // Prevent deletion of system default org
+      if (existingOrg[0].slug === 'default-org' || existingOrg[0].name === 'Default Organization') {
         throw new TRPCError({
           code: 'FORBIDDEN',
-          message: 'Cannot delete the system default tenant'
+          message: 'Cannot delete the system default org'
         });
       }
 
       try {
         // Soft delete by setting isActive = false
-        const [deletedTenant] = await db.update(tenants)
+        const [deletedOrg] = await db.update(orgs)
           .set({ 
             isActive: false,
             updatedAt: new Date(),
           })
-          .where(eq(tenants.id, input))
+          .where(eq(orgs.id, input))
           .returning();
 
-        return deletedTenant;
+        return deletedOrg;
       } catch (error) {
-        console.error("Error deleting tenant:", error);
+        console.error("Error deleting org:", error);
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to delete tenant',
+          message: 'Failed to delete org',
           cause: error,
         });
       }
     }),
 
-  // Add user to tenant
+  // Add user to org
   addUser: protectedProcedure
-    .input(tenantUserManagementSchema)
+    .input(orgUserManagementSchema)
     .mutation(async ({ ctx, input }) => {
-      const { tenantId, userId, role } = input;
+      const { orgId, userId, role } = input;
 
-      // Check if tenant exists
-      const tenant = await db.select()
-        .from(tenants)
-        .where(eq(tenants.id, tenantId))
+      // Check if org exists
+      const org = await db.select()
+        .from(orgs)
+        .where(eq(orgs.id, orgId))
         .limit(1);
 
-      if (!tenant[0]) {
+      if (!org[0]) {
         throw new TRPCError({
           code: 'NOT_FOUND',
-          message: 'Tenant not found'
+          message: 'Org not found'
         });
       }
 
@@ -382,121 +382,121 @@ export const tenantRouter = createTRPCRouter({
 
       // Check if relationship already exists
       const existingRelationship = await db.select()
-        .from(userTenants)
+        .from(userOrgs)
         .where(and(
-          eq(userTenants.userId, userId),
-          eq(userTenants.tenantId, tenantId)
+          eq(userOrgs.userId, userId),
+          eq(userOrgs.orgId, orgId)
         ))
         .limit(1);
 
       if (existingRelationship[0]) {
         // If exists but inactive, reactivate it
         if (!existingRelationship[0].isActive) {
-          await db.update(userTenants)
+          await db.update(userOrgs)
             .set({ 
               isActive: true,
               role: role,
               updatedAt: new Date(),
             })
             .where(and(
-              eq(userTenants.userId, userId),
-              eq(userTenants.tenantId, tenantId)
+              eq(userOrgs.userId, userId),
+              eq(userOrgs.orgId, orgId)
             ));
           
           return { success: true, action: 'reactivated' };
         } else {
           throw new TRPCError({
             code: 'CONFLICT',
-            message: 'User is already a member of this tenant'
+            message: 'User is already a member of this org'
           });
         }
       }
 
       try {
-        await db.insert(userTenants).values({
+        await db.insert(userOrgs).values({
           userId,
-          tenantId,
+          orgId,
           role,
           isActive: true,
         });
 
         return { success: true, action: 'added' };
       } catch (error) {
-        console.error("Error adding user to tenant:", error);
+        console.error("Error adding user to org:", error);
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to add user to tenant',
+          message: 'Failed to add user to org',
           cause: error,
         });
       }
     }),
 
-  // Remove user from tenant
+  // Remove user from org
   removeUser: protectedProcedure
     .input(z.object({
-      tenantId: z.number(),
+      orgId: z.number(),
       userId: z.number(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const { tenantId, userId } = input;
+      const { orgId, userId } = input;
 
       try {
-        const deletedRelationship = await db.delete(userTenants)
+        const deletedRelationship = await db.delete(userOrgs)
           .where(and(
-            eq(userTenants.userId, userId),
-            eq(userTenants.tenantId, tenantId)
+            eq(userOrgs.userId, userId),
+            eq(userOrgs.orgId, orgId)
           ))
           .returning();
 
         if (deletedRelationship.length === 0) {
           throw new TRPCError({
             code: 'NOT_FOUND',
-            message: 'User-tenant relationship not found'
+            message: 'User-org relationship not found'
           });
         }
 
         return { success: true };
       } catch (error) {
-        console.error("Error removing user from tenant:", error);
+        console.error("Error removing user from org:", error);
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to remove user from tenant',
+          message: 'Failed to remove user from org',
           cause: error,
         });
       }
     }),
 
-  // Update user role in tenant
+  // Update user role in org
   updateUserRole: protectedProcedure
-    .input(tenantUserManagementSchema)
+    .input(orgUserManagementSchema)
     .mutation(async ({ ctx, input }) => {
-      const { tenantId, userId, role } = input;
+      const { orgId, userId, role } = input;
 
       // Check if relationship exists
       const existingRelationship = await db.select()
-        .from(userTenants)
+        .from(userOrgs)
         .where(and(
-          eq(userTenants.userId, userId),
-          eq(userTenants.tenantId, tenantId)
+          eq(userOrgs.userId, userId),
+          eq(userOrgs.orgId, orgId)
         ))
         .limit(1);
 
       if (!existingRelationship[0]) {
         throw new TRPCError({
           code: 'NOT_FOUND',
-          message: 'User-tenant relationship not found'
+          message: 'User-org relationship not found'
         });
       }
 
       try {
-        const [updatedRelationship] = await db.update(userTenants)
+        const [updatedRelationship] = await db.update(userOrgs)
           .set({ 
             role,
             updatedAt: new Date(),
           })
           .where(and(
-            eq(userTenants.userId, userId),
-            eq(userTenants.tenantId, tenantId)
+            eq(userOrgs.userId, userId),
+            eq(userOrgs.orgId, orgId)
           ))
           .returning();
 
@@ -511,28 +511,28 @@ export const tenantRouter = createTRPCRouter({
       }
     }),
 
-  // Create default tenant if none exists (for development)
-  ensureDefaultTenant: protectedProcedure
+  // Create default org if none exists (for development)
+  ensureDefaultOrg: protectedProcedure
     .mutation(async ({ ctx }) => {
-      // Check if any tenants exist
-      const existingTenants = await db.select()
-        .from(tenants)
+      // Check if any orgs exist
+      const existingOrgs = await db.select()
+        .from(orgs)
         .limit(1);
 
-      if (existingTenants.length === 0) {
-        // Create default tenant
-        const [defaultTenant] = await db.insert(tenants)
+      if (existingOrgs.length === 0) {
+        // Create default org
+        const [defaultOrg] = await db.insert(orgs)
           .values({
             name: 'Default Organization',
-            description: 'Default tenant for initial setup',
+            description: 'Default org for initial setup',
             slug: 'default-org',
             isActive: true,
           })
           .returning();
 
-        return defaultTenant;
+        return defaultOrg;
       }
 
-      return existingTenants[0];
+      return existingOrgs[0];
     }),
 }); 

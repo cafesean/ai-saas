@@ -10,7 +10,7 @@ import {
   json,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { tenants } from "./tenant";
+import { orgs } from "./org";
 
 export const test_scenarios = pgTable(
   "test_scenarios",
@@ -34,9 +34,9 @@ export const test_scenarios = pgTable(
     lastRunStatus: varchar("last_run_status", { length: 50 }), // 'passed', 'failed', 'error'
     
     // Multi-tenancy support
-    tenantId: integer("tenant_id")
+    orgId: integer("org_id")
       .notNull()
-      .references(() => tenants.id, { onDelete: "restrict" }),
+      .references(() => orgs.id, { onDelete: "restrict" }),
       
     // User who created the test
     createdBy: integer("created_by"), // User ID
@@ -51,7 +51,7 @@ export const test_scenarios = pgTable(
   (table) => [
     index("test_scenario_id_idx").on(table.id),
     index("test_scenario_uuid_idx").on(table.uuid), 
-    index("test_scenario_tenant_id_idx").on(table.tenantId),
+    index("test_scenario_org_id_idx").on(table.orgId),
     index("test_scenario_artifact_idx").on(table.artifactType, table.artifactId),
     index("test_scenario_created_by_idx").on(table.createdBy),
   ],
@@ -59,8 +59,8 @@ export const test_scenarios = pgTable(
 
 // Relations
 export const testScenariosRelations = relations(test_scenarios, ({ one }) => ({
-  tenant: one(tenants, {
-    fields: [test_scenarios.tenantId],
-    references: [tenants.id],
+  org: one(orgs, {
+    fields: [test_scenarios.orgId],
+    references: [orgs.id],
   }),
 })); 

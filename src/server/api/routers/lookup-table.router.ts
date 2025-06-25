@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { eq, and, desc } from "drizzle-orm"
-import { createTRPCRouter, protectedProcedure, getUserTenantId } from "../trpc"
+import { createTRPCRouter, protectedProcedure, getUserOrgId } from "../trpc"
 import { 
   lookup_tables, 
   lookup_table_dimension_bins, 
@@ -9,6 +9,7 @@ import {
   lookup_table_outputs
 } from "@/db/schema/lookup_table"
 import { TRPCError } from "@trpc/server"
+import type { ExtendedSession } from "@/db/auth-hydration"
 
 const createLookupTableSchema = z.object({
   name: z.string().min(1).max(255),
@@ -51,16 +52,17 @@ export const lookupTableRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      if (!tenantId) {
+      // TODO: Implement proper org lookup - using hardcoded orgId for now
+      const session = ctx.session as ExtendedSession;
+      const orgId = await getUserOrgId(session.user.id);
+      if (!orgId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "No tenant access",
+          message: "No org access",
         })
       }
 
-      const conditions = [eq(lookup_tables.tenantId, tenantId)]
+      const conditions = [eq(lookup_tables.orgId, orgId)]
 
       if (input.status) {
         conditions.push(eq(lookup_tables.status, input.status))
@@ -81,17 +83,18 @@ export const lookupTableRouter = createTRPCRouter({
     }),
 
   getById: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ ctx, input }) => {
-    // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = await getUserTenantId(ctx.session.user.id);
-    if (!tenantId) {
+    // TODO: Implement proper org lookup - using hardcoded orgId for now
+    const session = ctx.session as ExtendedSession;
+    const orgId = await getUserOrgId(session.user.id);
+    if (!orgId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "No tenant access",
+        message: "No org access",
       })
     }
 
     const table = await ctx.db.query.lookup_tables.findFirst({
-      where: and(eq(lookup_tables.id, input.id), eq(lookup_tables.tenantId, tenantId)),
+      where: and(eq(lookup_tables.id, input.id), eq(lookup_tables.orgId, orgId)),
       with: {
         inputs: {
           with: {
@@ -121,17 +124,18 @@ export const lookupTableRouter = createTRPCRouter({
   }),
 
   getByUuid: protectedProcedure.input(z.object({ uuid: z.string() })).query(async ({ ctx, input }) => {
-    // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = await getUserTenantId(ctx.session.user.id);
-    if (!tenantId) {
+    // TODO: Implement proper org lookup - using hardcoded orgId for now
+    const session = ctx.session as ExtendedSession;
+    const orgId = await getUserOrgId(session.user.id);
+    if (!orgId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "No tenant access",
+        message: "No org access",
       })
     }
 
     const table = await ctx.db.query.lookup_tables.findFirst({
-      where: and(eq(lookup_tables.uuid, input.uuid), eq(lookup_tables.tenantId, tenantId)),
+      where: and(eq(lookup_tables.uuid, input.uuid), eq(lookup_tables.orgId, orgId)),
       with: {
         inputs: {
           with: {
@@ -163,18 +167,19 @@ export const lookupTableRouter = createTRPCRouter({
   create: protectedProcedure.input(createLookupTableSchema).mutation(async ({ ctx, input }) => {
     console.log("Create lookup table input:", input)
     
-    // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = await getUserTenantId(ctx.session.user.id);
-    const userId = ctx.session?.user?.id || 1 // Fallback to user ID 1 for now
+    // TODO: Implement proper org lookup - using hardcoded orgId for now
+    const session = ctx.session as ExtendedSession;
+    const orgId = await getUserOrgId(session.user.id);
+    const userId = session.user.id || 1 // Fallback to user ID 1 for now
     
     console.log("Session:", ctx.session)
     console.log("User ID:", userId)
-    console.log("Tenant ID:", tenantId)
+    console.log("Org ID:", orgId)
     
-    if (!tenantId) {
+    if (!orgId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "No tenant access",
+        message: "No org access",
       })
     }
 
@@ -183,7 +188,7 @@ export const lookupTableRouter = createTRPCRouter({
       const [newTable] = await tx
         .insert(lookup_tables)
         .values({
-          tenantId: tenantId,
+          orgId: orgId,
           name: input.name,
           description: input.description,
           createdBy: userId,
@@ -202,7 +207,7 @@ export const lookupTableRouter = createTRPCRouter({
       const inputInserts = []
       if (input.inputVariable1Id) {
         inputInserts.push({
-          tenantId: tenantId,
+          orgId: orgId,
           lookupTableId: newTable.id,
           variableId: input.inputVariable1Id,
           dimensionOrder: 1,
@@ -210,7 +215,7 @@ export const lookupTableRouter = createTRPCRouter({
       }
       if (input.inputVariable2Id) {
         inputInserts.push({
-          tenantId: tenantId,
+          orgId: orgId,
           lookupTableId: newTable.id,
           variableId: input.inputVariable2Id,
           dimensionOrder: 2,
@@ -222,7 +227,7 @@ export const lookupTableRouter = createTRPCRouter({
 
       // Create output variable mapping
       await tx.insert(lookup_table_outputs).values({
-        tenantId: tenantId,
+        orgId: orgId,
         lookupTableId: newTable.id,
         variableId: input.outputVariableId,
         outputOrder: 1,
@@ -230,7 +235,7 @@ export const lookupTableRouter = createTRPCRouter({
 
       // Create dimension bins
       const binInserts = input.dimensionBins.map((bin) => ({
-        tenantId: tenantId,
+        orgId: orgId,
         lookupTableId: newTable.id,
         dimension: bin.dimension,
         dimensionOrder: bin.dimension,
@@ -260,7 +265,7 @@ export const lookupTableRouter = createTRPCRouter({
         const row2BinId = cell.row2BinIndex !== undefined ? binIndexToId.get(`2-${cell.row2BinIndex}`)! : undefined
 
         return {
-          tenantId: tenantId,
+          orgId: orgId,
           lookupTableId: newTable.id,
           // Use legacy columns for compatibility with existing database schema
           row1BinId: row1BinId,
@@ -282,13 +287,14 @@ export const lookupTableRouter = createTRPCRouter({
   }),
 
   update: protectedProcedure.input(updateLookupTableSchema).mutation(async ({ ctx, input }) => {
-    // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = await getUserTenantId(ctx.session.user.id);
-    const userId = ctx.session?.user?.id
-    if (!tenantId || !userId) {
+    // TODO: Implement proper org lookup - using hardcoded orgId for now
+    const session = ctx.session as ExtendedSession;
+    const orgId = await getUserOrgId(session.user.id);
+    const userId = session.user.id
+    if (!orgId || !userId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "No tenant access",
+        message: "No org access",
       })
     }
 
@@ -302,7 +308,7 @@ export const lookupTableRouter = createTRPCRouter({
           updatedBy: userId,
           updatedAt: new Date(),
         })
-        .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.tenantId, tenantId)))
+        .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.orgId, orgId)))
         .returning()
 
       if (!updatedTable) {
@@ -322,7 +328,7 @@ export const lookupTableRouter = createTRPCRouter({
       const inputInserts = []
       if (input.inputVariable1Id) {
         inputInserts.push({
-          tenantId: tenantId,
+          orgId: orgId,
           lookupTableId: updatedTable.id,
           variableId: input.inputVariable1Id,
           dimensionOrder: 1,
@@ -330,7 +336,7 @@ export const lookupTableRouter = createTRPCRouter({
       }
       if (input.inputVariable2Id) {
         inputInserts.push({
-          tenantId: tenantId,
+          orgId: orgId,
           lookupTableId: updatedTable.id,
           variableId: input.inputVariable2Id,
           dimensionOrder: 2,
@@ -342,7 +348,7 @@ export const lookupTableRouter = createTRPCRouter({
 
       // Recreate output variable mapping
       await tx.insert(lookup_table_outputs).values({
-        tenantId: tenantId,
+        orgId: orgId,
         lookupTableId: updatedTable.id,
         variableId: input.outputVariableId,
         outputOrder: 1,
@@ -350,7 +356,7 @@ export const lookupTableRouter = createTRPCRouter({
 
       // Recreate dimension bins and cells (same logic as create)
       const binInserts = input.dimensionBins.map((bin) => ({
-        tenantId: tenantId,
+        orgId: orgId,
         lookupTableId: updatedTable.id,
         dimension: bin.dimension, // Keep for backward compatibility with old schema
         dimensionOrder: bin.dimension, // New field name
@@ -377,7 +383,7 @@ export const lookupTableRouter = createTRPCRouter({
         const row2BinId = cell.row2BinIndex !== undefined ? binIndexToId.get(`2-${cell.row2BinIndex}`)! : undefined
 
         return {
-          tenantId: tenantId,
+          orgId: orgId,
           lookupTableId: updatedTable.id,
           // Use legacy columns for compatibility with existing database schema
           row1BinId: row1BinId,
@@ -399,13 +405,14 @@ export const lookupTableRouter = createTRPCRouter({
   }),
 
   publish: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
-    // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = await getUserTenantId(ctx.session.user.id);
-    const userId = ctx.session?.user?.id
-    if (!tenantId || !userId) {
+    // TODO: Implement proper org lookup - using hardcoded orgId for now
+    const session = ctx.session as ExtendedSession;
+    const orgId = await getUserOrgId(session.user.id);
+    const userId = session.user.id
+    if (!orgId || !userId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "No tenant access",
+        message: "No org access",
       })
     }
 
@@ -413,7 +420,7 @@ export const lookupTableRouter = createTRPCRouter({
     const currentTable = await ctx.db
       .select()
       .from(lookup_tables)
-      .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.tenantId, tenantId)))
+      .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.orgId, orgId)))
       .limit(1)
     
     if (!currentTable[0]) {
@@ -431,7 +438,7 @@ export const lookupTableRouter = createTRPCRouter({
         updatedBy: userId,
         updatedAt: new Date(),
       })
-      .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.tenantId, tenantId)))
+      .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.orgId, orgId)))
       .returning()
 
     if (!updatedTable) {
@@ -445,13 +452,14 @@ export const lookupTableRouter = createTRPCRouter({
   }),
 
   deprecate: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
-    // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = await getUserTenantId(ctx.session.user.id);
-    const userId = ctx.session?.user?.id
-    if (!tenantId || !userId) {
+    // TODO: Implement proper org lookup - using hardcoded orgId for now
+    const session = ctx.session as ExtendedSession;
+    const orgId = await getUserOrgId(session.user.id);
+    const userId = session.user.id
+    if (!orgId || !userId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "No tenant access",
+        message: "No org access",
       })
     }
 
@@ -462,7 +470,7 @@ export const lookupTableRouter = createTRPCRouter({
         updatedBy: userId,
         updatedAt: new Date(),
       })
-      .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.tenantId, tenantId)))
+      .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.orgId, orgId)))
       .returning()
 
     if (!updatedTable) {
@@ -476,12 +484,13 @@ export const lookupTableRouter = createTRPCRouter({
   }),
 
   delete: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
-    // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = await getUserTenantId(ctx.session.user.id);
-    if (!tenantId) {
+    // TODO: Implement proper org lookup - using hardcoded orgId for now
+    const session = ctx.session as ExtendedSession;
+    const orgId = await getUserOrgId(session.user.id);
+    if (!orgId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "No tenant access",
+        message: "No org access",
       })
     }
 
@@ -495,7 +504,7 @@ export const lookupTableRouter = createTRPCRouter({
       // Delete the table
       const [deletedTable] = await tx
         .delete(lookup_tables)
-        .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.tenantId, tenantId)))
+        .where(and(eq(lookup_tables.id, input.id), eq(lookup_tables.orgId, orgId)))
         .returning()
 
       if (!deletedTable) {

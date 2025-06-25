@@ -1,11 +1,70 @@
 import { db } from "@/db";
 import type { GetServerSidePropsContext } from "next";
-import { getServerSession, type NextAuthOptions } from "next-auth";
+import { getServerSession, type NextAuthOptions, type User } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
 import CredentialsProvider from "next-auth/providers/credentials";
 import { env } from "@/env.mjs";
-import bcrypt from "bcrypt";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import * as bcrypt from 'bcrypt';
+import { users } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+
+// Extended types for NextAuth - properly extending base types
+interface ExtendedUser extends User {
+  id: string; // NextAuth expects string ID
+  uuid: string;
+  email: string;
+  name: string;
+  username: string;
+  password: string;
+  orgUser: never[];
+  roles: never[];
+  avatar: string;
+  firstName: string;
+  lastName: string;
+}
+
+interface ExtendedJWTToken extends JWT {
+  userId: number; // Internal DB ID as number
+  username: string;
+  firstName: string;
+  lastName: string;
+}
+
+interface ExtendedSessionUser {
+  id: number;
+  uuid: string;
+  email: string;
+  name: string;
+  username: string;
+  avatar: string;
+  firstName: string;
+  lastName: string;
+  orgUser: never[];
+  roles: Array<{
+    id: number;
+    name: string;
+    orgId: number;
+    policies: Array<{ name: string; description?: string }>;
+  }>;
+  orgId: number | null;
+  currentOrg: { id: number; name: string } | null;
+  availableOrgs: Array<{
+    id: number;
+    name: string;
+    roles: string[];
+    isActive: boolean;
+  }>;
+}
+
+// Type for org roles data structure
+interface OrgRoleData {
+  org: { id: number; name: string };
+  roles: Array<{
+    id: number;
+    name: string;
+    permissions: Array<{ name: string; description?: string }>;
+  }>;
+}
 
 /**
  * Options for NextAuth.js used to configure adapters, providers, callbacks,
@@ -21,20 +80,18 @@ export const authOptions: NextAuthOptions = {
       });
 
       if (trigger === "signIn" && user) {
-        console.log("Processing signIn for user:", user.email);
-        token.sub = user.uuid || user.id.toString();
-        token.userId = user.id;
-        token.email = user.email;
-        token.name = user.name;
-        token.username = user.username;
-        token.picture = user.avatar;
-        token.firstName = user.firstName;
-        token.lastName = user.lastName;
-        console.log("JWT token updated:", {
-          sub: token.sub,
-          userId: token.userId,
-          email: token.email,
-        });
+        // Safe type assertion with unknown intermediate
+        const extendedUser = user as unknown as ExtendedUser;
+        console.log('Processing signIn for user:', extendedUser.email);
+        token.sub = extendedUser.uuid || extendedUser.id.toString();
+        (token as ExtendedJWTToken).userId = parseInt(extendedUser.id); // Convert string ID to number for DB
+        token.email = extendedUser.email;
+        token.name = extendedUser.name;
+        (token as ExtendedJWTToken).username = extendedUser.username;
+        token.picture = extendedUser.avatar;
+        (token as ExtendedJWTToken).firstName = extendedUser.firstName;
+        (token as ExtendedJWTToken).lastName = extendedUser.lastName;
+        console.log('JWT token updated:', { sub: token.sub, userId: (token as ExtendedJWTToken).userId, email: token.email });
       }
 
       return token;
@@ -46,148 +103,154 @@ export const authOptions: NextAuthOptions = {
       });
 
       if (token && session.user) {
-        session.user.id = token.userId as number;
-        session.user.uuid = token.sub as string;
-        session.user.email = token.email as string;
-        session.user.name = token.name as string;
-        session.user.username = token.username as string;
-        session.user.avatar = token.picture as string;
-        session.user.firstName = token.firstName as string;
-        session.user.lastName = token.lastName as string;
-
+        // Safe type assertion with unknown intermediate
+        const extendedToken = token as unknown as ExtendedJWTToken;
+        const extendedUser = session.user as unknown as ExtendedSessionUser;
+        
+        extendedUser.id = extendedToken.userId;
+        extendedUser.uuid = extendedToken.sub as string;
+        extendedUser.email = extendedToken.email as string;
+        extendedUser.name = extendedToken.name as string;
+        extendedUser.username = extendedToken.username;
+        extendedUser.avatar = extendedToken.picture as string;
+        extendedUser.firstName = extendedToken.firstName;
+        extendedUser.lastName = extendedToken.lastName;
+        
         // Load user roles and permissions from database
         try {
-          const userId = token.userId as number;
-
-          // Get all user roles across all tenants
+          const userId = extendedToken.userId;
+          
+          // Get all user roles across all orgs
           const userRolesData = await db.query.userRoles.findMany({
-            where: (userRoles, { eq, and }) =>
-              and(eq(userRoles.userId, userId), eq(userRoles.isActive, true)),
+            where: (userRoles, { eq, and }) => and(
+              eq(userRoles.userId, userId),
+              eq(userRoles.isActive, true)
+            ),
             with: {
-              tenant: {
-                columns: { id: true, name: true },
+              org: {
+                columns: { id: true, name: true }
               },
               role: {
                 with: {
                   rolePermissions: {
                     with: {
-                      permission: true,
-                    },
-                  },
-                },
-              },
-            },
+                      permission: true
+                    }
+                  }
+                }
+              }
+            }
           });
 
           if (userRolesData.length === 0) {
-            console.warn("No active roles found for user:", userId);
-            session.user.roles = [];
-            session.user.tenantId = null;
-            session.user.availableTenants = [];
-            session.user.currentTenant = null;
+            console.warn('No active roles found for user:', userId);
+            extendedUser.roles = [];
+            extendedUser.orgId = null;
+            extendedUser.availableOrgs = [];
+            extendedUser.currentOrg = null;
             return session;
           }
 
-          // Group roles by tenant
-          const tenantRoles = userRolesData.reduce((acc, userRole) => {
-            const tenantId = userRole.tenantId;
-            if (!acc[tenantId]) {
-              acc[tenantId] = {
-                tenant: userRole.tenant,
-                roles: [],
+          // Group roles by org with proper typing
+          const orgRoles = userRolesData.reduce((acc, userRole) => {
+            const orgId = userRole.orgId;
+            if (!acc[orgId]) {
+              acc[orgId] = {
+                org: userRole.org,
+                roles: []
               };
             }
-            acc[tenantId].roles.push({
+            acc[orgId].roles.push({
               id: userRole.role.id,
               name: userRole.role.name,
-              permissions: userRole.role.rolePermissions.map((rp) => ({
+              permissions: userRole.role.rolePermissions.map(rp => ({
                 name: rp.permission.slug,
-                description: rp.permission.description,
-              })),
+                description: rp.permission.description || undefined
+              }))
             });
             return acc;
-          }, {} as Record<number, { tenant: { id: number; name: string }; roles: any[] }>);
+          }, {} as Record<number, OrgRoleData>);
 
-          // Determine active tenant (priority: owner role > admin role > first available)
-          let activeTenantId: number;
-          const ownerTenant = Object.entries(tenantRoles).find(([_, data]) =>
-            data.roles.some((role) => role.name.toLowerCase() === "owner"),
+          // Determine active org (priority: owner role > admin role > first available)
+          let activeOrgId: number;
+          const ownerOrg = Object.entries(orgRoles).find(([_, data]: [string, OrgRoleData]) => 
+            data.roles.some(role => role.name.toLowerCase() === 'owner')
           );
-          const adminTenant = Object.entries(tenantRoles).find(([_, data]) =>
-            data.roles.some((role) => role.name.toLowerCase() === "admin"),
+          const adminOrg = Object.entries(orgRoles).find(([_, data]: [string, OrgRoleData]) => 
+            data.roles.some(role => role.name.toLowerCase() === 'admin')
           );
-
-          if (ownerTenant) {
-            activeTenantId = parseInt(ownerTenant[0]);
-          } else if (adminTenant) {
-            activeTenantId = parseInt(adminTenant[0]);
+          
+          if (ownerOrg) {
+            activeOrgId = parseInt(ownerOrg[0]);
+          } else if (adminOrg) {
+            activeOrgId = parseInt(adminOrg[0]);
           } else {
-            activeTenantId = parseInt(Object.keys(tenantRoles)[0]);
+            const firstOrgKey = Object.keys(orgRoles)[0];
+            if (!firstOrgKey) {
+              throw new Error('No valid org found');
+            }
+            activeOrgId = parseInt(firstOrgKey);
           }
 
-          // Set session data for active tenant
-          const activeTenantData = tenantRoles[activeTenantId];
-          session.user.tenantId = activeTenantId;
-          session.user.currentTenant = activeTenantData.tenant;
-
-          // Aggregate all permissions for the active tenant
-          const allPermissions = activeTenantData.roles.flatMap(
-            (role) => role.permissions,
-          );
-          const uniquePermissions = allPermissions.filter(
-            (permission, index, self) =>
-              index === self.findIndex((p) => p.name === permission.name),
-          );
-
-          // Set roles for the active tenant (formatted for withPermission compatibility)
-          session.user.roles = [
-            {
-              id: activeTenantId, // Use tenant ID as role ID for compatibility
-              name: `Multi-Tenant-${activeTenantId}`,
-              tenantId: activeTenantId,
-              policies: uniquePermissions,
-            },
-          ];
-
-          // Set available tenants for tenant switching
-          session.user.availableTenants = Object.entries(tenantRoles).map(
-            ([tenantId, data]) => ({
-              id: parseInt(tenantId),
-              name: data.tenant.name,
-              roles: data.roles.map((role) => role.name),
-              isActive: parseInt(tenantId) === activeTenantId,
-            }),
+          // Set session data for active org
+          const activeOrgData = orgRoles[activeOrgId];
+          if (!activeOrgData) {
+            throw new Error('Active org data not found');
+          }
+          
+          extendedUser.orgId = activeOrgId;
+          extendedUser.currentOrg = activeOrgData.org;
+          
+          // Aggregate all permissions for the active org
+          const allPermissions = activeOrgData.roles.flatMap(role => role.permissions);
+          const uniquePermissions = allPermissions.filter((permission, index, self) => 
+            index === self.findIndex(p => p.name === permission.name)
           );
 
-          console.log("Loaded multi-tenant permissions:", {
+          // Set roles for the active org (formatted for withPermission compatibility)
+          extendedUser.roles = [{
+            id: activeOrgId, // Use org ID as role ID for compatibility
+            name: `Multi-Org-${activeOrgId}`,
+            orgId: activeOrgId,
+            policies: uniquePermissions
+          }];
+
+          // Set available orgs for org switching
+          extendedUser.availableOrgs = Object.entries(orgRoles).map(([orgId, data]: [string, OrgRoleData]) => ({
+            id: parseInt(orgId),
+            name: data.org.name,
+            roles: data.roles.map(role => role.name),
+            isActive: parseInt(orgId) === activeOrgId
+          }));
+          
+          console.log('Loaded multi-org permissions:', {
             userId,
-            activeTenantId,
-            activeTenantName: activeTenantData.tenant.name,
-            totalTenants: Object.keys(tenantRoles).length,
+            activeOrgId,
+            activeOrgName: activeOrgData.org.name,
+            totalOrgs: Object.keys(orgRoles).length,
             activePermissionsCount: uniquePermissions.length,
-            availableTenants: session.user.availableTenants.map(
-              (t) => `${t.name} (${t.roles.join(", ")})`,
-            ),
+            availableOrgs: extendedUser.availableOrgs.map((t: any) => `${t.name} (${t.roles.join(', ')})`)
           });
+          
         } catch (error) {
-          console.error("Error loading user permissions in session:", error);
-          session.user.roles = [];
-          session.user.tenantId = null;
-          session.user.availableTenants = [];
-          session.user.currentTenant = null;
+          console.error('Error loading user permissions in session:', error);
+          extendedUser.roles = [];
+          extendedUser.orgId = null;
+          extendedUser.availableOrgs = [];
+          extendedUser.currentOrg = null;
         }
-
-        session.user.orgUser = [];
+        
+        extendedUser.orgUser = [];
       }
-
-      console.log("Session callback result:", {
-        userId: session.user?.id,
-        email: session.user?.email,
-        tenantId: session.user?.tenantId,
-        currentTenant: session.user?.currentTenant?.name,
-        rolesCount: session.user?.roles?.length || 0,
-        permissionsCount:
-          session.user?.roles?.flatMap((r) => r.policies).length || 0,
+      
+      const extendedUser = session.user as unknown as ExtendedSessionUser;
+      console.log('Session callback result:', { 
+        userId: extendedUser?.id, 
+        email: extendedUser?.email,
+        orgId: extendedUser?.orgId,
+        currentOrg: extendedUser?.currentOrg?.name,
+        rolesCount: extendedUser?.roles?.length || 0,
+        permissionsCount: extendedUser?.roles?.flatMap((r: any) => r.policies).length || 0
       });
 
       return session;
@@ -242,7 +305,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         if (!credentials?.email || !credentials?.password) {
-          if (process.env.NODE_ENV === "development") {
+          if (process.env.NODE_ENV === 'development') {
             console.log("❌ Missing credentials");
           }
           return null;
@@ -325,8 +388,9 @@ export const authOptions: NextAuthOptions = {
             console.log("✅ Authentication successful for:", credentials.email);
           }
 
+          // Return User-compatible object (with string ID as NextAuth expects)
           const userResult = {
-            id: userData.id,
+            id: userData.id.toString(), // Convert to string for NextAuth compatibility
             email: userData.email,
             name: userData.name || userData.email,
             uuid: userData.uuid || userData.id.toString(),

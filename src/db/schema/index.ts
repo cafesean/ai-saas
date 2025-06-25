@@ -1,4 +1,4 @@
-import { templates } from "./n8n";
+import { templates, templatesRelations } from "./n8n";
 import {
   models,
   model_metrics,
@@ -57,12 +57,12 @@ import {
 } from "./knowledge_base";
 import {
   users,
-  tenants,
-  userTenants,
+  orgs,
+  userOrgs,
   usersRelations,
-  tenantsRelations,
-  userTenantsRelations,
-} from "./tenant";
+  orgsRelations,
+  userOrgsRelations,
+} from "./org";
 import {
   roles,
   permissions,
@@ -107,6 +107,7 @@ import {
 
 export {
   templates,
+  templatesRelations,
   models,
   model_metrics,
   inferences,
@@ -156,11 +157,11 @@ export {
   conversationRelations,
   conversationMessageRelations,
   users,
-  tenants,
-  userTenants,
+  orgs,
+  userOrgs,
   usersRelations,
-  tenantsRelations,
-  userTenantsRelations,
+  orgsRelations,
+  userOrgsRelations,
   roles,
   permissions,
   rolePermissions,
@@ -245,11 +246,11 @@ export default {
   conversationRelations,
   conversationMessageRelations,
   users,
-  tenants,
-  userTenants,
+  orgs,
+  userOrgs,
   usersRelations,
-  tenantsRelations,
-  userTenantsRelations,
+  orgsRelations,
+  userOrgsRelations,
   roles,
   permissions,
   rolePermissions,

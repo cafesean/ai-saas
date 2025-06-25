@@ -8,35 +8,35 @@ export const mockUsers = {
     email: 'admin@test.com',
     name: 'Test Admin',
     image: undefined,
-    tenantId: undefined,
+    orgId: undefined,
   } as UserProfile,
   user: {
     id: '2',
     email: 'user@test.com',
     name: 'Test User',
     image: undefined,
-    tenantId: undefined,
+    orgId: undefined,
   } as UserProfile,
   editor: {
     id: '3',
     email: 'editor@test.com',
     name: 'Test Editor',
     image: undefined,
-    tenantId: undefined,
+    orgId: undefined,
   } as UserProfile,
   superAdmin: {
     id: '4',
     email: 'superadmin@test.com',
     name: 'Super Admin',
     image: undefined,
-    tenantId: undefined,
+    orgId: undefined,
   } as UserProfile,
   viewer: {
     id: '5',
     email: 'viewer@test.com',
     name: 'Test Viewer',
     image: undefined,
-    tenantId: undefined,
+    orgId: undefined,
   } as UserProfile,
 } as const;
 
@@ -268,7 +268,7 @@ export const authTestUtils = {
       email: 'custom@test.com',
       name: 'Custom User',
       image: undefined,
-      tenantId: undefined,
+      orgId: undefined,
     };
     const customRole: UserRole = {
       id: 999,
@@ -286,7 +286,7 @@ export const authTestUtils = {
       email: 'custom-role@test.com',
       name: 'Custom Role User',
       image: undefined,
-      tenantId: undefined,
+      orgId: undefined,
     };
     const customRole: UserRole = {
       id: 998,

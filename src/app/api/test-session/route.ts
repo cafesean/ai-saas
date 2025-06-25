@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       hasSession: !!context.session,
       userId: context.session?.user?.id,
       email: context.session?.user?.email,
-      tenantId: context.session?.user?.tenantId,
+      orgId: context.session?.user?.orgId,
       permissionsCount: context.session?.user?.roles?.flatMap(r => r.policies).length || 0,
       rolesCount: context.session?.user?.roles?.length || 0,
     });

@@ -36,7 +36,7 @@ async function verifyAndFix() {
       'rules:read', 'rules:create', 'rules:update', 'rules:delete', 'rules:publish', 'rules:test',
       'bases:read', 'bases:create', 'bases:update', 'bases:delete', 'bases:upload_document', 'bases:chat', 'bases:callback',
       'orgs:read', 'orgs:create', 'orgs:update', 'orgs:delete',
-      'admin:debug_context', 'admin:seed_rbac', 'admin:seed_tenants'
+      'admin:debug_context', 'admin:seed_rbac', 'admin:seed_orgs'
     ];
 
     console.log('\n🔍 Checking for missing critical permissions:');
@@ -92,7 +92,7 @@ async function verifyAndFix() {
           // Admin permissions
           { slug: 'admin:debug_context', name: 'Debug Context Access', description: 'Access system debug information and context data', category: 'admin' },
           { slug: 'admin:seed_rbac', name: 'Seed RBAC', description: 'Initialize/modify RBAC system structure', category: 'admin' },
-          { slug: 'admin:seed_tenants', name: 'Seed Tenants', description: 'Initialize/modify tenant structure', category: 'admin' },
+          { slug: 'admin:seed_orgs', name: 'Seed Orgs', description: 'Initialize/modify org structure', category: 'admin' },
         ];
 
         // Filter to only add missing ones

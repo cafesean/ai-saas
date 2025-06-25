@@ -48,7 +48,7 @@ interface Variable {
   status: string;
   publishedAt: Date | null;
   publishedBy: number | null;
-  tenantId: number;
+  orgId: number;
   createdAt: Date;
   updatedAt: Date;
 }

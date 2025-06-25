@@ -8,7 +8,7 @@ This directory contains database seeding scripts and migration utilities for the
 Main RBAC seeding script that creates:
 - Default permissions (from `src/constants/permissions.ts`)
 - Default roles with their permission assignments
-- System users and tenant assignments
+- System users and org assignments
 
 ### `migrate-twilio-permissions.ts`
 Permission migration script that updates existing role permissions from legacy `twilio:templates` to new workflow-based permissions.

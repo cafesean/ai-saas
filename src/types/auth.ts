@@ -15,7 +15,7 @@ export interface OrgUser {
 export interface SessionRole {
   id: number;
   name: string;
-  tenantId: number;
+  orgId: number;
   policies: SessionPermission[];
 }
 
@@ -33,7 +33,7 @@ export interface Permission {
   can_delete: boolean;
 }
 
-export interface TenantInfo {
+export interface OrgInfo {
   id: number;
   name: string;
   roles: string[];
@@ -59,10 +59,10 @@ export interface AuthUser {
   lastName: string;
   roles: SessionRole[];
   orgUser: OrgUser[];
-  // Multi-tenant support
-  tenantId: number | null;
-  currentTenant: { id: number; name: string } | null;
-  availableTenants: TenantInfo[];
+  // Multi-org support
+  orgId: number | null;
+  currentOrg: { id: number; name: string } | null;
+  availableOrgs: OrgInfo[];
 }
 
 export interface AuthError {

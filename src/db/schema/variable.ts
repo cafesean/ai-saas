@@ -10,7 +10,7 @@ import {
   unique,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { tenants } from "./tenant";
+import { orgs } from "./org";
 
 // Variable Logic Types
 export const VariableLogicTypes = {
@@ -62,9 +62,9 @@ export const variables = pgTable(
     publishedBy: integer("published_by"), // User ID who published
     
     // Multi-tenancy support
-    tenantId: integer("tenant_id")
+      orgId: integer("org_id")
       .notNull()
-      .references(() => tenants.id, { onDelete: "restrict" }),
+    .references(() => orgs.id, { onDelete: "restrict" }),
       
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -76,18 +76,18 @@ export const variables = pgTable(
   (table) => [
     index("variable_id_idx").on(table.id),
     index("variable_uuid_idx").on(table.uuid), 
-    index("variable_tenant_id_idx").on(table.tenantId),
+    index("variable_org_id_idx").on(table.orgId),
     index("variable_status_idx").on(table.status),
     index("variable_logic_type_idx").on(table.logicType),
-    // Composite unique index for tenant + name combination
-    unique("variable_tenant_name_unique").on(table.tenantId, table.name),
+    // Composite unique index for org + name combination
+    unique("variable_org_name_unique").on(table.orgId, table.name),
   ],
 );
 
 // Relations
 export const variablesRelations = relations(variables, ({ one }) => ({
-  tenant: one(tenants, {
-    fields: [variables.tenantId],
-    references: [tenants.id],
+  org: one(orgs, {
+    fields: [variables.orgId],
+    references: [orgs.id],
   }),
 })); 

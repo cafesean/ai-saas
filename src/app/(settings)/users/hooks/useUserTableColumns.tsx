@@ -128,7 +128,7 @@ export function useUserTableColumns({
             {user.roles.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {user.roles.slice(0, 2).map((role) => (
-                  <Badge key={`${role.id}-${role.tenantId}`} variant="outline" className="text-xs">
+                  <Badge key={`${role.id}-${role.orgId}`} variant="outline" className="text-xs">
                     {role.name}
                   </Badge>
                 ))}
@@ -143,15 +143,15 @@ export function useUserTableColumns({
         );
       },
     },
-    // Tenants column
+    // Orgs column
     {
-      accessorKey: "tenantCount",
-      header: "Tenants",
+      accessorKey: "orgCount",
+      header: "Orgs",
       cell: ({ row }) => {
-        const tenantCount = row.getValue("tenantCount") as number;
+        const orgCount = row.getValue("orgCount") as number;
         return (
-          <span className={tenantCount === 0 ? "text-muted-foreground" : ""}>
-            {tenantCount} tenant{tenantCount !== 1 ? 's' : ''}
+          <span className={orgCount === 0 ? "text-muted-foreground" : ""}>
+            {orgCount} org{orgCount !== 1 ? 's' : ''}
           </span>
         );
       },

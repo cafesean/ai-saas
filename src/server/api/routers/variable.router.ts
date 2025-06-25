@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure, getUserTenantId, protectedMutationWithRateLimit } from "../trpc";
+import { createTRPCRouter, protectedProcedure, getUserOrgId, protectedMutationWithRateLimit } from "../trpc";
 import { desc, eq, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import type { ExtendedSession } from "@/db/auth-hydration";
 
 import { db } from "@/db";
 import { variables } from "@/db/schema";
@@ -37,7 +38,7 @@ const publishVariableSchema = z.object({
 });
 
 export const variableRouter = createTRPCRouter({
-  // Get all variables for current tenant
+  // Get all variables for current org
   getAll: protectedProcedure
     .input(
       z.object({
@@ -46,16 +47,10 @@ export const variableRouter = createTRPCRouter({
       }).optional()
     )
     .query(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      if (!tenantId) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "No tenant access found",
-        });
-      }
+      const session = ctx.session as ExtendedSession;
+      const orgId = session.user.orgId || 1;
 
-      const whereConditions = [eq(variables.tenantId, tenantId)];
+      const whereConditions = [eq(variables.orgId, orgId)];
       
       if (input?.status) {
         whereConditions.push(eq(variables.status, input.status));
@@ -76,21 +71,15 @@ export const variableRouter = createTRPCRouter({
 
   // Get published variables only (for use in other artifacts)
   getPublished: protectedProcedure.query(async ({ ctx }) => {
-    // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-    const tenantId = await getUserTenantId(ctx.session.user.id);
-    if (!tenantId) {
-      throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message: "No tenant access found",
-      });
-    }
+    const session = ctx.session as ExtendedSession;
+    const orgId = session.user.orgId || 1;
 
     const publishedVariables = await db
       .select()
       .from(variables)
       .where(
         and(
-          eq(variables.tenantId, tenantId),
+          eq(variables.orgId, orgId),
           eq(variables.status, VariableStatus.PUBLISHED)
         )
       )
@@ -103,19 +92,13 @@ export const variableRouter = createTRPCRouter({
   getByUuid: protectedProcedure
     .input(z.string().uuid())
     .query(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      if (!tenantId) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "No tenant access found",
-        });
-      }
+      const session = ctx.session as ExtendedSession;
+      const orgId = session.user.orgId || 1;
 
       const variable = await db.query.variables.findFirst({
         where: and(
           eq(variables.uuid, input),
-          eq(variables.tenantId, tenantId)
+          eq(variables.orgId, orgId)
         ),
       });
 
@@ -133,16 +116,9 @@ export const variableRouter = createTRPCRouter({
   create: protectedMutationWithRateLimit
     .input(createVariableSchema)
     .mutation(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      const userId = ctx.session?.user?.id;
-
-      if (!tenantId) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "No tenant access found",
-        });
-      }
+      const session = ctx.session as ExtendedSession;
+      const orgId = session.user.orgId || 1;
+      const userId = session.user.id;
 
       // Validate logic type specific fields
       if (input.logicType === VariableLogicTypes.FORMULA && !input.formula) {
@@ -164,7 +140,7 @@ export const variableRouter = createTRPCRouter({
           .insert(variables)
           .values({
             ...input,
-            tenantId,
+            orgId,
             status: VariableStatus.DRAFT,
             version: 1,
           })
@@ -189,20 +165,14 @@ export const variableRouter = createTRPCRouter({
   update: protectedMutationWithRateLimit
     .input(updateVariableSchema)
     .mutation(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      if (!tenantId) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "No tenant access found",
-        });
-      }
+      const session = ctx.session as ExtendedSession;
+      const orgId = session.user.orgId || 1;
 
       // Check if variable exists and is editable
       const existingVariable = await db.query.variables.findFirst({
         where: and(
           eq(variables.uuid, input.uuid),
-          eq(variables.tenantId, tenantId)
+          eq(variables.orgId, orgId)
         ),
       });
 
@@ -247,7 +217,7 @@ export const variableRouter = createTRPCRouter({
           .where(
             and(
               eq(variables.uuid, input.uuid),
-              eq(variables.tenantId, tenantId)
+              eq(variables.orgId, orgId)
             )
           )
           .returning();
@@ -271,21 +241,14 @@ export const variableRouter = createTRPCRouter({
   publish: protectedProcedure
     .input(publishVariableSchema)
     .mutation(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      const userId = ctx.session?.user?.id;
-
-      if (!tenantId) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "No tenant access found",
-        });
-      }
+      const session = ctx.session as ExtendedSession;
+      const orgId = session.user.orgId || 1;
+      const userId = session.user.id;
 
       const existingVariable = await db.query.variables.findFirst({
         where: and(
           eq(variables.uuid, input.uuid),
-          eq(variables.tenantId, tenantId)
+          eq(variables.orgId, orgId)
         ),
       });
 
@@ -314,7 +277,7 @@ export const variableRouter = createTRPCRouter({
         .where(
           and(
             eq(variables.uuid, input.uuid),
-            eq(variables.tenantId, tenantId)
+            eq(variables.orgId, orgId)
           )
         )
         .returning();
@@ -326,19 +289,13 @@ export const variableRouter = createTRPCRouter({
   deprecate: protectedProcedure
     .input(z.string().uuid())
     .mutation(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      if (!tenantId) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "No tenant access found",
-        });
-      }
+      const session = ctx.session as ExtendedSession;
+      const orgId = session.user.orgId || 1;
 
       const existingVariable = await db.query.variables.findFirst({
         where: and(
           eq(variables.uuid, input),
-          eq(variables.tenantId, tenantId)
+          eq(variables.orgId, orgId)
         ),
       });
 
@@ -365,7 +322,7 @@ export const variableRouter = createTRPCRouter({
         .where(
           and(
             eq(variables.uuid, input),
-            eq(variables.tenantId, tenantId)
+            eq(variables.orgId, orgId)
           )
         )
         .returning();
@@ -377,19 +334,13 @@ export const variableRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.string().uuid())
     .mutation(async ({ ctx, input }) => {
-      // TODO: Implement proper tenant lookup - using hardcoded tenantId for now
-      const tenantId = await getUserTenantId(ctx.session.user.id);
-      if (!tenantId) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "No tenant access found",
-        });
-      }
+      const session = ctx.session as ExtendedSession;
+      const orgId = session.user.orgId || 1;
 
       const existingVariable = await db.query.variables.findFirst({
         where: and(
           eq(variables.uuid, input),
-          eq(variables.tenantId, tenantId)
+          eq(variables.orgId, orgId)
         ),
       });
 
@@ -412,7 +363,7 @@ export const variableRouter = createTRPCRouter({
         .where(
           and(
             eq(variables.uuid, input),
-            eq(variables.tenantId, tenantId)
+            eq(variables.orgId, orgId)
           )
         );
 

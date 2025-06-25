@@ -24,11 +24,11 @@ export const POST = withApiAuth(async (request: NextRequest, user) => {
       console.warn("Body is not valid JSON or is empty.");
     }
 
-    // Add tenant isolation to model query
+    // Add org isolation to model query
     const model = await db.query.models.findFirst({
       where: and(
         eq(models.uuid, modelId),
-        eq(models.tenantId, user.tenantId)
+        eq(models.orgId, user.orgId)
       ),
     });
     

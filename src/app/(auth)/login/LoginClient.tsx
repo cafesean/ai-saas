@@ -128,12 +128,12 @@ function LoginForm() {
           </form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-2 text-sm">
-          <p className="text-muted-foreground">
+          {/* <p className="text-muted-foreground">
             Don&apos;t have an account?
             <Link href="/register" className="font-semibold text-primary ml-1 hover:underline">
               Sign up
             </Link>
-          </p>
+          </p> */}
           <Link href="/forgot-password" className="text-muted-foreground hover:text-primary hover:underline">
             Forgot password?
           </Link>

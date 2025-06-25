@@ -79,7 +79,7 @@ export function DeleteUserDialog({
   if (!user) return null;
 
   const hasActiveRoles = user.roles.some(role => role.isActive);
-  const activeTenants = user.roles.filter(role => role.isActive).length;
+  const activeOrgs = user.roles.filter(role => role.isActive).length;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -133,14 +133,14 @@ export function DeleteUserDialog({
                 Active Role Assignments
               </h4>
               <p className="text-sm text-orange-700 mb-3">
-                This user has {user.roleCount} active role assignment(s) across {activeTenants} tenant(s). 
+                This user has {user.roleCount} active role assignment(s) across {activeOrgs} org(s). 
                 Deleting this user will remove all role assignments.
               </p>
               <div className="space-y-2">
                 {user.roles.filter(role => role.isActive).slice(0, 3).map((role, index) => (
                   <div key={index} className="flex items-center gap-2 text-xs">
                     <Building2 className="h-3 w-3 text-orange-600" />
-                    <span className="font-medium">{role.tenantName}</span>
+                    <span className="font-medium">{role.orgName}</span>
                     <span className="text-orange-600">→</span>
                     <span>{role.name}</span>
                   </div>

@@ -12,7 +12,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
-import { tenants } from "./tenant"
+import { orgs } from "./org"
 import { variables } from "./variable"
 
 // N-Dimensional Matrix Lookup Tables - Supports unlimited inputs and outputs
@@ -21,9 +21,9 @@ export const lookup_tables = pgTable(
   {
     id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
     uuid: uuid("uuid").defaultRandom().unique().notNull(),
-    tenantId: integer("tenant_id")
+    orgId: integer("org_id")
       .notNull()
-      .references(() => tenants.id, { onDelete: "restrict" }),
+      .references(() => orgs.id, { onDelete: "restrict" }),
     name: varchar("name", { length: 255 }).notNull(),
     description: text("description"),
     status: varchar("status", { length: 50 }).notNull().default("draft"), // draft, published, deprecated
@@ -34,8 +34,8 @@ export const lookup_tables = pgTable(
     updatedBy: integer("updated_by").notNull(),
   },
   (table) => ({
-    tenantNameIdx: uniqueIndex("lookup_tables_tenant_name_idx").on(table.tenantId, table.name),
-    tenantIdIdx: index("lookup_tables_tenant_id_idx").on(table.tenantId),
+    orgNameIdx: uniqueIndex("lookup_tables_org_name_idx").on(table.orgId, table.name),
+    orgIdIdx: index("lookup_tables_org_id_idx").on(table.orgId),
   }),
 )
 
@@ -45,7 +45,7 @@ export const lookup_table_inputs = pgTable(
   {
     id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
     uuid: uuid("uuid").defaultRandom().unique().notNull(),
-    tenantId: integer("tenant_id").notNull(),
+    orgId: integer("org_id").notNull(),
     lookupTableId: integer("lookup_table_id")
       .notNull()
       .references(() => lookup_tables.id, { onDelete: "cascade" }),
@@ -57,7 +57,7 @@ export const lookup_table_inputs = pgTable(
   },
   (table) => ({
     lookupTableIdx: index("lookup_inputs_lookup_table_idx").on(table.lookupTableId),
-    tenantIdIdx: index("lookup_inputs_tenant_id_idx").on(table.tenantId),
+    orgIdIdx: index("lookup_inputs_org_id_idx").on(table.orgId),
     uniqueDimensionIdx: uniqueIndex("lookup_inputs_unique_dimension_idx").on(
       table.lookupTableId, 
       table.dimensionOrder
@@ -71,7 +71,7 @@ export const lookup_table_outputs = pgTable(
   {
     id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
     uuid: uuid("uuid").defaultRandom().unique().notNull(),
-    tenantId: integer("tenant_id").notNull(),
+    orgId: integer("org_id").notNull(),
     lookupTableId: integer("lookup_table_id")
       .notNull()
       .references(() => lookup_tables.id, { onDelete: "cascade" }),
@@ -83,7 +83,7 @@ export const lookup_table_outputs = pgTable(
   },
   (table) => ({
     lookupTableIdx: index("lookup_outputs_lookup_table_idx").on(table.lookupTableId),
-    tenantIdIdx: index("lookup_outputs_tenant_id_idx").on(table.tenantId),
+    orgIdIdx: index("lookup_outputs_org_id_idx").on(table.orgId),
     uniqueOutputIdx: uniqueIndex("lookup_outputs_unique_output_idx").on(
       table.lookupTableId, 
       table.outputOrder
@@ -97,7 +97,7 @@ export const lookup_table_dimension_bins = pgTable(
   {
     id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
     uuid: uuid("uuid").defaultRandom().unique().notNull(),
-    tenantId: integer("tenant_id").notNull(),
+    orgId: integer("org_id").notNull(),
     lookupTableId: integer("lookup_table_id")
       .notNull()
       .references(() => lookup_tables.id, { onDelete: "cascade" }),
@@ -116,7 +116,7 @@ export const lookup_table_dimension_bins = pgTable(
   },
   (table) => ({
     lookupTableIdx: index("dimension_bins_lookup_table_idx").on(table.lookupTableId),
-    tenantIdIdx: index("dimension_bins_tenant_id_idx").on(table.tenantId),
+    orgIdIdx: index("dimension_bins_org_id_idx").on(table.orgId),
     dimensionOrderIdx: index("dimension_bins_dimension_order_idx").on(
       table.lookupTableId, 
       table.dimensionOrder
@@ -130,7 +130,7 @@ export const lookup_table_cells = pgTable(
   {
     id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
     uuid: uuid("uuid").defaultRandom().unique().notNull(),
-    tenantId: integer("tenant_id").notNull(),
+    orgId: integer("org_id").notNull(),
     lookupTableId: integer("lookup_table_id")
       .notNull()
       .references(() => lookup_tables.id, { onDelete: "cascade" }),
@@ -146,15 +146,15 @@ export const lookup_table_cells = pgTable(
   },
   (table) => ({
     lookupTableIdx: index("cells_lookup_table_idx").on(table.lookupTableId),
-    tenantIdIdx: index("cells_tenant_id_idx").on(table.tenantId),
+    orgIdIdx: index("cells_org_id_idx").on(table.orgId),
   }),
 )
 
 // Relations for N-dimensional support
 export const lookupTablesRelations = relations(lookup_tables, ({ one, many }) => ({
-  tenant: one(tenants, {
-    fields: [lookup_tables.tenantId],
-    references: [tenants.id],
+  org: one(orgs, {
+    fields: [lookup_tables.orgId],
+    references: [orgs.id],
   }),
   inputs: many(lookup_table_inputs),
   outputs: many(lookup_table_outputs),

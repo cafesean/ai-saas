@@ -11,7 +11,7 @@ import {
   json,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { tenants } from "./tenant";
+import { orgs } from "./org";
 
 // Rule Set Status
 export const RuleSetStatus = {
@@ -43,9 +43,9 @@ export const rule_sets = pgTable(
     publishedBy: integer("published_by"), // User ID who published
     
     // Multi-tenancy support
-    tenantId: integer("tenant_id")
+    orgId: integer("org_id")
       .notNull()
-      .references(() => tenants.id, { onDelete: "restrict" }),
+      .references(() => orgs.id, { onDelete: "restrict" }),
       
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -57,10 +57,10 @@ export const rule_sets = pgTable(
   (table) => [
     index("rule_set_id_idx").on(table.id),
     index("rule_set_uuid_idx").on(table.uuid), 
-    index("rule_set_tenant_id_idx").on(table.tenantId),
+    index("rule_set_org_id_idx").on(table.orgId),
     index("rule_set_status_idx").on(table.status),
-    // Composite unique index for tenant + name combination
-    unique("rule_set_tenant_name_unique").on(table.tenantId, table.name),
+    // Composite unique index for org + name combination
+    unique("rule_set_org_name_unique").on(table.orgId, table.name),
   ],
 );
 
@@ -108,9 +108,9 @@ export const rule_set_steps = pgTable(
 
 // Relations
 export const ruleSetsRelations = relations(rule_sets, ({ one, many }) => ({
-  tenant: one(tenants, {
-    fields: [rule_sets.tenantId],
-    references: [tenants.id],
+  org: one(orgs, {
+    fields: [rule_sets.orgId],
+    references: [orgs.id],
   }),
   steps: many(rule_set_steps),
 }));

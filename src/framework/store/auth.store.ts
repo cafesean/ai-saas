@@ -10,7 +10,45 @@ export interface UserProfile {
   email: string;
   name?: string;
   image?: string;
-  tenantId?: string;
+  orgId?: string;
+}
+
+export interface UserRole {
+  id: string;
+  name: string;
+  description?: string;
+  isSystemRole: boolean;
+}
+
+export interface Permission {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+}
+
+interface AuthState {
+  // Core state
+  authenticated: boolean;
+  loading: boolean;
+  user: UserProfile | null;
+  role: UserRole | null;
+  permissions: Permission[];
+  
+  // Actions
+  setAuthState: (state: Partial<AuthState>) => void;
+  logout: () => void;
+  hasPermission: (permission: string) => boolean;
+  hasAnyPermission: (permissions: string[]) => boolean;
+  hasRole: (roleName: string) => boolean;
+}
+// Types
+export interface UserProfile {
+  id: string;
+  email: string;
+  name?: string;
+  image?: string;
+  orgId?: string;
 }
 
 export interface UserRole {

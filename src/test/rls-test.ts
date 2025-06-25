@@ -1,20 +1,20 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { env } from '../../env.mjs';
-import { workflows, models, rules, decision_tables, knowledge_bases, tenants } from '../schema';
+import { workflows, models, rules, decision_tables, knowledge_bases, orgs } from '../schema';
 import { eq } from 'drizzle-orm';
 
 /**
  * RLS Policy Testing Script
  * 
- * This script tests that Row-Level Security policies correctly isolate data between tenants.
+ * This script tests that Row-Level Security policies correctly isolate data between orgs.
  * It verifies that:
- * 1. Users can only see data from their active tenant
- * 2. Users cannot access data from other tenants
+ * 1. Users can only see data from their active org
+ * 2. Users cannot access data from other orgs
  * 3. RLS policies are properly enforced on all CRUD operations
  */
 
-interface TestTenant {
+interface TestOrg {
   id: number;
   name: string;
   uuid: string;
@@ -33,8 +33,8 @@ class RLSTestRunner {
   private client2: postgres.Sql;
   private db1: ReturnType<typeof drizzle>;
   private db2: ReturnType<typeof drizzle>;
-  private tenant1: TestTenant | null = null;
-  private tenant2: TestTenant | null = null;
+  private org1: TestOrg | null = null;
+  private org2: TestOrg | null = null;
   private testData1: TestData = {};
   private testData2: TestData = {};
 
@@ -50,36 +50,36 @@ class RLSTestRunner {
     console.log('🔧 Setting up RLS test environment...');
 
     try {
-      // Create test tenants
-      const testTenants = await this.db1.insert(tenants).values([
+      // Create test orgs
+      const testOrgs = await this.db1.insert(orgs).values([
         {
-          name: 'RLS Test Tenant A',
-          description: 'Test tenant A for RLS validation',
-          slug: 'rls-test-tenant-a',
+          name: 'RLS Test Org A',
+          description: 'Test org A for RLS validation',
+          slug: 'rls-test-org-a',
           isActive: true,
         },
         {
-          name: 'RLS Test Tenant B', 
-          description: 'Test tenant B for RLS validation',
-          slug: 'rls-test-tenant-b',
+          name: 'RLS Test Org B', 
+          description: 'Test org B for RLS validation',
+          slug: 'rls-test-org-b',
           isActive: true,
         }
       ]).returning();
 
-      this.tenant1 = testTenants[0] as TestTenant;
-      this.tenant2 = testTenants[1] as TestTenant;
+      this.org1 = testOrgs[0] as TestOrg;
+      this.org2 = testOrgs[1] as TestOrg;
 
-      if (!this.tenant1 || !this.tenant2) {
-        throw new Error('Failed to create test tenants');
+      if (!this.org1 || !this.org2) {
+        throw new Error('Failed to create test orgs');
       }
 
-      console.log(`✅ Created test tenants: ${this.tenant1.name} (${this.tenant1.id}) and ${this.tenant2.name} (${this.tenant2.id})`);
+      console.log(`✅ Created test orgs: ${this.org1.name} (${this.org1.id}) and ${this.org2.name} (${this.org2.id})`);
 
-      // Set tenant contexts for each connection
-      await this.setTenantContext(this.client1, this.tenant1.id);
-      await this.setTenantContext(this.client2, this.tenant2.id);
+      // Set org contexts for each connection
+      await this.setOrgContext(this.client1, this.org1.id);
+      await this.setOrgContext(this.client2, this.org2.id);
 
-      // Create test data for each tenant
+      // Create test data for each org
       await this.createTestData();
 
     } catch (error) {
@@ -88,166 +88,166 @@ class RLSTestRunner {
     }
   }
 
-  private async setTenantContext(client: postgres.Sql, tenantId: number): Promise<void> {
-    await client`SELECT set_tenant_context(${tenantId})`;
+  private async setOrgContext(client: postgres.Sql, orgId: number): Promise<void> {
+    await client`SELECT set_org_context(${orgId})`;
   }
 
   private async createTestData(): Promise<void> {
-    console.log('📝 Creating test data for each tenant...');
+    console.log('📝 Creating test data for each orgs...');
 
-    // Create test data for tenant 1
+    // Create test data for org 1
     const workflow1 = await this.db1.insert(workflows).values({
-      name: 'Test Workflow Tenant 1',
-      description: 'Test workflow for tenant 1',
-      tenantId: this.tenant1!.id,
+      name: 'Test Workflow Org 1',
+      description: 'Test workflow for org 1',
+      orgId: this.org1!.id,
       status: 'active',
     }).returning();
     this.testData1.workflowId = workflow1[0].id;
 
     const model1 = await this.db1.insert(models).values({
-      name: 'Test Model Tenant 1',
-      description: 'Test model for tenant 1',
-      tenantId: this.tenant1!.id,
+      name: 'Test Model Org 1',
+      description: 'Test model for org 1',
+      orgId: this.org1!.id,
       status: 'active',
       modelType: 'classification',
     }).returning();
     this.testData1.modelId = model1[0].id;
 
-    // Create test data for tenant 2
+    // Create test data for org 2
     const workflow2 = await this.db2.insert(workflows).values({
-      name: 'Test Workflow Tenant 2',
-      description: 'Test workflow for tenant 2',
-      tenantId: this.tenant2!.id,
+      name: 'Test Workflow Org 2',
+      description: 'Test workflow for org 2',
+      orgId: this.org2!.id,
       status: 'active',
     }).returning();
     this.testData2.workflowId = workflow2[0].id;
 
     const model2 = await this.db2.insert(models).values({
-      name: 'Test Model Tenant 2',
-      description: 'Test model for tenant 2',
-      tenantId: this.tenant2!.id,
+      name: 'Test Model Org 2',
+      description: 'Test model for org 2',
+      orgId: this.org2!.id,
       status: 'active',
       modelType: 'classification',
     }).returning();
     this.testData2.modelId = model2[0].id;
 
-    console.log('✅ Test data created for both tenants');
+    console.log('✅ Test data created for both orgs');
   }
 
-  async testTenantIsolation(): Promise<boolean> {
-    console.log('🔒 Testing tenant isolation...');
+  async testOrgIsolation(): Promise<boolean> {
+    console.log('🔒 Testing org isolation...');
     let allTestsPassed = true;
 
     try {
-      // Test 1: Each tenant should only see their own workflows
+      // Test 1: Each org should only see their own workflows
       const workflows1 = await this.db1.select().from(workflows);
       const workflows2 = await this.db2.select().from(workflows);
 
-      console.log(`   Tenant 1 sees ${workflows1.length} workflows`);
-      console.log(`   Tenant 2 sees ${workflows2.length} workflows`);
+      console.log(`   Org 1 sees ${workflows1.length} workflows`);
+      console.log(`   Org 2 sees ${workflows2.length} workflows`);
 
       if (workflows1.length !== 1 || workflows2.length !== 1) {
-        console.error('❌ FAIL: Incorrect number of workflows visible to each tenant');
+        console.error('❌ FAIL: Incorrect number of workflows visible to each org');
         allTestsPassed = false;
-      } else if (workflows1[0].tenantId !== this.tenant1!.id || workflows2[0].tenantId !== this.tenant2!.id) {
-        console.error('❌ FAIL: Tenants seeing workflows from wrong tenant');
+      } else if (workflows1[0].orgId !== this.org1!.id || workflows2[0].orgId !== this.org2!.id) {
+        console.error('❌ FAIL: Orgs seeing workflows from wrong org');
         allTestsPassed = false;
       } else {
         console.log('✅ PASS: Workflow isolation working correctly');
       }
 
-      // Test 2: Each tenant should only see their own models
+      // Test 2: Each org should only see their own models
       const models1 = await this.db1.select().from(models);
       const models2 = await this.db2.select().from(models);
 
-      console.log(`   Tenant 1 sees ${models1.length} models`);
-      console.log(`   Tenant 2 sees ${models2.length} models`);
+      console.log(`   Org 1 sees ${models1.length} models`);
+      console.log(`   Org 2 sees ${models2.length} models`);
 
       if (models1.length !== 1 || models2.length !== 1) {
-        console.error('❌ FAIL: Incorrect number of models visible to each tenant');
+        console.error('❌ FAIL: Incorrect number of models visible to each org');
         allTestsPassed = false;
-      } else if (models1[0].tenantId !== this.tenant1!.id || models2[0].tenantId !== this.tenant2!.id) {
-        console.error('❌ FAIL: Tenants seeing models from wrong tenant');
+      } else if (models1[0].orgId !== this.org1!.id || models2[0].orgId !== this.org2!.id) {
+        console.error('❌ FAIL: Orgs seeing models from wrong org');
         allTestsPassed = false;
       } else {
         console.log('✅ PASS: Model isolation working correctly');
       }
 
-      // Test 3: Try to access specific record from other tenant (should fail)
+      // Test 3: Try to access specific record from other org (should fail)
       try {
-        const otherTenantWorkflow = await this.db1.select().from(workflows).where(eq(workflows.id, this.testData2.workflowId!));
-        if (otherTenantWorkflow.length > 0) {
-          console.error('❌ FAIL: Tenant 1 can access Tenant 2\'s workflow');
+        const otherOrgWorkflow = await this.db1.select().from(workflows).where(eq(workflows.id, this.testData2.workflowId!));
+        if (otherOrgWorkflow.length > 0) {
+          console.error('❌ FAIL: Org 1 can access Org 2\'s workflow');
           allTestsPassed = false;
         } else {
-          console.log('✅ PASS: Cross-tenant workflow access properly blocked');
+          console.log('✅ PASS: Cross-org workflow access properly blocked');
         }
       } catch (error) {
-        console.log('✅ PASS: Cross-tenant access blocked (expected error)');
+        console.log('✅ PASS: Cross-org access blocked (expected error)');
       }
 
-      // Test 4: Try to update record from other tenant (should fail)
+      // Test 4: Try to update record from other org (should fail)
       try {
         const updateResult = await this.db1.update(workflows)
           .set({ name: 'Hacked Workflow' })
           .where(eq(workflows.id, this.testData2.workflowId!));
         
-        console.error('❌ FAIL: Tenant 1 was able to update Tenant 2\'s workflow');
+        console.error('❌ FAIL: Org 1 was able to update Org 2\'s workflow');
         allTestsPassed = false;
       } catch (error) {
-        console.log('✅ PASS: Cross-tenant update properly blocked');
+        console.log('✅ PASS: Cross-org update properly blocked');
       }
 
-      // Test 5: Try to delete record from other tenant (should fail) 
+      // Test 5: Try to delete record from other org (should fail) 
       try {
         const deleteResult = await this.db1.delete(workflows)
           .where(eq(workflows.id, this.testData2.workflowId!));
         
-        console.error('❌ FAIL: Tenant 1 was able to delete Tenant 2\'s workflow');
+        console.error('❌ FAIL: Org 1 was able to delete Org 2\'s workflow');
         allTestsPassed = false;
       } catch (error) {
-        console.log('✅ PASS: Cross-tenant delete properly blocked');
+        console.log('✅ PASS: Cross-org delete properly blocked');
       }
 
     } catch (error) {
-      console.error('❌ Error during tenant isolation testing:', error);
+      console.error('❌ Error during org isolation testing:', error);
       allTestsPassed = false;
     }
 
     return allTestsPassed;
   }
 
-  async testTenantSwitching(): Promise<boolean> {
-    console.log('🔄 Testing tenant context switching...');
+  async testOrgSwitching(): Promise<boolean> {
+    console.log('🔄 Testing org context switching...');
     let allTestsPassed = true;
 
     try {
-      // Switch tenant 1's context to tenant 2
-      await this.setTenantContext(this.client1, this.tenant2!.id);
+      // Switch org 1's context to org 2
+      await this.setOrgContext(this.client1, this.org2!.id);
 
-      // Now db1 should see tenant 2's data
+      // Now db1 should see org 2's data
       const workflows = await this.db1.select().from(workflows);
       const models = await this.db1.select().from(models);
 
-      if (workflows.length !== 1 || workflows[0].tenantId !== this.tenant2!.id) {
-        console.error('❌ FAIL: Tenant context switching failed for workflows');
+      if (workflows.length !== 1 || workflows[0].orgId !== this.org2!.id) {
+        console.error('❌ FAIL: Org context switching failed for workflows');
         allTestsPassed = false;
       } else {
-        console.log('✅ PASS: Tenant context switching working for workflows');
+        console.log('✅ PASS: Org context switching working for workflows');
       }
 
-      if (models.length !== 1 || models[0].tenantId !== this.tenant2!.id) {
-        console.error('❌ FAIL: Tenant context switching failed for models');
+      if (models.length !== 1 || models[0].orgId !== this.org2!.id) {
+        console.error('❌ FAIL: Org context switching failed for models');
         allTestsPassed = false;
       } else {
-        console.log('✅ PASS: Tenant context switching working for models');
+        console.log('✅ PASS: Org context switching working for models');
       }
 
-      // Switch back to original tenant
-      await this.setTenantContext(this.client1, this.tenant1!.id);
+      // Switch back to original org
+      await this.setOrgContext(this.client1, this.org1!.id);
 
     } catch (error) {
-      console.error('❌ Error during tenant switching test:', error);
+      console.error('❌ Error during org switching test:', error);
       allTestsPassed = false;
     }
 
@@ -258,9 +258,9 @@ class RLSTestRunner {
     console.log('🧹 Cleaning up test data...');
 
     try {
-      // Clear tenant contexts to allow cleanup
-      await this.client1`SELECT clear_tenant_context()`;
-      await this.client2`SELECT clear_tenant_context()`;
+      // Clear org contexts to allow cleanup
+      await this.client1`SELECT clear_org_context()`;
+      await this.client2`SELECT clear_org_context()`;
 
       // Delete test data (using raw SQL to bypass RLS)
       if (this.testData1.workflowId) {
@@ -276,12 +276,12 @@ class RLSTestRunner {
         await this.client1`DELETE FROM models WHERE id = ${this.testData2.modelId}`;
       }
 
-      // Delete test tenants
-      if (this.tenant1) {
-        await this.client1`DELETE FROM tenants WHERE id = ${this.tenant1.id}`;
+      // Delete test orgs
+      if (this.org1) {
+        await this.client1`DELETE FROM orgs WHERE id = ${this.org1.id}`;
       }
-      if (this.tenant2) {
-        await this.client1`DELETE FROM tenants WHERE id = ${this.tenant2.id}`;
+      if (this.org2) {
+        await this.client1`DELETE FROM orgs WHERE id = ${this.org2.id}`;
       }
 
       console.log('✅ Cleanup completed');
@@ -302,13 +302,13 @@ class RLSTestRunner {
     try {
       await this.setup();
       
-      const isolationPassed = await this.testTenantIsolation();
-      const switchingPassed = await this.testTenantSwitching();
+      const isolationPassed = await this.testOrgIsolation();
+      const switchingPassed = await this.testOrgSwitching();
 
       allTestsPassed = isolationPassed && switchingPassed;
 
       if (allTestsPassed) {
-        console.log('\n✅ All RLS tests passed! Multi-tenant isolation is working correctly.');
+        console.log('\n✅ All RLS tests passed! Multi-org isolation is working correctly.');
       } else {
         console.log('\n❌ Some RLS tests failed! Please review the security policies.');
       }

@@ -1,116 +1,58 @@
 import { type Session } from "next-auth";
-import { useAuthStore } from "@/framework/store/auth.store";
 import { signOut } from "next-auth/react";
 
 /**
- * Auth Store Hydration & Session Revocation Client
+ * Auth Session Management
  * 
- * This module provides utilities for hydrating the auth store from NextAuth sessions
- * and handling real-time session revocation events.
+ * This module provides utilities for session management and real-time session revocation events.
+ * No client-side state management - purely session-based authentication.
  */
+
+// Define the extended user type based on our auth system
+export interface ExtendedUser {
+  id: number;
+  uuid: string;
+  email: string;
+  name: string;
+  username?: string;
+  avatar?: string;
+  image?: string; // NextAuth default image property
+  firstName?: string;
+  lastName?: string;
+  roles?: Array<{
+    id: number;
+    name: string;
+    orgId: number;
+    policies: Array<{
+      id?: number;
+      name: string;
+      description?: string;
+      can_create?: boolean;
+      can_read?: boolean;
+      can_update?: boolean;
+      can_delete?: boolean;
+    }>;
+  }>;
+  orgId?: number | null;
+  currentOrg?: { id: number; name: string } | null;
+  availableOrgs?: Array<{
+    id: number;
+    name: string;
+    roles: string[];
+    isActive: boolean;
+  }>;
+  orgUser?: any[];
+}
+
+export interface ExtendedSession extends Session {
+  user: ExtendedUser;
+}
 
 // WebSocket connection for session management
 let sessionSocket: WebSocket | null = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_DELAY = 1000; // Start with 1 second
-
-/**
- * Hydrates the auth store with session data from NextAuth
- * 
- * @param session - NextAuth session object
- */
-export function hydrateAuthStore(session: Session | null): void {
-  const { setAuthState, logout } = useAuthStore.getState();
-  
-  setAuthState({ loading: true });
-  
-  try {
-    if (session?.user) {
-      console.log("Hydrating auth store with session data");
-      
-      // Extract user profile
-      const userProfile = {
-        id: session.user.id?.toString() || '',
-        email: session.user.email || '',
-        name: session.user.name || undefined,
-        image: session.user.avatar || undefined,
-      };
-
-      // Extract primary role
-      const primaryRole = session.user.roles?.[0];
-      const role = primaryRole ? {
-        id: primaryRole.id?.toString() || '',
-        name: primaryRole.name || '',
-        description: primaryRole.title || '',
-        isSystemRole: true,
-      } : null;
-
-      // Extract permissions from roles
-      const permissions: any[] = [];
-      
-      if (session.user.roles) {
-        session.user.roles.forEach(role => {
-          if (role.policies) {
-            role.policies.forEach(policy => {
-              // Convert CRUD permissions to permission objects
-              if (policy.can_create) {
-                permissions.push({
-                  id: `${policy.id}-create`,
-                  slug: `${policy.name}:create`,
-                  name: `Create ${policy.name}`,
-                  category: policy.name,
-                });
-              }
-              if (policy.can_read) {
-                permissions.push({
-                  id: `${policy.id}-read`,
-                  slug: `${policy.name}:read`,
-                  name: `Read ${policy.name}`,
-                  category: policy.name,
-                });
-              }
-              if (policy.can_update) {
-                permissions.push({
-                  id: `${policy.id}-update`,
-                  slug: `${policy.name}:update`,
-                  name: `Update ${policy.name}`,
-                  category: policy.name,
-                });
-              }
-              if (policy.can_delete) {
-                permissions.push({
-                  id: `${policy.id}-delete`,
-                  slug: `${policy.name}:delete`,
-                  name: `Delete ${policy.name}`,
-                  category: policy.name,
-                });
-              }
-            });
-          }
-        });
-      }
-
-      setAuthState({
-        authenticated: true,
-        loading: false,
-        user: userProfile,
-        role,
-        permissions,
-      });
-      
-      // Start session monitoring after successful hydration
-      startSessionMonitoring(session.user.id.toString());
-    } else {
-      console.log("No session found, clearing auth store");
-      logout();
-      stopSessionMonitoring();
-    }
-  } catch (error) {
-    console.error("Error hydrating auth store:", error);
-    logout();
-  }
-}
 
 /**
  * Starts monitoring for session revocation events via WebSocket
@@ -204,10 +146,6 @@ function handleSessionMessage(message: any, currentUserId: string): void {
       handleSessionRevoked(message.userId, currentUserId);
       break;
       
-    case 'permissions-updated':
-      handlePermissionsUpdated(message.userId, message.permissions, currentUserId);
-      break;
-      
     case 'role-changed':
       handleRoleChanged(message.userId, currentUserId);
       break;
@@ -236,12 +174,7 @@ async function handleSessionRevoked(revokedUserId: string, currentUserId: string
   
   console.warn("Session revoked for current user, logging out");
   
-  const { logout } = useAuthStore.getState();
-  
   try {
-    // Clear the auth store immediately
-    logout();
-    
     // Stop session monitoring
     stopSessionMonitoring();
     
@@ -260,32 +193,6 @@ async function handleSessionRevoked(revokedUserId: string, currentUserId: string
 }
 
 /**
- * Handles real-time permission updates
- * 
- * @param userId - User ID whose permissions were updated
- * @param permissions - New permission array
- * @param currentUserId - Current user ID
- */
-function handlePermissionsUpdated(userId: string, permissions: string[], currentUserId: string): void {
-  // Only process if it's for the current user
-  if (userId !== currentUserId) {
-    return;
-  }
-  
-  console.log("Permissions updated for current user");
-  
-  const { setAuthState } = useAuthStore.getState();
-  // Convert string permissions to Permission objects
-  const permissionObjects = permissions.map((slug, index) => ({
-    id: `perm-${index}`,
-    slug,
-    name: slug.replace(/[_:]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-    category: slug.split(':')[0] || 'general',
-  }));
-  setAuthState({ permissions: permissionObjects });
-}
-
-/**
  * Handles role change events (requires session refresh)
  * 
  * @param userId - User ID whose role was changed
@@ -300,34 +207,8 @@ function handleRoleChanged(userId: string, currentUserId: string): void {
   console.log("Role changed for current user, refreshing session");
   
   // For role changes, we need to refresh the entire session
-  // This will trigger a re-hydration with the new role data
+  // This will trigger a re-authentication with the new role data
   window.location.reload();
-}
-
-/**
- * Hook for components to easily hydrate auth store with session
- * 
- * Usage in components:
- * ```tsx
- * const { data: session, status } = useSession();
- * useAuthHydration(session, status);
- * ```
- */
-export function useAuthHydration(session: Session | null, status: "loading" | "authenticated" | "unauthenticated"): void {
-  const { setAuthState } = useAuthStore.getState();
-  
-  // Handle loading state
-  if (status === "loading") {
-    setAuthState({ loading: true });
-    return;
-  }
-  
-  // Handle authentication state changes
-  if (status === "authenticated" && session) {
-    hydrateAuthStore(session);
-  } else if (status === "unauthenticated") {
-    hydrateAuthStore(null);
-  }
 }
 
 /**
@@ -350,4 +231,84 @@ export function getSessionConnectionState(): string {
     case WebSocket.CLOSED: return "closed";
     default: return "unknown";
   }
-} 
+}
+
+/**
+ * Session utility functions for extracting data from sessions
+ */
+export const SessionUtils = {
+  /**
+   * Extract permissions from a session object
+   */
+  getPermissionsFromSession: (session: ExtendedSession | null): string[] => {
+    if (!session?.user?.roles) return [];
+    
+    return session.user.roles.flatMap(role => 
+      role.policies?.map(policy => policy.name) || []
+    );
+  },
+  
+  /**
+   * Check if session has a specific permission
+   */
+  sessionHasPermission: (session: ExtendedSession | null, slug: string): boolean => {
+    const permissions = SessionUtils.getPermissionsFromSession(session);
+    return permissions.includes(slug);
+  },
+  
+  /**
+   * Check if session has any of the provided permissions
+   */
+  sessionHasAnyPermission: (session: ExtendedSession | null, slugs: string[]): boolean => {
+    const permissions = SessionUtils.getPermissionsFromSession(session);
+    return slugs.some(slug => permissions.includes(slug));
+  },
+  
+  /**
+   * Check if session has all of the provided permissions
+   */
+  sessionHasAllPermissions: (session: ExtendedSession | null, slugs: string[]): boolean => {
+    const permissions = SessionUtils.getPermissionsFromSession(session);
+    return slugs.every(slug => permissions.includes(slug));
+  },
+  
+  /**
+   * Check if session has a specific role
+   */
+  sessionHasRole: (session: ExtendedSession | null, roleName: string): boolean => {
+    if (!session?.user?.roles) return false;
+    return session.user.roles.some(role => role.name.toLowerCase() === roleName.toLowerCase());
+  },
+
+  /**
+   * Get user ID from session
+   */
+  getUserId: (session: ExtendedSession | null): number | null => {
+    return session?.user?.id || null;
+  },
+
+  /**
+   * Get current org ID from session
+   */
+  getOrgId: (session: ExtendedSession | null): number | null => {
+    return session?.user?.orgId || null;
+  },
+
+  /**
+   * Get user profile from session
+   */
+  getUserProfile: (session: ExtendedSession | null) => {
+    if (!session?.user) return null;
+    
+    return {
+      id: session.user.id?.toString() || '',
+      email: session.user.email || '',
+      name: session.user.name || '',
+      image: session.user.avatar || session.user.image || undefined,
+      uuid: session.user.uuid || '',
+      username: session.user.username || '',
+      firstName: session.user.firstName || '',
+      lastName: session.user.lastName || '',
+    };
+  },
+}; 

@@ -30,6 +30,7 @@ export function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_CDN_BASE_URL,
     // Add production domains here
     'https://alpha.jetdevs.ai',
+    'https://*.vercel.app',
     // Fallback for all HTTPS origins in production
     'https:',
   ].filter(Boolean).join(' ');

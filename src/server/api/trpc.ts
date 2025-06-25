@@ -12,6 +12,7 @@ import { type Session } from "next-auth";
 import { getServerSession } from "next-auth/next";
 import superjson from "superjson";
 import { ZodError } from "zod";
+import type { ExtendedSession } from "@/db/auth-hydration";
 
 import { authOptions } from "@/server/auth-simple";
 import { db } from "@/db";
@@ -50,17 +51,17 @@ export const createTRPCContextFetch = async (opts: { req: Request; resHeaders: H
   try {
     // Check for custom session headers from client
     const userId = opts.req.headers.get('x-user-id');
-    const tenantId = opts.req.headers.get('x-tenant-id');
+    const orgId = opts.req.headers.get('x-org-id');
     const sessionToken = opts.req.headers.get('x-session-token');
     
     if (process.env.NODE_ENV === 'development') {
       console.log('tRPC Headers Debug:', {
         hasUserId: !!userId,
-        hasTenantId: !!tenantId,
+        hasOrgId: !!orgId,
         hasSessionToken: !!sessionToken,
         sessionTokenValue: sessionToken,
         userIdValue: userId,
-        tenantIdValue: tenantId
+        orgIdValue: orgId
       });
     }
     
@@ -80,21 +81,34 @@ export const createTRPCContextFetch = async (opts: { req: Request; resHeaders: H
         }
 
         if (user) {
-          // Create session object with ALL permissions for admin users
+          // Get user's org context from JSONB data
+          const orgData = user.orgData as any;
+          const currentOrgId = orgData?.currentOrgId || (orgData?.orgs?.[0]?.orgId) || 1;
+          const userOrgInfo = orgData?.orgs?.find((org: any) => org.orgId === currentOrgId);
+          
+          // Create session object with org context matching NextAuth interface
           session = {
             user: {
               id: user.id,
+              uuid: user.uuid,
+              name: user.name || '',
+              username: user.username || '',
               email: user.email,
-              name: user.name,
-              tenantId: parseInt(tenantId || '1'),
-              currentTenant: {
-                id: parseInt(tenantId || '1'),
-                name: 'Default Tenant'
+              avatar: user.avatar || '',
+              firstName: user.firstName || '',
+              lastName: user.lastName || '',
+              orgUser: [],
+              // Multi-org support properties
+              orgId: currentOrgId,
+              currentOrg: {
+                id: currentOrgId,
+                name: 'Default Org' // TODO: Get actual org name
               },
+              availableOrgs: [],
               roles: [{
                 id: 1,
-                name: 'admin',
-                tenantId: parseInt(tenantId || '1'),
+                name: userOrgInfo?.role || 'admin',
+                orgId: currentOrgId,
                 policies: PERMISSION_SLUGS.map(slug => ({ name: slug }))
               }]
             },
@@ -125,11 +139,12 @@ export const createTRPCContextFetch = async (opts: { req: Request; resHeaders: H
   }
 
   if (process.env.NODE_ENV === 'development') {
+    const extendedSession = session as ExtendedSession;
     console.log('tRPC Context Debug (Header-based):', {
       hasSession: !!session,
-      userId: session?.user?.id,
-      email: session?.user?.email,
-      permissionsCount: session?.user?.roles?.flatMap(r => r.policies).length || 0
+      userId: extendedSession?.user?.id,
+      email: extendedSession?.user?.email,
+      permissionsCount: extendedSession?.user?.roles?.flatMap((r: any) => r.policies).length || 0
     });
   }
 
@@ -228,13 +243,14 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
  */
 export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   // Check if user has admin permissions
-  const userPermissions = ctx.session.user.roles?.flatMap(role => 
-    role.policies?.map(policy => policy.name) || []
+  const session = ctx.session as ExtendedSession;
+  const userPermissions = session.user.roles?.flatMap((role: any) => 
+    role.policies?.map((policy: any) => policy.name) || []
   ) || [];
   
   const hasAdminAccess = userPermissions.includes('admin:full_access') || 
                         userPermissions.includes('admin:role_management') ||
-                        ctx.session.user.roles?.some(role => 
+                        session.user.roles?.some((role: any) => 
                           ['admin', 'owner', 'super'].includes(role.name.toLowerCase())
                         );
 
@@ -253,48 +269,66 @@ export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 });
 
 /**
- * Helper function to get user's tenant ID securely
+ * Helper function to get user's org ID securely
  * 
- * Returns the user's tenant ID from their active roles.
- * For security, this ensures users can only access their assigned tenants.
+ * Returns the user's current org ID from their JSONB org data.
+ * For security, this ensures users can only access their assigned orgs.
  */
-export const getUserTenantId = async (userId: number): Promise<number> => {
-  const userRole = await db.query.userRoles.findFirst({
-    where: and(
-      eq(userRoles.userId, userId),
-      eq(userRoles.isActive, true)
-    ),
+export const getUserOrgId = async (userId: number): Promise<number> => {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
     columns: {
-      tenantId: true,
+      orgData: true,
     },
   });
 
-  if (!userRole) {
+  if (!user || !user.orgData) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "User is not assigned to any tenant",
+      message: "User is not assigned to any organization",
     });
   }
 
-  return userRole.tenantId;
+  const orgData = user.orgData as any;
+  const currentOrgId = orgData?.currentOrgId;
+
+  if (!currentOrgId) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "User does not have a current organization set",
+    });
+  }
+
+  return currentOrgId;
 };
 
 /**
- * Helper function to validate user has access to specific tenant
+ * Helper function to validate user has access to specific org
  */
-export const validateUserTenantAccess = async (userId: number, tenantId: number): Promise<void> => {
-  const userRole = await db.query.userRoles.findFirst({
-    where: and(
-      eq(userRoles.userId, userId),
-      eq(userRoles.tenantId, tenantId),
-      eq(userRoles.isActive, true)
-    ),
+export const validateUserOrgAccess = async (userId: number, orgId: number): Promise<void> => {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: {
+      orgData: true,
+    },
   });
 
-  if (!userRole) {
+  if (!user || !user.orgData) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "User does not have access to this tenant",
+      message: "User is not assigned to any organization",
+    });
+  }
+
+  const orgData = user.orgData as any;
+  const hasOrgAccess = orgData?.orgs?.some((org: any) => 
+    org.orgId === orgId && org.isActive
+  );
+
+  if (!hasOrgAccess) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "User does not have access to this organization",
     });
   }
 };
@@ -305,7 +339,8 @@ export const validateUserTenantAccess = async (userId: number, tenantId: number)
 export const withRateLimit = (procedure?: string) => {
   return protectedProcedure.use(async ({ ctx, next, path }) => {
     const { checkTRPCRateLimit } = await import("@/lib/rate-limit");
-    await checkTRPCRateLimit(ctx.session.user.id, procedure || path);
+    const session = ctx.session as ExtendedSession;
+    await checkTRPCRateLimit(session.user.id, procedure || path);
     return next();
   });
 };
@@ -317,7 +352,8 @@ export const withRateLimit = (procedure?: string) => {
  */
 export const protectedMutationWithRateLimit = protectedProcedure.use(async ({ ctx, next, path }) => {
   const { checkTRPCRateLimit } = await import("@/lib/rate-limit");
-  await checkTRPCRateLimit(ctx.session.user.id, path);
+  const session = ctx.session as ExtendedSession;
+  await checkTRPCRateLimit(session.user.id, path);
   return next();
 });
 
@@ -328,8 +364,9 @@ export const protectedMutationWithRateLimit = protectedProcedure.use(async ({ ct
  */
 export const withPermission = (requiredPermission: string) => {
   return protectedProcedure.use(({ ctx, next }) => {
-    const userPermissions = ctx.session.user.roles?.flatMap(role => 
-      role.policies?.map(policy => policy.name) || []
+    const session = ctx.session as ExtendedSession;
+    const userPermissions = session.user.roles?.flatMap((role: any) => 
+      role.policies?.map((policy: any) => policy.name) || []
     ) || [];
     
     const hasPermission = userPermissions.includes(requiredPermission) ||
@@ -343,7 +380,7 @@ export const withPermission = (requiredPermission: string) => {
         hasAdminFullAccess: userPermissions.includes('admin:full_access'),
         hasPermission,
         firstFewPermissions: userPermissions.slice(0, 5),
-        userEmail: ctx.session.user.email
+        userEmail: session.user.email
       });
     }
 

@@ -14,7 +14,7 @@ import {
 import { relations } from "drizzle-orm";
 
 import { ModelStatus } from "@/constants/general";
-import { tenants } from "./tenant";
+import { orgs } from "./org";
 
 export const models = pgTable(
   "models",
@@ -34,9 +34,9 @@ export const models = pgTable(
     type: varchar("type", { length: 100 }),
     framework: varchar("framework", { length: 100 }),
     // Multi-tenancy support (SAAS-32)
-    tenantId: integer("tenant_id")
+    orgId: integer("org_id")
       .notNull()
-      .references(() => tenants.id, { onDelete: "restrict" }),
+      .references(() => orgs.id, { onDelete: "restrict" }),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "date",
@@ -53,7 +53,7 @@ export const models = pgTable(
   (table) => [
     index("model_id_idx").on(table.id),
     index("model_uuid_idx").on(table.uuid),
-    index("model_tenant_id_idx").on(table.tenantId),
+    index("model_org_id_idx").on(table.orgId),
   ],
 );
 
@@ -122,9 +122,9 @@ export const inferences = pgTable("inferences", {
 
 // Relations
 export const modelsRelations = relations(models, ({ one, many }) => ({
-  tenant: one(tenants, {
-    fields: [models.tenantId],
-    references: [tenants.id],
+  org: one(orgs, {
+    fields: [models.orgId],
+    references: [orgs.id],
   }),
   metrics: many(model_metrics),
   inferences: many(inferences),

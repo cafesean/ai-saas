@@ -35,11 +35,11 @@ const PERMISSION_SLUG_UPDATES = {
   'role:delete': 'roles:delete',
   'role:assign_permissions': 'roles:assign_permissions',
   
-  // Organization permissions: tenant:* → orgs:*
-  'tenant:create': 'orgs:create',
-  'tenant:read': 'orgs:read', 
-  'tenant:update': 'orgs:update',
-  'tenant:delete': 'orgs:delete'
+  // Organization permissions: org:* → orgs:*
+  'org:create': 'orgs:create',
+  'org:read': 'orgs:read', 
+  'org:update': 'orgs:update',
+  'org:delete': 'orgs:delete'
 };
 
 export async function POST() {

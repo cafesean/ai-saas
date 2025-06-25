@@ -458,7 +458,7 @@ export const ROLE_PERMISSIONS: Permission[] = [
 ];
 
 // Organization Management Permissions (Orgs)
-export const TENANT_PERMISSIONS: Permission[] = [
+export const org_PERMISSIONS: Permission[] = [
   {
     slug: "orgs:create",
     name: "Create Organizations",
@@ -530,9 +530,9 @@ export const ADMIN_PERMISSIONS: Permission[] = [
     category: "admin",
   },
   {
-    slug: "admin:seed_tenants",
-    name: "Seed Tenant System",
-    description: "Initialize and modify tenant organizational structure",
+    slug: "admin:seed_orgs",
+    name: "Seed Org System",
+    description: "Initialize and modify org organizational structure",
     category: "admin",
   },
 ];
@@ -675,7 +675,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   ...KNOWLEDGE_BASE_PERMISSIONS,
   ...USER_PERMISSIONS,
   ...ROLE_PERMISSIONS,
-  ...TENANT_PERMISSIONS,
+  ...org_PERMISSIONS,
   ...ADMIN_PERMISSIONS,
   ...WIDGET_PERMISSIONS,
   ...ENDPOINT_PERMISSIONS,

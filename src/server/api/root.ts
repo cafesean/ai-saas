@@ -14,7 +14,7 @@ import { roleRouter } from "./routers/role.router";
 import { permissionRouter } from "./routers/permission.router";
 import { authRouter } from "./routers/auth.router";
 import { userRouter } from "./routers/user.router";
-import { tenantRouter } from "./routers/tenant.router";
+import { orgRouter } from "./routers/org.router";
 import { variableRouter } from "./routers/variable.router";
 import { lookupTableRouter } from "./routers/lookup-table.router";
 import { ruleSetRouter } from "./routers/rule-set.router";
@@ -47,7 +47,7 @@ export const appRouter = createTRPCRouter({
   permission: permissionRouter,
   auth: authRouter,
   user: userRouter,
-  tenant: tenantRouter,
+  org: orgRouter,
   variable: variableRouter,
   lookupTable: lookupTableRouter,
   ruleSet: ruleSetRouter,

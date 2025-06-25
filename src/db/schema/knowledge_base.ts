@@ -18,7 +18,7 @@ import {
   KnowledgeBaseStatus,
   KnowledgeBaseDocumentStatus,
 } from "@/constants/knowledgeBase";
-import { tenants } from "./tenant";
+import { orgs } from "./org";
 
 export const knowledge_bases = pgTable(
   "knowledge_bases",
@@ -33,8 +33,8 @@ export const knowledge_bases = pgTable(
       .notNull()
       .default(KnowledgeBaseStatus.draft),
     // Multi-tenancy support (SAAS-32)
-    tenantId: integer("tenant_id")
-      .references(() => tenants.id, { onDelete: "restrict" }),
+    orgId: integer("org_id")
+      .references(() => orgs.id, { onDelete: "restrict" }),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "date",
@@ -51,7 +51,7 @@ export const knowledge_bases = pgTable(
   (table) => [
     index("knowledge_base_id_idx").on(table.id),
     index("knowledge_base_uuid_idx").on(table.uuid),
-    index("knowledge_base_tenant_id_idx").on(table.tenantId),
+    index("knowledge_base_org_id_idx").on(table.orgId),
   ],
 );
 
@@ -151,9 +151,9 @@ export const conversation_messages = pgTable("conversation_messages", {
 export const knowledgeBaseRelations = relations(
   knowledge_bases,
   ({ one, many }) => ({
-    tenant: one(tenants, {
-      fields: [knowledge_bases.tenantId],
-      references: [tenants.id],
+      org: one(orgs, {
+    fields: [knowledge_bases.orgId],
+    references: [orgs.id],
     }),
     documents: many(knowledge_base_documents),
     conversations: many(conversations),

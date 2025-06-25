@@ -369,7 +369,7 @@ const findUserByEmail = async (email: string): Promise<User> => {
   const policies = await prisma.role.findMany({
     where: {
       id: {
-        in: data.role_id.map((role_id) => Number(role_id))
+        in: data.role_id.map((role_id: any) => Number(role_id))
       }
     },
     include: {

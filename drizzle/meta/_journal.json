@@ -43,6 +43,27 @@
       "when": 1750055233925,
       "tag": "0005_regular_marvex",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1750402015919,
+      "tag": "0006_high_sharon_carter",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1750402631554,
+      "tag": "0007_rare_beyonder",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1750403764540,
+      "tag": "0008_overjoyed_maginty",
+      "breakpoints": true
     }
   ]
 }

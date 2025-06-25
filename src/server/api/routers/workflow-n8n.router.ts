@@ -1,14 +1,12 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import { db } from "@/db";
-import {
+import { 
   workflows,
   nodes,
   edges,
   endpoints,
   models,
-  decision_tables,
-  variables,
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -29,12 +27,9 @@ import {
   n8nSplitOutNode,
   n8nSplitInBatchesNode,
 } from "@/constants/n8n";
-import {
-  DecisionDataTypes,
-  DecisionTableRowTypes,
-} from "@/constants/decisionTable";
+import { DecisionDataTypes } from "@/constants/decisionTable";
 import { ModelTypes, ThirdPartyModels } from "@/constants/model";
-import { VariableStatus } from "@/db/schema/variable";
+import type { ExtendedSession } from "@/db/auth-hydration";
 
 const instance = axios.create();
 
@@ -65,7 +60,7 @@ const workflowUpdateSchema = z.object({
 
 /**
  * Workflow N8N Integration Router
- *
+ * 
  * Handles the complex N8N integration logic that was extracted from the main workflow router.
  * This includes the complex workflow update procedure with N8N sync.
  */
@@ -78,6 +73,7 @@ export const workflowN8nRouter = createTRPCRouter({
     .input(workflowUpdateSchema)
     .mutation(async ({ ctx, input }) => {
       try {
+        const session = ctx.session as ExtendedSession;
         const updateWorkflow = await db.transaction(async (tx: any) => {
           // Find the workflow by UUID
           const workflow = await tx.query.workflows.findFirst({
@@ -89,11 +85,15 @@ export const workflowN8nRouter = createTRPCRouter({
               message: "Workflow not found",
             });
           }
-
+          
           // Delete all nodes and edges associated with the workflow
-          await tx.delete(nodes).where(eq(nodes.workflowId, workflow.uuid));
-          await tx.delete(edges).where(eq(edges.workflowId, workflow.uuid));
-
+          await tx
+            .delete(nodes)
+            .where(eq(nodes.workflowId, workflow.uuid));
+          await tx
+            .delete(edges)
+            .where(eq(edges.workflowId, workflow.uuid));
+          
           // Insert the new nodes and edges
           if (input.nodes.length > 0) {
             // Filter out node type is empty or undefined
@@ -110,7 +110,7 @@ export const workflowN8nRouter = createTRPCRouter({
               })),
             );
           }
-
+          
           if (input.edges.length > 0) {
             // Filter out edge type is empty or undefined
             const filteredEdges = input.edges.filter(
@@ -128,7 +128,7 @@ export const workflowN8nRouter = createTRPCRouter({
               })),
             );
           }
-
+          
           // Handle convert workflow to n8n workflow
           let flowId = workflow.flowId;
           const { n8nNodes, n8nConnections } =
@@ -137,7 +137,7 @@ export const workflowN8nRouter = createTRPCRouter({
               input.edges,
               tx,
             );
-
+          
           const payload = {
             name: workflow.name,
             nodes: n8nNodes,
@@ -149,6 +149,7 @@ export const workflowN8nRouter = createTRPCRouter({
               lastId: uuidv4(),
             },
           };
+          
           // If flow exists, update the n8n workflow
           if (flowId) {
             try {
@@ -183,7 +184,7 @@ export const workflowN8nRouter = createTRPCRouter({
               flowId = null;
             }
           }
-
+          
           // If flow does not exist, create a new n8n workflow
           if (!flowId) {
             const createApiURI = `${N8N_API.createWorkflow().uri}`;
@@ -228,7 +229,7 @@ export const workflowN8nRouter = createTRPCRouter({
               console.error(error);
             }
           }
-
+          
           // Create endpoints for webhook nodes
           const n8nWebhookNodes = n8nNodes.filter(
             (node: any) => node.type === n8nWebhookNode.type,
@@ -250,6 +251,7 @@ export const workflowN8nRouter = createTRPCRouter({
                   flowMethod: node.parameters.httpMethod,
                   clientId: uuidv4(),
                   clientSecret: uuidv4(),
+                  orgId: session.user.orgId || 1,
                 })
                 .returning();
             }
@@ -294,12 +296,10 @@ export const workflowN8nRouter = createTRPCRouter({
    * Sync workflow settings with N8N
    */
   syncSettings: publicProcedure
-    .input(
-      z.object({
-        workflowId: z.string(),
-        name: z.string(),
-      }),
-    )
+    .input(z.object({
+      workflowId: z.string(),
+      name: z.string(),
+    }))
     .mutation(async ({ ctx, input }) => {
       try {
         const workflow = await db.query.workflows.findFirst({
@@ -322,9 +322,7 @@ export const workflowN8nRouter = createTRPCRouter({
           if (response.status === 200) {
             const n8nWorkflow = response.data;
             // Update the n8n workflow for name
-            const updateApiURI = `${
-              N8N_API.updateWorkflow(workflow.flowId).uri
-            }`;
+            const updateApiURI = `${N8N_API.updateWorkflow(workflow.flowId).uri}`;
             const payload = {
               name: input.name,
               nodes: n8nWorkflow.nodes,
@@ -368,7 +366,7 @@ const generateN8NNodesAndN8NConnections = async (
 ) => {
   const n8nNodes: any[] = [];
   const n8nConnections: any = {};
-
+  
   for (const node of nodes) {
     switch (node.type) {
       case NodeTypes.trigger:
@@ -385,7 +383,7 @@ const generateN8NNodesAndN8NConnections = async (
           webhookId: uuidv4(),
         });
         break;
-
+        
       case NodeTypes.aiModel:
         // Find model
         if (node.data.type === ModelTypes[0]?.value) {
@@ -537,7 +535,7 @@ const generateN8NNodesAndN8NConnections = async (
           id: uuidv4(),
         });
         break;
-
+        
       case NodeTypes.splitOut:
         n8nNodes.push({
           ...n8nSplitOutNode,
@@ -546,30 +544,24 @@ const generateN8NNodesAndN8NConnections = async (
           id: uuidv4(),
         });
         break;
-
+        
       case NodeTypes.whatsApp:
         const authValue = `Basic ${Buffer.from(
           `${process.env.WHATSAPP_PHONE_NUMBER_ID}:${process.env.WHATSAPP_ACCESS_TOKEN}`,
         ).toString("base64")}`;
-
+        
         let whatsAppPayload = {};
         if (node.data.type === WhatsAppSendTypes[0]?.value) {
           whatsAppPayload = {
             messaging_product: "whatsapp",
-            to:
-              node.data.to.valueType === "Expression"
-                ? `{{ ${node.data.to.value} }}`
-                : node.data.to.value,
+            to: node.data.to.valueType === "Expression" ? `{{ ${node.data.to.value} }}` : node.data.to.value,
             type: "text",
             text: {
-              body:
-                node.data.message.valueType === "Expression"
-                  ? `{{ ${node.data.message.value} }}`
-                  : node.data.message.value,
+              body: node.data.message.valueType === "Expression" ? `{{ ${node.data.message.value} }}` : node.data.message.value,
             },
           };
         }
-
+        
         n8nNodes.push({
           ...n8nHTTPRequestNode,
           parameters: {
@@ -594,45 +586,35 @@ const generateN8NNodesAndN8NConnections = async (
           id: uuidv4(),
         });
         break;
-
+        
       case NodeTypes.database:
         const insertNode: any = {
           ...n8nHTTPRequestNode,
           parameters: {
             ...n8nHTTPRequestNode.parameters,
             method: node.data.method,
-            url:
-              node.data.url.valueType === "Expression"
-                ? `={{ ${node.data.url.value} }}`
-                : node.data.url.value,
+            url: node.data.url.valueType === "Expression" ? `={{ ${node.data.url.value} }}` : node.data.url.value,
             sendQuery: node.data.queryParams.length > 0,
             queryParameters: {
               parameters: node.data.queryParams.map((item: any) => ({
                 name: item.name,
-                value:
-                  item.valueType === "Expression"
-                    ? `={{ ${item.value} }}`
-                    : item.value,
+                value: item.valueType === "Expression" ? `={{ ${item.value} }}` : item.value,
               })),
             },
             sendHeaders: node.data.headers.length > 0,
             headerParameters: {
               parameters: node.data.headers.map((item: any) => ({
                 name: item.name,
-                value:
-                  item.valueType === "Expression"
-                    ? `={{ ${item.value} }}`
-                    : item.value,
+                value: item.valueType === "Expression" ? `={{ ${item.value} }}` : item.value,
               })),
             },
-            sendBody:
-              node.data.body.length > 0 || !!node.data.specifyBodyValue.value,
+            sendBody: node.data.body.length > 0 || !!node.data.specifyBodyValue.value,
           },
           position: [node.position.x, node.position.y],
           name: node.data.label,
           id: uuidv4(),
         };
-
+        
         if (node.data.specifyBody === "json") {
           insertNode.parameters["specifyBody"] = "json";
           insertNode.parameters["jsonBody"] =
@@ -643,16 +625,13 @@ const generateN8NNodesAndN8NConnections = async (
           insertNode.parameters["bodyParameters"] = {
             parameters: node.data.body.map((item: any) => ({
               name: item.name,
-              value:
-                item.valueType === "Expression"
-                  ? `={{ ${item.value} }}`
-                  : item.value,
+              value: item.valueType === "Expression" ? `={{ ${item.value} }}` : item.value,
             })),
           };
         }
         n8nNodes.push(insertNode);
         break;
-
+        
       case NodeTypes.loop:
         n8nNodes.push({
           ...n8nSplitInBatchesNode,
@@ -665,7 +644,7 @@ const generateN8NNodesAndN8NConnections = async (
           id: uuidv4(),
         });
         break;
-
+        
       case NodeTypes.rag:
         n8nNodes.push({
           ...n8nHTTPRequestNode,
@@ -708,12 +687,12 @@ const generateN8NNodesAndN8NConnections = async (
           id: uuidv4(),
         });
         break;
-
+        
       default:
         break;
     }
   }
-
+  
   // Generate n8n connections
   edges.forEach((edge) => {
     const sourceNode = nodes.find((node) => node.id === edge.source);
@@ -757,7 +736,7 @@ const generateN8NNodesAndN8NConnections = async (
       }
     }
   });
-
+  
   return {
     n8nNodes,
     n8nConnections,
@@ -829,4 +808,4 @@ const getOutputValue = (value: string, dateType?: string) => {
     default:
       return ` ${value}`;
   }
-};
+}; 

@@ -4,6 +4,7 @@ import * as React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { loggerLink, unstable_httpBatchStreamLink } from '@trpc/client';
 import { api, getBaseUrl } from '@/utils/trpc';
+import type { ExtendedSession } from '@/db/auth-hydration';
 
 import { getSession } from 'next-auth/react';
 import superjson from 'superjson';
@@ -55,11 +56,11 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
             // Include session token in headers for server-side authentication
             if (typeof window !== "undefined") {
               // Client-side: get session from NextAuth
-              const session = await getSession();
+              const session = await getSession() as ExtendedSession | null;
               if (session?.user?.id) {
                 return {
                   "x-user-id": session.user.id.toString(),
-                  "x-tenant-id": session.user.tenantId?.toString() || "1",
+                  "x-org-id": session.user.orgId?.toString() || "1",
                   "x-session-token": "authenticated",
                 };
               }

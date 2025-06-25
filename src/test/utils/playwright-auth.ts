@@ -89,7 +89,7 @@ export const playwrightAuthUtils = {
       email: 'test@example.com',
       name: 'Test User',
       image: undefined,
-      tenantId: undefined,
+      orgId: undefined,
     };
     const customRole = {
       id: 999,
@@ -108,7 +108,7 @@ export const playwrightAuthUtils = {
       email: 'test-role@example.com',
       name: 'Test Role User',
       image: undefined,
-      tenantId: undefined,
+      orgId: undefined,
     };
     const customRole = {
       id: 998,

@@ -62,7 +62,7 @@ async function fixPermissionsMigration() {
       { slug: 'bases:chat', name: 'Chat with Knowledge Base', description: 'Chat with knowledge base AI', category: 'bases' },
       { slug: 'bases:callback', name: 'Knowledge Base Callbacks', description: 'Handle knowledge base processing callbacks', category: 'bases' },
 
-      // Orgs permissions (renamed from tenant)
+      // Orgs permissions (renamed from org)
       { slug: 'orgs:read', name: 'View Organizations', description: 'View organization details', category: 'orgs' },
       { slug: 'orgs:create', name: 'Create Organizations', description: 'Create new organizations', category: 'orgs' },
       { slug: 'orgs:update', name: 'Edit Organizations', description: 'Edit organization details', category: 'orgs' },
@@ -71,7 +71,7 @@ async function fixPermissionsMigration() {
       // Admin permissions
       { slug: 'admin:debug_context', name: 'Debug Context Access', description: 'Access system debug information and context data', category: 'admin' },
       { slug: 'admin:seed_rbac', name: 'Seed RBAC', description: 'Initialize/modify RBAC system structure', category: 'admin' },
-      { slug: 'admin:seed_tenants', name: 'Seed Tenants', description: 'Initialize/modify tenant structure', category: 'admin' },
+      { slug: 'admin:seed_orgs', name: 'Seed Orgs', description: 'Initialize/modify org structure', category: 'admin' },
     ];
 
     // Insert new permissions (skip if they already exist)
@@ -136,7 +136,7 @@ async function fixPermissionsMigration() {
         'rules:read', 'rules:create', 'rules:update', 'rules:delete', 'rules:publish', 'rules:test',
         'bases:read', 'bases:create', 'bases:update', 'bases:delete', 'bases:upload_document', 'bases:chat',
         'orgs:read', 'orgs:create', 'orgs:update', 'orgs:delete',
-        'admin:debug_context', 'admin:seed_rbac', 'admin:seed_tenants',
+        'admin:debug_context', 'admin:seed_rbac', 'admin:seed_orgs',
       ];
 
       for (const permSlug of adminPermissions) {

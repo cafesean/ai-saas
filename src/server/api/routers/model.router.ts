@@ -6,13 +6,14 @@ import { db } from "@/db";
 import { models, model_metrics } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 import { ModelStatus } from "@/constants/general";
-import { createTRPCRouter, publicProcedure, protectedProcedure, getUserTenantId } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure, getUserOrgId } from "../trpc";
 import { NOT_FOUND, INTERNAL_SERVER_ERROR } from "@/constants/errorCode";
 import {
   MODEL_NOT_FOUND_ERROR,
   MODEL_CREATE_ERROR,
   MODEL_UPDATE_ERROR,
 } from "@/constants/errorMessage";
+import type { ExtendedSession } from "@/db/auth-hydration";
 
 const modelSchema = z.object({
   uuid: z.string().min(36).optional(), // Optional for creates, required for updates
@@ -124,7 +125,7 @@ export const modelRouter = createTRPCRouter({
               status: input.status || ModelStatus.INACTIVE,
               type: input.type,
               framework: input.framework,
-              tenantId: await getUserTenantId(ctx.session.user.id), // 🔒 SECURITY FIX
+              orgId: await getUserOrgId((ctx.session as ExtendedSession).user.id), // 🔒 SECURITY FIX
             })
             .returning();
           if (model && model.id && input.metrics) {
