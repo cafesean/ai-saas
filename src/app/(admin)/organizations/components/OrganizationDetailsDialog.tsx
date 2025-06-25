@@ -99,30 +99,32 @@ export function OrganizationDetailsDialog({
     },
   });
 
-  // Reset form when organization changes
+  // Reset form when organization changes or dialog opens
   useEffect(() => {
-    if (organization && mode === "edit") {
-      form.reset({
-        name: organization.name,
-        description: organization.description || undefined,
-        slug: organization.slug || "",
-        logoUrl: organization.logoUrl || "",
-        website: organization.website || "",
-        businessAddress: organization.businessAddress || undefined,
-        isActive: organization.isActive,
-      });
-    } else if (mode === "create") {
-      form.reset({
-        name: "",
-        description: "",
-        slug: "",
-        logoUrl: "",
-        website: "",
-        businessAddress: "",
-        isActive: true,
-      });
+    if (open) {
+      if (organization && mode === "edit") {
+        form.reset({
+          name: organization.name,
+          description: organization.description || undefined,
+          slug: organization.slug || "",
+          logoUrl: organization.logoUrl || "",
+          website: organization.website || "",
+          businessAddress: organization.businessAddress || undefined,
+          isActive: organization.isActive,
+        });
+      } else if (mode === "create") {
+        form.reset({
+          name: "",
+          description: "",
+          slug: "",
+          logoUrl: "",
+          website: "",
+          businessAddress: "",
+          isActive: true,
+        });
+      }
     }
-  }, [organization, mode, form]);
+  }, [organization, mode, form, open]);
 
   // Auto-generate slug from name
   const watchedName = form.watch("name");
@@ -143,6 +145,16 @@ export function OrganizationDetailsDialog({
   const createMutation = api.org.create.useMutation({
     onSuccess: () => {
       toast.success("Organization created successfully");
+      // Reset form to clear values after successful creation
+      form.reset({
+        name: "",
+        description: "",
+        slug: "",
+        logoUrl: "",
+        website: "",
+        businessAddress: "",
+        isActive: true,
+      });
       onSuccess();
     },
     onError: (error) => {

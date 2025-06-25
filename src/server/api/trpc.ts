@@ -45,48 +45,36 @@ export const createTRPCContext = async (opts?: { headers: Headers }) => {
 
 // For fetch adapter compatibility - Next.js 15 compatible
 export const createTRPCContextFetch = async (opts: { req: Request; resHeaders: Headers }) => {
-  // Use custom headers approach for Next.js 15 + tRPC + NextAuth compatibility
+  // Simplified approach: Always try to get session from NextAuth first
   let session = null;
   
   try {
-    // Check for custom session headers from client
-    const userId = opts.req.headers.get('x-user-id');
-    const orgId = opts.req.headers.get('x-org-id');
-    const sessionToken = opts.req.headers.get('x-session-token');
+    // Primary: Try to get session from NextAuth (works for most cases)
+    session = await getServerSession(authOptions);
     
     if (process.env.NODE_ENV === 'development') {
-      console.log('tRPC Headers Debug:', {
-        hasUserId: !!userId,
-        hasOrgId: !!orgId,
-        hasSessionToken: !!sessionToken,
-        sessionTokenValue: sessionToken,
-        userIdValue: userId,
-        orgIdValue: orgId
-      });
+      console.log('tRPC Context: NextAuth session found:', !!session, session?.user?.email);
     }
     
-    if (userId && sessionToken === 'authenticated') {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('tRPC: Attempting to reconstruct session for user:', userId);
-      }
+    // Fallback: If no NextAuth session, try custom headers approach
+    if (!session) {
+      const userId = opts.req.headers.get('x-user-id');
+      const sessionToken = opts.req.headers.get('x-session-token');
       
-      try {
-        // Simplified database query for debugging
+      if (userId && sessionToken === 'authenticated') {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('tRPC: Falling back to header-based session for user:', userId);
+        }
+        
         const user = await db.query.users.findFirst({
           where: eq(users.id, parseInt(userId)),
         });
 
-        if (process.env.NODE_ENV === 'development') {
-          console.log('tRPC: Found user:', !!user, user?.email);
-        }
-
         if (user) {
-          // Get user's org context from JSONB data
           const orgData = user.orgData as any;
-          const currentOrgId = orgData?.currentOrgId || (orgData?.orgs?.[0]?.orgId) || 1;
+          const currentOrgId = orgData?.currentOrgId || 1;
           const userOrgInfo = orgData?.orgs?.find((org: any) => org.orgId === currentOrgId);
           
-          // Create session object with org context matching NextAuth interface
           session = {
             user: {
               id: user.id,
@@ -98,11 +86,10 @@ export const createTRPCContextFetch = async (opts: { req: Request; resHeaders: H
               firstName: user.firstName || '',
               lastName: user.lastName || '',
               orgUser: [],
-              // Multi-org support properties
               orgId: currentOrgId,
               currentOrg: {
                 id: currentOrgId,
-                name: 'Default Org' // TODO: Get actual org name
+                name: 'Default Org'
               },
               availableOrgs: [],
               roles: [{
@@ -114,37 +101,23 @@ export const createTRPCContextFetch = async (opts: { req: Request; resHeaders: H
             },
             expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
           };
-          
-          if (process.env.NODE_ENV === 'development') {
-            console.log('tRPC: Created basic session for user:', user.email);
-          }
-        }
-      } catch (dbError) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('tRPC: Database error:', dbError);
         }
       }
-    } else {
-      // Fallback: try to get session normally (for SSR/page requests)
-      session = await getServerSession(authOptions);
     }
     
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
-      console.error('tRPC Context Session Error:', {
-        error: error instanceof Error ? error.message : error,
-      });
+      console.error('tRPC Context Session Error:', error);
     }
     session = null;
   }
 
   if (process.env.NODE_ENV === 'development') {
     const extendedSession = session as ExtendedSession;
-    console.log('tRPC Context Debug (Header-based):', {
+    console.log('tRPC Context Final:', {
       hasSession: !!session,
       userId: extendedSession?.user?.id,
       email: extendedSession?.user?.email,
-      permissionsCount: extendedSession?.user?.roles?.flatMap((r: any) => r.policies).length || 0
     });
   }
 

@@ -13,6 +13,14 @@ export const authRouter = createTRPCRouter({
   register: publicProcedure
     .input(registerSchema)
     .mutation(async ({ ctx, input }) => {
+      // Check if public registration is enabled
+      if (process.env.DISABLE_PUBLIC_REGISTRATION === 'true') {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Public registration is disabled. Please contact an administrator for access.',
+        });
+      }
+
       const { email, password, name } = input;
 
       // Check if user already exists

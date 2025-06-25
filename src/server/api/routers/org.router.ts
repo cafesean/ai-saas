@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 import { db } from '@/db';
-import { orgs, users, userOrgs, userRoles, roles } from '@/db/schema';
+import { orgs, users, userRoles, roles } from '@/db/schema';
 import { eq, asc, desc, and, or, like, count, sql, not } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 
@@ -90,18 +90,19 @@ export const orgRouter = createTRPCRouter({
         .limit(limit)
         .offset(offset);
 
-      // Get user counts for each org
+      // Get user counts for each org using JSONB orgData structure
       const orgsWithStats: OrgWithStats[] = await Promise.all(
         orgsData.map(async (org: typeof orgs.$inferSelect) => {
+          // Query users by JSONB orgData for this org
           const [userCountResult, activeUserCountResult] = await Promise.all([
             db.select({ count: count() })
-              .from(userOrgs)
-              .where(eq(userOrgs.orgId, orgs.id)),
+              .from(users)
+              .where(sql`${users.orgData}::jsonb @> ${'{"orgs": [{"orgId": ' + org.id + '}]}'}`),
             db.select({ count: count() })
-              .from(userOrgs)
+              .from(users)
               .where(and(
-                eq(userOrgs.orgId, orgs.id),
-                eq(userOrgs.isActive, true)
+                sql`${users.orgData}::jsonb @> ${'{"orgs": [{"orgId": ' + org.id + ', "isActive": true}]}'}`,
+                eq(users.isActive, true)
               ))
           ]);
 
@@ -153,21 +154,35 @@ export const orgRouter = createTRPCRouter({
         });
       }
 
-      // Get org users with their roles
-      const orgUsers: OrgUser[] = await db.select({
+      // Get org users with their roles from JSONB orgData
+      const allUsers = await db.select({
         userId: users.id,
         userUuid: users.uuid,
         userName: users.name,
         userEmail: users.email,
         userIsActive: users.isActive,
-        orgRole: userOrgs.role,
-        relationshipIsActive: userOrgs.isActive,
-        joinedAt: userOrgs.createdAt,
+        orgData: users.orgData,
+        createdAt: users.createdAt,
       })
-      .from(userOrgs)
-      .innerJoin(users, eq(userOrgs.userId, users.id))
-      .where(eq(userOrgs.orgId, input))
-      .orderBy(desc(userOrgs.createdAt));
+      .from(users)
+      .where(sql`${users.orgData}::jsonb @> ${'{"orgs": [{"orgId": ' + input + '}]}'}`);
+
+      // Extract org-specific data from JSONB
+      const orgUsers: OrgUser[] = allUsers.map(user => {
+        const orgData = user.orgData as any;
+        const userOrg = orgData?.orgs?.find((org: any) => org.orgId === input);
+        
+        return {
+          userId: user.userId,
+          userUuid: user.userUuid,
+          userName: user.userName,
+          userEmail: user.userEmail,
+          userIsActive: user.userIsActive,
+          orgRole: userOrg?.role || 'member',
+          relationshipIsActive: userOrg?.isActive || false,
+          joinedAt: userOrg?.joinedAt ? new Date(userOrg.joinedAt) : user.createdAt,
+        };
+      }).sort((a, b) => b.joinedAt.getTime() - a.joinedAt.getTime());
 
       return {
         ...org,
@@ -348,7 +363,7 @@ export const orgRouter = createTRPCRouter({
       }
     }),
 
-  // Add user to org
+  // Add user to org (JSONB-based implementation)
   addUser: protectedProcedure
     .input(orgUserManagementSchema)
     .mutation(async ({ ctx, input }) => {
@@ -367,7 +382,7 @@ export const orgRouter = createTRPCRouter({
         });
       }
 
-      // Check if user exists
+      // Get user's current orgData
       const user = await db.select()
         .from(users)
         .where(eq(users.id, userId))
@@ -380,47 +395,43 @@ export const orgRouter = createTRPCRouter({
         });
       }
 
-      // Check if relationship already exists
-      const existingRelationship = await db.select()
-        .from(userOrgs)
-        .where(and(
-          eq(userOrgs.userId, userId),
-          eq(userOrgs.orgId, orgId)
-        ))
-        .limit(1);
-
-      if (existingRelationship[0]) {
-        // If exists but inactive, reactivate it
-        if (!existingRelationship[0].isActive) {
-          await db.update(userOrgs)
-            .set({ 
-              isActive: true,
-              role: role,
-              updatedAt: new Date(),
-            })
-            .where(and(
-              eq(userOrgs.userId, userId),
-              eq(userOrgs.orgId, orgId)
-            ));
-          
-          return { success: true, action: 'reactivated' };
-        } else {
-          throw new TRPCError({
-            code: 'CONFLICT',
-            message: 'User is already a member of this org'
-          });
-        }
-      }
-
-      try {
-        await db.insert(userOrgs).values({
-          userId,
+      const currentOrgData = user[0].orgData as any || { currentOrgId: null, orgs: [] };
+      
+      // Check if user is already in this org
+      const existingOrgIndex = currentOrgData.orgs?.findIndex((org: any) => org.orgId === orgId);
+      
+      if (existingOrgIndex !== -1) {
+        // Update existing relationship
+        currentOrgData.orgs[existingOrgIndex] = {
+          ...currentOrgData.orgs[existingOrgIndex],
+          role,
+          isActive: true,
+          joinedAt: currentOrgData.orgs[existingOrgIndex].joinedAt || new Date().toISOString()
+        };
+      } else {
+        // Add new org relationship
+        currentOrgData.orgs.push({
           orgId,
           role,
           isActive: true,
+          joinedAt: new Date().toISOString()
         });
+      }
 
-        return { success: true, action: 'added' };
+      // Set as current org if user has no current org
+      if (!currentOrgData.currentOrgId) {
+        currentOrgData.currentOrgId = orgId;
+      }
+
+      try {
+        await db.update(users)
+          .set({
+            orgData: currentOrgData,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, userId));
+
+        return { success: true, action: existingOrgIndex !== -1 ? 'updated' : 'added' };
       } catch (error) {
         console.error("Error adding user to org:", error);
         throw new TRPCError({
@@ -431,7 +442,7 @@ export const orgRouter = createTRPCRouter({
       }
     }),
 
-  // Remove user from org
+  // Remove user from org (JSONB-based implementation)
   removeUser: protectedProcedure
     .input(z.object({
       orgId: z.number(),
@@ -440,20 +451,45 @@ export const orgRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { orgId, userId } = input;
 
-      try {
-        const deletedRelationship = await db.delete(userOrgs)
-          .where(and(
-            eq(userOrgs.userId, userId),
-            eq(userOrgs.orgId, orgId)
-          ))
-          .returning();
+      // Get user's current orgData
+      const user = await db.select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
 
-        if (deletedRelationship.length === 0) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: 'User-org relationship not found'
-          });
-        }
+      if (!user[0]) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'User not found'
+        });
+      }
+
+      const currentOrgData = user[0].orgData as any || { currentOrgId: null, orgs: [] };
+      
+      // Remove org from user's orgs array
+      const filteredOrgs = currentOrgData.orgs?.filter((org: any) => org.orgId !== orgId) || [];
+      
+      if (filteredOrgs.length === currentOrgData.orgs?.length) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'User-org relationship not found'
+        });
+      }
+
+      // Update current org if removing the current org
+      if (currentOrgData.currentOrgId === orgId) {
+        currentOrgData.currentOrgId = filteredOrgs.length > 0 ? filteredOrgs[0].orgId : null;
+      }
+
+      currentOrgData.orgs = filteredOrgs;
+
+      try {
+        await db.update(users)
+          .set({
+            orgData: currentOrgData,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, userId));
 
         return { success: true };
       } catch (error) {
@@ -466,41 +502,48 @@ export const orgRouter = createTRPCRouter({
       }
     }),
 
-  // Update user role in org
+  // Update user role in org (JSONB-based implementation)
   updateUserRole: protectedProcedure
     .input(orgUserManagementSchema)
     .mutation(async ({ ctx, input }) => {
       const { orgId, userId, role } = input;
 
-      // Check if relationship exists
-      const existingRelationship = await db.select()
-        .from(userOrgs)
-        .where(and(
-          eq(userOrgs.userId, userId),
-          eq(userOrgs.orgId, orgId)
-        ))
+      // Get user's current orgData
+      const user = await db.select()
+        .from(users)
+        .where(eq(users.id, userId))
         .limit(1);
 
-      if (!existingRelationship[0]) {
+      if (!user[0]) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'User not found'
+        });
+      }
+
+      const currentOrgData = user[0].orgData as any || { currentOrgId: null, orgs: [] };
+      
+      // Find and update the org
+      const orgIndex = currentOrgData.orgs?.findIndex((org: any) => org.orgId === orgId);
+      
+      if (orgIndex === -1) {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'User-org relationship not found'
         });
       }
 
+      currentOrgData.orgs[orgIndex].role = role;
+
       try {
-        const [updatedRelationship] = await db.update(userOrgs)
-          .set({ 
-            role,
+        await db.update(users)
+          .set({
+            orgData: currentOrgData,
             updatedAt: new Date(),
           })
-          .where(and(
-            eq(userOrgs.userId, userId),
-            eq(userOrgs.orgId, orgId)
-          ))
-          .returning();
+          .where(eq(users.id, userId));
 
-        return updatedRelationship;
+        return { success: true, role };
       } catch (error) {
         console.error("Error updating user role:", error);
         throw new TRPCError({

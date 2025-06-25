@@ -1,0 +1,14 @@
+
+> project-pricing@0.1.0 dev /Volumes/X9/sync/code/github/jetdevs/ai-saas/ai-saas-dev/trees/EPIC-6
+> next dev
+
+ ⚠ Port 3000 is in use, trying 3001 instead.
+   ▲ Next.js 15.1.1
+   - Local:        http://localhost:3001
+   - Network:      http://10.249.238.129:3001
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     · typedRoutes
+
+ ✓ Starting...
+ ✓ Ready in 2.1s

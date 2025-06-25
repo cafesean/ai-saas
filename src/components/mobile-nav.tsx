@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { type Route } from "next";
-import { Menu, Brain, LogOut, User, Settings } from "lucide-react";
+import { Menu, Brain, LogOut, User, Settings, Building2 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 
 import { SampleButton } from "@/components/ui/sample-button";
@@ -19,16 +19,33 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SignOutConfirmDialog } from "@/components/auth/SignOutConfirmDialog";
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
+  const [showSignOutDialog, setShowSignOutDialog] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const { data: session } = useSession();
 
-  const handleLogout = async () => {
-    await signOut({ 
-      redirect: true,
-      callbackUrl: '/login'
-    });
+  const handleLogoutClick = () => {
+    setShowSignOutDialog(true);
+  };
+
+  const handleLogoutConfirm = async () => {
+    setIsSigningOut(true);
+    try {
+      await signOut({ 
+        redirect: true,
+        callbackUrl: '/login'
+      });
+    } catch (error) {
+      console.error('Sign out error:', error);
+      setIsSigningOut(false);
+    }
+  };
+
+  const handleLogoutCancel = () => {
+    setShowSignOutDialog(false);
   };
 
   return (
@@ -57,15 +74,36 @@ export function MobileNav() {
 
       <div className="ml-auto flex items-center gap-2">
         <ThemeToggle />
+        
+        {/* Organization Button - Ghost style */}
+        {session?.user && (session.user as any).currentOrg && (
+          <SampleButton 
+            variant="ghost" 
+            size="sm" 
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            asChild
+          >
+            <Link href="/organizations">
+              <Building2 className="mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">
+                {(session.user as any).currentOrg.name}
+              </span>
+            </Link>
+          </SampleButton>
+        )}
+        
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SampleButton variant="ghost" className="relative h-8 w-8 rounded-full">
               <Avatar className="h-8 w-8">
                 <AvatarImage
-                  src="/placeholder.svg?height=32&width=32"
-                  alt="@user"
+                  src={session?.user?.avatar || "/placeholder.svg?height=32&width=32"}
+                  alt={session?.user?.name || "User"}
                 />
-                <AvatarFallback>MA</AvatarFallback>
+                <AvatarFallback>
+                  {session?.user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 
+                   session?.user?.email?.charAt(0).toUpperCase() || 'U'}
+                </AvatarFallback>
               </Avatar>
             </SampleButton>
           </DropdownMenuTrigger>
@@ -82,14 +120,14 @@ export function MobileNav() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href={"/profile" as Route} className="flex items-center">
-                <User className="mr-2 h-4 w-4" />
-                Profile
+              <Link href={"/settings?tab=preferences" as Route} className="flex items-center">
+                <Settings className="mr-2 h-4 w-4" />
+                Preferences
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
-              onClick={handleLogout}
+              onClick={handleLogoutClick}
               className="flex items-center text-red-600 focus:text-red-600"
             >
               <LogOut className="mr-2 h-4 w-4" />
@@ -98,6 +136,13 @@ export function MobileNav() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <SignOutConfirmDialog
+        isOpen={showSignOutDialog}
+        onClose={handleLogoutCancel}
+        onConfirm={handleLogoutConfirm}
+        isLoading={isSigningOut}
+      />
     </header>
   );
 }
