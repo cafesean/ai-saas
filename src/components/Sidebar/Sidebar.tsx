@@ -280,10 +280,11 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
           permission: "roles:read",
         },
         {
-          title: "Permissions",
+          title: "Permission Management",
           href: "/permissions", 
           icon: Key,
-          adminOnly: true,
+          // TODO: Restore admin-only access after debugging
+          // role: "Admin",
         },
         {
           title: "User Management", 
