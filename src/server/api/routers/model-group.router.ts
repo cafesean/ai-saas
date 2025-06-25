@@ -8,6 +8,7 @@ import { TRPCError } from "@trpc/server";
 import { ModelGroupRole, ModelGroupStatus } from "@/constants/general";
 import { createTRPCRouter, protectedProcedure, getUserOrgId } from "../trpc";
 import { NOT_FOUND, INTERNAL_SERVER_ERROR, BAD_REQUEST } from "@/constants/errorCode";
+import { inferenceTableService } from "@/services/inference-table-provisioning.service";
 import {
   createModelGroupSchema,
   updateModelGroupSchema,
@@ -118,6 +119,17 @@ export const modelGroupRouter = createTRPCRouter({
 
           return modelGroup;
         });
+
+        // Auto-provision inference table for the new ModelGroup
+        if (newModelGroup) {
+          try {
+            await inferenceTableService.autoProvisionOnModelGroupCreation(newModelGroup.id);
+            console.log(`Inference table auto-provisioned for ModelGroup ${newModelGroup.uuid}`);
+          } catch (error) {
+            console.error(`Failed to auto-provision inference table for ModelGroup ${newModelGroup.uuid}:`, error);
+            // Continue without failing the ModelGroup creation
+          }
+        }
 
         return newModelGroup;
       } catch (error) {
