@@ -13,8 +13,9 @@ import {
   foreignKey,
 } from "drizzle-orm/pg-core";
 import { desc, relations } from "drizzle-orm";
-import { DecisionStatus } from "@/constants/decisionTable";
+import { DecisionStatus, DecisionTableRowTypes } from "@/constants/decisionTable";
 import { orgs } from "./org";
+import { variables } from "./variable";
 
 export const decision_tables = pgTable(
   "decision_tables",
@@ -26,12 +27,12 @@ export const decision_tables = pgTable(
     status: varchar("status", { length: 100 })
       .notNull()
       .default(DecisionStatus.ACTIVE),
-    
+
     // Versioning and publishing lifecycle (Decision Engine enhancement)
     version: integer("version").notNull().default(1),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     publishedBy: integer("published_by"), // User ID who published
-    
+
     // Multi-tenancy support (SAAS-32)
     orgId: integer("org_id")
       .notNull()
@@ -71,6 +72,7 @@ export const decision_table_rows = pgTable(
         onDelete: "cascade",
       }),
     order: integer("order").notNull(),
+    type: varchar("type").default(DecisionTableRowTypes.NORMAL),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "date",
@@ -100,9 +102,9 @@ export const decision_table_inputs = pgTable(
       .references(() => decision_tables.uuid, {
         onDelete: "cascade",
       }),
-    name: varchar("name").notNull(),
-    description: text("description"),
-    dataType: varchar("dataType", { length: 100 }),
+    variable_id: uuid("variable_id")
+      .notNull()
+      .references(() => variables.uuid),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "date",
@@ -132,9 +134,9 @@ export const decision_table_outputs = pgTable(
       .references(() => decision_tables.uuid, {
         onDelete: "cascade",
       }),
-    name: varchar("name").notNull(),
-    description: text("description"),
-    dataType: varchar("dataType", { length: 100 }),
+    variable_id: uuid("variable_id")
+      .notNull()
+      .references(() => variables.uuid),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "date",
@@ -262,6 +264,10 @@ export const decisionTableInputsRelations = relations(
       fields: [decision_table_inputs.dt_id],
       references: [decision_tables.uuid],
     }),
+    variable: one(variables, {
+      fields: [decision_table_inputs.variable_id],
+      references: [variables.uuid],
+    }),
     conditions: many(decision_table_input_conditions),
   }),
 );
@@ -272,6 +278,10 @@ export const decisionTableOutputsRelations = relations(
     decisionTable: one(decision_tables, {
       fields: [decision_table_outputs.dt_id],
       references: [decision_tables.uuid],
+    }),
+    variable: one(variables, {
+      fields: [decision_table_outputs.variable_id],
+      references: [variables.uuid],
     }),
     results: many(decision_table_output_results),
   }),

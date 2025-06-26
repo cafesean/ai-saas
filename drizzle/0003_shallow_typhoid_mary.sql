@@ -112,11 +112,12 @@ ALTER TABLE "decision_tables" ADD COLUMN "published_at" timestamp with time zone
 ALTER TABLE "decision_tables" ADD COLUMN "published_by" integer;--> statement-breakpoint
 ALTER TABLE "lookup_table_rows" ADD CONSTRAINT "lookup_table_rows_lookup_table_id_lookup_tables_uuid_fk" FOREIGN KEY ("lookup_table_id") REFERENCES "public"."lookup_tables"("uuid") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "lookup_tables" ADD CONSTRAINT "lookup_tables_input_variable_id_variables_uuid_fk" FOREIGN KEY ("input_variable_id") REFERENCES "public"."variables"("uuid") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "lookup_tables" ADD CONSTRAINT "lookup_tables_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+-- Note: Tenant foreign key constraints temporarily disabled - will be added after orgs table is created in migration 6
+-- ALTER TABLE "lookup_tables" ADD CONSTRAINT "lookup_tables_tenant_id_orgs_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."orgs"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "rule_set_steps" ADD CONSTRAINT "rule_set_steps_rule_set_id_rule_sets_uuid_fk" FOREIGN KEY ("rule_set_id") REFERENCES "public"."rule_sets"("uuid") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "rule_sets" ADD CONSTRAINT "rule_sets_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "test_scenarios" ADD CONSTRAINT "test_scenarios_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "variables" ADD CONSTRAINT "variables_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "rule_sets" ADD CONSTRAINT "rule_sets_tenant_id_orgs_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."orgs"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "test_scenarios" ADD CONSTRAINT "test_scenarios_tenant_id_orgs_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."orgs"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "variables" ADD CONSTRAINT "variables_tenant_id_orgs_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."orgs"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "lookup_table_row_id_idx" ON "lookup_table_rows" USING btree ("id");--> statement-breakpoint
 CREATE INDEX "lookup_table_row_uuid_idx" ON "lookup_table_rows" USING btree ("uuid");--> statement-breakpoint
 CREATE INDEX "lookup_table_row_lookup_id_idx" ON "lookup_table_rows" USING btree ("lookup_table_id");--> statement-breakpoint

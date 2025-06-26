@@ -1,6 +1,6 @@
 {
-  "id": "53d3c7d8-a818-4496-b21c-3540340fe13c",
-  "prevId": "f9583317-f93f-4dbd-8377-74c140abcea6",
+  "id": "19aac6c9-82e3-4dc5-bffe-5e0622ca9f50",
+  "prevId": "53d3c7d8-a818-4496-b21c-3540340fe13c",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -380,23 +380,11 @@
           "primaryKey": false,
           "notNull": true
         },
-        "name": {
-          "name": "name",
-          "type": "varchar",
+        "variable_id": {
+          "name": "variable_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "dataType": {
-          "name": "dataType",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -457,6 +445,19 @@
             "uuid"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "decision_table_inputs_variable_id_variables_uuid_fk": {
+          "name": "decision_table_inputs_variable_id_variables_uuid_fk",
+          "tableFrom": "decision_table_inputs",
+          "tableTo": "variables",
+          "columnsFrom": [
+            "variable_id"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -621,23 +622,11 @@
           "primaryKey": false,
           "notNull": true
         },
-        "name": {
-          "name": "name",
-          "type": "varchar",
+        "variable_id": {
+          "name": "variable_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "dataType": {
-          "name": "dataType",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -699,6 +688,19 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "decision_table_outputs_variable_id_variables_uuid_fk": {
+          "name": "decision_table_outputs_variable_id_variables_uuid_fk",
+          "tableFrom": "decision_table_outputs",
+          "tableTo": "variables",
+          "columnsFrom": [
+            "variable_id"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -743,6 +745,13 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'Normal'"
         },
         "created_at": {
           "name": "created_at",

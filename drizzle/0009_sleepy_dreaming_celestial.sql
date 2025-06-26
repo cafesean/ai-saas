@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS "model_group_memberships" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
--- Add foreign key constraints
+-- Add foreign key constraints with conditional logic
 DO $$ BEGIN
  ALTER TABLE "model_groups" ADD CONSTRAINT "model_groups_org_id_orgs_id_fk" FOREIGN KEY ("org_id") REFERENCES "orgs"("id") ON DELETE restrict ON UPDATE no action;
 EXCEPTION
@@ -44,10 +44,16 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 
-DO $$ BEGIN
- ALTER TABLE "model_group_memberships" ADD CONSTRAINT "model_group_memberships_model_id_models_id_fk" FOREIGN KEY ("model_id") REFERENCES "models"("id") ON DELETE cascade ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
+-- CONDITIONAL: Only add foreign key to models table if models table exists
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'models') THEN
+        BEGIN
+            ALTER TABLE "model_group_memberships" ADD CONSTRAINT "model_group_memberships_model_id_models_id_fk" FOREIGN KEY ("model_id") REFERENCES "models"("id") ON DELETE cascade ON UPDATE no action;
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END;
+    END IF;
 END $$;
 
 -- Create indexes for model_groups

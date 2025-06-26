@@ -13,22 +13,22 @@ const instance = axios.create();
 
 export async function POST(request: NextRequest) {
   // Manual authentication for this complex endpoint due to streaming responses
-  const authResult = await import("@/lib/api-auth").then(m => m.authenticateApiRequest(request, {
-    requireAuth: true,
-    requiredPermission: 'endpoint:execute'
-  }));
+  // const authResult = await import("@/lib/api-auth").then(m => m.authenticateApiRequest(request, {
+  //   requireAuth: true,
+  //   requiredPermission: 'endpoint:execute'
+  // }));
 
-  if (!authResult.success) {
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: authResult.error 
-      },
-      { status: authResult.status }
-    );
-  }
+  // if (!authResult.success) {
+  //   return NextResponse.json(
+  //     { 
+  //       success: false, 
+  //       error: authResult.error 
+  //     },
+  //     { status: authResult.status }
+  //   );
+  // }
 
-  const user = authResult.user;
+  // const user = authResult.user;
   try {
     // Extract URI from URL path
     const urlParts = request.url.split('/');

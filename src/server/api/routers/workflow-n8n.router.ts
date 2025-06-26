@@ -7,7 +7,6 @@ import {
   edges,
   endpoints,
   models,
-  decision_tables,
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -30,6 +29,7 @@ import {
 } from "@/constants/n8n";
 import { DecisionDataTypes } from "@/constants/decisionTable";
 import { ModelTypes, ThirdPartyModels } from "@/constants/model";
+import type { ExtendedSession } from "@/db/auth-hydration";
 
 const instance = axios.create();
 
@@ -73,6 +73,7 @@ export const workflowN8nRouter = createTRPCRouter({
     .input(workflowUpdateSchema)
     .mutation(async ({ ctx, input }) => {
       try {
+        const session = ctx.session as ExtendedSession;
         const updateWorkflow = await db.transaction(async (tx: any) => {
           // Find the workflow by UUID
           const workflow = await tx.query.workflows.findFirst({
@@ -250,6 +251,7 @@ export const workflowN8nRouter = createTRPCRouter({
                   flowMethod: node.parameters.httpMethod,
                   clientId: uuidv4(),
                   clientSecret: uuidv4(),
+                  orgId: session.user.orgId || 1,
                 })
                 .returning();
             }
@@ -470,89 +472,57 @@ const generateN8NNodesAndN8NConnections = async (
           }
         }
         break;
-        
+
       case NodeTypes.decisionTable:
-        const decisionTableUUID = node.data.decisionTable.uuid;
-        const decisionTable = await tx.query.decision_tables.findFirst({
-          where: eq(decision_tables.uuid, decisionTableUUID),
-          with: {
-            decisionTableRows: {
-              with: {
-                decisionTableInputConditions: true,
-                decisionTableOutputResults: true,
-              },
-            },
-            decisionTableInputs: true,
-            decisionTableOutputs: true,
-          },
-        });
-        
-        if (decisionTable) {
-          // Generate decision table logic
-          let codeString = "";
-          codeString += "let input = $input.all()[0].json;\n";
-          codeString += "let output = {};\n";
-          
-          if (decisionTable.decisionTableRows.length > 0) {
-            for (const [
-              decisionTableRowIndex,
-              decisionTableRow,
-            ] of decisionTable.decisionTableRows.entries()) {
-              if (decisionTableRowIndex === 0) {
-                codeString += "if (";
-              } else {
-                codeString += "else if (";
-              }
-              
-              for (const [
-                conditionIndex,
-                condition,
-              ] of decisionTableRow.decisionTableInputConditions.entries()) {
-                if (conditionIndex > 0) {
-                  codeString += " && ";
-                }
-                const input = decisionTable.decisionTableInputs.find(
-                  (inputItem: any) => inputItem.id === condition.decisionTableInputId,
-                );
-                if (input) {
-                  codeString += `input.${input.name}`;
-                  codeString += getInputOperatorAndValue(
-                    condition.operator,
-                    input.dataType,
-                    condition.value,
-                  );
-                }
-              }
-              codeString += ") {\n";
-              
-              for (const result of decisionTableRow.decisionTableOutputResults) {
-                const output = decisionTable.decisionTableOutputs.find(
-                  (outputItem: any) => outputItem.id === result.decisionTableOutputId,
-                );
-                if (output) {
-                  codeString += `  output.${output.name} =`;
-                  codeString += getOutputValue(result.value, output.dataType);
-                  codeString += ";\n";
-                }
-              }
-              codeString += "}\n";
-            }
-          }
-          codeString += "return [{ json: output }];";
-          
-          n8nNodes.push({
-            ...n8nCodeNode,
-            parameters: {
-              ...n8nCodeNode.parameters,
-              jsCode: codeString,
-            },
-            position: [node.position.x, node.position.y],
-            name: node.data.label,
-            id: uuidv4(),
+        // Find the node which connect the decisionTable
+        const connection = edges.find((edge) => edge.target === node.id);
+        if (!connection) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Decision table connection not found",
           });
         }
+        // Find the source node of the connection
+        const sourceNode = nodes.find((n) => n.id === connection.source);
+        if (!sourceNode) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Decision table source node not found",
+          });
+        }
+        n8nNodes.push({
+          ...n8nHTTPRequestNode,
+          parameters: {
+            ...n8nHTTPRequestNode.parameters,
+            method: "POST",
+            url: process.env.AI_SAAS_DECISION_TABLE_API,
+            sendHeaders: true,
+            headerParameters: {
+              parameters: [
+                {
+                  name: "Authorization",
+                  value: `Basic ${process.env.AI_SAAS_BASIC_TOKEN}`,
+                },
+                {
+                  name: "x-ai-saas-client-id",
+                  value: process.env.AI_SAAS_CLIENT_id,
+                },
+                {
+                  name: "x-ai-sass-client-secret",
+                  value: process.env.AI_SAAS_CLIENT_SECRET,
+                },
+              ],
+            },
+            sendBody: true,
+            specifyBody: "json",
+            jsonBody: `={{ { dtId: "${node.data.decisionTable.uuid}", ...$node["${sourceNode.data.label}"].json.body } }}`,
+          },
+          position: [node.position.x, node.position.y],
+          name: node.data.label,
+          id: uuidv4(),
+        });
         break;
-        
+
       case NodeTypes.logic:
         n8nNodes.push({
           ...n8nCodeNode,

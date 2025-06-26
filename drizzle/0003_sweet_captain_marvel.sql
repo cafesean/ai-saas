@@ -39,7 +39,7 @@ DROP INDEX "lookup_table_id_idx";--> statement-breakpoint
 DROP INDEX "lookup_table_uuid_idx";--> statement-breakpoint
 DROP INDEX "lookup_table_tenant_id_idx";--> statement-breakpoint
 DROP INDEX "lookup_table_status_idx";--> statement-breakpoint
-ALTER TABLE "lookup_tables" ALTER COLUMN "id" SET DATA TYPE bigserial;--> statement-breakpoint
+ALTER TABLE "lookup_tables" ALTER COLUMN "id" SET DATA TYPE bigint;--> statement-breakpoint
 ALTER TABLE "lookup_tables" ALTER COLUMN "created_at" SET DATA TYPE timestamp;--> statement-breakpoint
 ALTER TABLE "lookup_tables" ALTER COLUMN "updated_at" SET DATA TYPE timestamp;--> statement-breakpoint
 ALTER TABLE "lookup_tables" ADD COLUMN "output_variable_id" integer NOT NULL;--> statement-breakpoint

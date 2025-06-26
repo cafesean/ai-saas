@@ -1,23 +1,23 @@
-"use client"
+"use client";
 
-import { useState, use, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
-import { ArrowLeft, MoreHorizontal, Download, Upload, FileSpreadsheet, ExternalLink, Check, X, Play } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState, use, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, MoreHorizontal, Download, Upload, FileSpreadsheet, ExternalLink, Check, X, Play } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -25,15 +25,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { LookupTableEditor } from "../../components/lookup-table-editor"
-import { api } from "@/utils/trpc"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle, Loader2 } from "lucide-react"
-import { backendToFrontend, frontendToBackend } from "../../lib/data-transformers"
-import Breadcrumbs from "@/components/ui/Breadcrumbs"
-import { toast } from "sonner"
-import { getTimeAgo } from "@/utils/func"
+} from "@/components/ui/dialog";
+import { LookupTableEditor } from "../../components/lookup-table-editor";
+import { api } from "@/utils/trpc";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { backendToFrontend, frontendToBackend } from "../../lib/data-transformers";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
+import { toast } from "sonner";
+import { getTimeAgo } from "@/utils/func";
 
 // Import shared styles
 import {
@@ -42,27 +42,27 @@ import {
   tabStyles,
   buttonStyles,
   getStatusColor,
-} from "@/lib/shared-styles"
-import { cn } from "@/lib/utils"
+} from "@/lib/shared-styles";
+import { cn } from "@/lib/utils";
 
-export default function EditLookupTablePage({ params }: { params: Promise<{ uuid: string }> }) {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState("editor")
-  const [isEditingName, setIsEditingName] = useState(false)
-  const [editedName, setEditedName] = useState("")
-  const [hasChanges, setHasChanges] = useState(false)
-  const [originalData, setOriginalData] = useState<any>(null)
-  const [isTestDialogOpen, setIsTestDialogOpen] = useState(false)
-  const [testInputs, setTestInputs] = useState<Record<string, any>>({})
-  const [testResult, setTestResult] = useState<any>(null)
-  const [isRunningTest, setIsRunningTest] = useState(false)
-  const [isEditingVariables, setIsEditingVariables] = useState(false)
-  const [currentFrontendData, setCurrentFrontendData] = useState<any>(null)
-  const { uuid } = use(params)
+export default function EditLookupTablePage({ params }: { params: Promise<{ uuid: string; }>; }) {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("editor");
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState("");
+  const [hasChanges, setHasChanges] = useState(false);
+  const [originalData, setOriginalData] = useState<any>(null);
+  const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
+  const [testInputs, setTestInputs] = useState<Record<string, any>>({});
+  const [testResult, setTestResult] = useState<any>(null);
+  const [isRunningTest, setIsRunningTest] = useState(false);
+  const [isEditingVariables, setIsEditingVariables] = useState(false);
+  const [currentFrontendData, setCurrentFrontendData] = useState<any>(null);
+  const { uuid } = use(params);
 
   // Fetch available variables
-  const { data: variables } = api.variable.getAll.useQuery()
+  const { data: variables } = api.variable.getAll.useQuery();
 
   // Fetch lookup table from API
   const {
@@ -70,209 +70,209 @@ export default function EditLookupTablePage({ params }: { params: Promise<{ uuid
     isLoading: isFetching,
     error,
     refetch,
-  } = api.lookupTable.getByUuid.useQuery({ uuid })
+  } = api.lookupTable.getByUuid.useQuery({ uuid });
 
   // Track original data for change detection
   useEffect(() => {
     if (lookupTable) {
-      const frontendData = backendToFrontend(lookupTable as any)
-      setOriginalData(frontendData)
-      setCurrentFrontendData(frontendData)
+      const frontendData = backendToFrontend(lookupTable as any);
+      setOriginalData(frontendData);
+      setCurrentFrontendData(frontendData);
     }
-  }, [lookupTable])
+  }, [lookupTable]);
 
   // Update mutation - keeping existing save flow
   const updateMutation = api.lookupTable.update.useMutation({
     onSuccess: () => {
-      toast.success("Lookup table saved successfully")
-      refetch() // Refetch the data to get latest changes
-      setHasChanges(false)
-      setIsLoading(false)
+      toast.success("Lookup table saved successfully");
+      refetch(); // Refetch the data to get latest changes
+      setHasChanges(false);
+      setIsLoading(false);
     },
     onError: (error) => {
-      console.error("Failed to update lookup table:", error)
-      toast.error("Failed to save lookup table")
-      setIsLoading(false)
+      console.error("Failed to update lookup table:", error);
+      toast.error("Failed to save lookup table");
+      setIsLoading(false);
     },
-  })
+  });
 
   // Publish mutation
   const publishMutation = api.lookupTable.publish.useMutation({
     onSuccess: () => {
-      refetch()
-      toast.success("Table published successfully")
+      refetch();
+      toast.success("Table published successfully");
     },
     onError: (error: any) => {
-      console.error("Failed to publish table:", error)
-      toast.error("Failed to publish table")
+      console.error("Failed to publish table:", error);
+      toast.error("Failed to publish table");
     },
-  })
+  });
 
   // Deprecate mutation  
   const deprecateMutation = api.lookupTable.deprecate.useMutation({
     onSuccess: () => {
-      refetch()
-      toast.success("Table deprecated successfully")
+      refetch();
+      toast.success("Table deprecated successfully");
     },
     onError: (error: any) => {
-      console.error("Failed to deprecate table:", error)
-      toast.error("Failed to deprecate table")
+      console.error("Failed to deprecate table:", error);
+      toast.error("Failed to deprecate table");
     },
-  })
+  });
 
   // Update name mutation - we'll need to use the full update with current data
   const updateNameMutation = api.lookupTable.update.useMutation({
     onSuccess: () => {
-      refetch()
-      setIsEditingName(false)
-      toast.success("Table name updated successfully")
+      refetch();
+      setIsEditingName(false);
+      toast.success("Table name updated successfully");
     },
     onError: (error: any) => {
-      console.error("Failed to update table name:", error)
-      toast.error("Failed to update table name")
+      console.error("Failed to update table name:", error);
+      toast.error("Failed to update table name");
     },
-  })
+  });
 
   // Save handler that tracks changes
   const handleSave = async (data: any) => {
-    if (!lookupTable || !hasChanges) return
-    
-    setIsLoading(true)
+    if (!lookupTable || !hasChanges) return;
+
+    setIsLoading(true);
     try {
       // Convert frontend data to backend format
-      const backendData = frontendToBackend(data)
-      
+      const backendData = frontendToBackend(data);
+
       await updateMutation.mutateAsync({
         id: lookupTable.id,
         ...backendData,
-      })
+      });
     } catch (error) {
-      console.error("Error saving lookup table:", error)
-      setIsLoading(false)
+      console.error("Error saving lookup table:", error);
+      setIsLoading(false);
     }
-  }
+  };
 
   // Handler to detect changes in the editor - memoized to prevent infinite re-renders
   const handleEditorChange = useCallback((newData: any) => {
-    setCurrentFrontendData(newData)
+    setCurrentFrontendData(newData);
     if (originalData) {
-      const hasDataChanged = JSON.stringify(newData) !== JSON.stringify(originalData)
-      setHasChanges(hasDataChanged)
+      const hasDataChanged = JSON.stringify(newData) !== JSON.stringify(originalData);
+      setHasChanges(hasDataChanged);
     }
-  }, [originalData])
+  }, [originalData]);
 
   const handleTest = (data: any) => {
-    setIsTestDialogOpen(true)
+    setIsTestDialogOpen(true);
     // Initialize test inputs based on current data structure
     if (data.inputVariable1) {
       setTestInputs({
         [data.inputVariable1.name]: data.inputVariable1.dataType === 'number' ? 0 : '',
         ...(data.inputVariable2 ? { [data.inputVariable2.name]: data.inputVariable2.dataType === 'number' ? 0 : '' } : {})
-      })
+      });
     }
-    setTestResult(null)
-  }
+    setTestResult(null);
+  };
 
   const runTest = async (data: any) => {
-    if (!data || Object.keys(testInputs).length === 0) return
-    
-    setIsRunningTest(true)
+    if (!data || Object.keys(testInputs).length === 0) return;
+
+    setIsRunningTest(true);
     try {
       // Simulate lookup logic
-      const input1Value = testInputs[data.inputVariable1.name]
-      const input2Value = data.inputVariable2 ? testInputs[data.inputVariable2.name] : null
-      
+      const input1Value = testInputs[data.inputVariable1.name];
+      const input2Value = data.inputVariable2 ? testInputs[data.inputVariable2.name] : null;
+
       // Find matching bins
-      let matchingRow = null
-      let matchingCol = null
-      
+      let matchingRow = null;
+      let matchingCol = null;
+
       // Find row bin
       for (const bin of data.dimension1Bins) {
         if (bin.binType === 'exact') {
           if (bin.exactValue === input1Value.toString()) {
-            matchingRow = bin.id
-            break
+            matchingRow = bin.id;
+            break;
           }
         } else if (bin.binType === 'range') {
-          const numValue = Number(input1Value)
+          const numValue = Number(input1Value);
           if (numValue >= bin.rangeMin && numValue < bin.rangeMax) {
-            matchingRow = bin.id
-            break
+            matchingRow = bin.id;
+            break;
           }
         }
       }
-      
+
       // Find column bin if 2D
       if (data.inputVariable2 && input2Value !== null) {
         for (const bin of data.dimension2Bins) {
           if (bin.binType === 'exact') {
             if (bin.exactValue === input2Value.toString()) {
-              matchingCol = bin.id
-              break
+              matchingCol = bin.id;
+              break;
             }
           } else if (bin.binType === 'range') {
-            const numValue = Number(input2Value)
+            const numValue = Number(input2Value);
             if (numValue >= bin.rangeMin && numValue < bin.rangeMax) {
-              matchingCol = bin.id
-              break
+              matchingCol = bin.id;
+              break;
             }
           }
         }
       }
-      
+
       // Get result from cells
-      const cellKey = matchingCol ? `${matchingRow}-${matchingCol}` : matchingRow
-      const result = cellKey && data.cells[cellKey] ? data.cells[cellKey] : 'No match found'
-      
+      const cellKey = matchingCol ? `${matchingRow}-${matchingCol}` : matchingRow;
+      const result = cellKey && data.cells[cellKey] ? data.cells[cellKey] : 'No match found';
+
       setTestResult({
         inputs: { ...testInputs },
         output: result,
         matchedRow: matchingRow,
         matchedCol: matchingCol,
         timestamp: new Date().toISOString()
-      })
-      
+      });
+
       // TODO: Save to test history
-      toast.success("Test completed successfully")
+      toast.success("Test completed successfully");
     } catch (error) {
-      console.error("Test failed:", error)
-      toast.error("Test failed")
+      console.error("Test failed:", error);
+      toast.error("Test failed");
     } finally {
-      setIsRunningTest(false)
+      setIsRunningTest(false);
     }
-  }
+  };
 
   const handleStatusToggle = (checked: boolean) => {
-    if (!lookupTable) return
+    if (!lookupTable) return;
     if (checked) {
-      publishMutation.mutate({ id: lookupTable.id })
+      publishMutation.mutate({ id: lookupTable.id });
     } else {
-      deprecateMutation.mutate({ id: lookupTable.id })
+      deprecateMutation.mutate({ id: lookupTable.id });
     }
-  }
+  };
 
   const handleExport = () => {
-    toast.info("Export functionality coming soon")
-  }
+    toast.info("Export functionality coming soon");
+  };
 
   const handleImport = () => {
-    toast.info("Import functionality coming soon")
-  }
+    toast.info("Import functionality coming soon");
+  };
 
   // Variable update handlers
   const updateVariable = (type: 'input1' | 'input2' | 'output', variableId: string | null) => {
-    if (!currentFrontendData) return
+    if (!currentFrontendData) return;
 
-    const updatedData = { ...currentFrontendData }
+    const updatedData = { ...currentFrontendData };
 
     if (type === 'input1' && variableId) {
-      const variable = variables?.find(v => v.id.toString() === variableId)
+      const variable = variables?.find(v => v.id.toString() === variableId);
       if (variable) {
         updatedData.inputVariable1 = {
           id: variable.id,
           name: variable.name,
           dataType: variable.dataType
-        }
+        };
         // Reset dimension1Bins when changing input variable
         updatedData.dimension1Bins = updatedData.dimension1Bins.map((bin: any) => ({
           ...bin,
@@ -282,32 +282,32 @@ export default function EditLookupTablePage({ params }: { params: Promise<{ uuid
           rangeMax: variable.dataType === "number" ? 100 : undefined,
           isValid: false,
           validationError: "Reconfigure after variable change",
-        }))
+        }));
         // Clear cells as they may no longer be valid
-        updatedData.cells = {}
+        updatedData.cells = {};
       }
     } else if (type === 'input2') {
       if (variableId === null || variableId === 'none') {
         // Remove secondary variable (switch to 1D)
-        updatedData.inputVariable2 = undefined
-        updatedData.dimension2Bins = []
+        updatedData.inputVariable2 = undefined;
+        updatedData.dimension2Bins = [];
         // Convert 2D cells to 1D
-        const newCells: Record<string, string> = {}
+        const newCells: Record<string, string> = {};
         Object.entries(updatedData.cells).forEach(([key, value]: [string, any]) => {
-          const rowKey = key.split('-')[0]
+          const rowKey = key.split('-')[0];
           if (rowKey) {
-            newCells[rowKey] = value
+            newCells[rowKey] = value;
           }
-        })
-        updatedData.cells = newCells
+        });
+        updatedData.cells = newCells;
       } else {
-        const variable = variables?.find(v => v.id.toString() === variableId)
+        const variable = variables?.find(v => v.id.toString() === variableId);
         if (variable) {
           updatedData.inputVariable2 = {
             id: variable.id,
             name: variable.name,
             dataType: variable.dataType
-          }
+          };
           // Add default column if none exist
           if (updatedData.dimension2Bins.length === 0) {
             updatedData.dimension2Bins = [{
@@ -321,7 +321,7 @@ export default function EditLookupTablePage({ params }: { params: Promise<{ uuid
               isMaxInclusive: false,
               isValid: false,
               validationError: "Configuration required",
-            }]
+            }];
           } else {
             // Update existing bins for new data type
             updatedData.dimension2Bins = updatedData.dimension2Bins.map((bin: any) => ({
@@ -332,62 +332,62 @@ export default function EditLookupTablePage({ params }: { params: Promise<{ uuid
               rangeMax: variable.dataType === "number" ? 100 : undefined,
               isValid: false,
               validationError: "Reconfigure after variable change",
-            }))
+            }));
           }
           // Clear cells as they may no longer be valid
-          updatedData.cells = {}
+          updatedData.cells = {};
         }
       }
     } else if (type === 'output' && variableId) {
-      const variable = variables?.find(v => v.id.toString() === variableId)
+      const variable = variables?.find(v => v.id.toString() === variableId);
       if (variable) {
         updatedData.outputVariable = {
           id: variable.id,
           name: variable.name,
           dataType: variable.dataType
-        }
+        };
       }
     }
 
-    setCurrentFrontendData(updatedData)
-    setHasChanges(true)
-    toast.success(`${type === 'input1' ? 'Row input' : type === 'input2' ? 'Column input' : 'Output'} variable updated`)
-  }
+    setCurrentFrontendData(updatedData);
+    setHasChanges(true);
+    toast.success(`${type === 'input1' ? 'Row input' : type === 'input2' ? 'Column input' : 'Output'} variable updated`);
+  };
 
   const handleNameClick = () => {
-    if (!lookupTable) return
-    setEditedName(lookupTable.name)
-    setIsEditingName(true)
-  }
+    if (!lookupTable) return;
+    setEditedName(lookupTable.name);
+    setIsEditingName(true);
+  };
 
   const handleNameSave = async () => {
-    if (!lookupTable || !editedName.trim()) return
-    
+    if (!lookupTable || !editedName.trim()) return;
+
     // Convert current data to backend format and update only the name
-    const frontendData = backendToFrontend(lookupTable as any)
+    const frontendData = backendToFrontend(lookupTable as any);
     const backendData = frontendToBackend({
       ...frontendData,
       name: editedName.trim(),
-    })
-    
+    });
+
     await updateNameMutation.mutateAsync({
       id: lookupTable.id,
       ...backendData,
-    })
-  }
+    });
+  };
 
   const handleNameCancel = () => {
-    setIsEditingName(false)
-    setEditedName("")
-  }
+    setIsEditingName(false);
+    setEditedName("");
+  };
 
   const handleNameKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleNameSave()
+      handleNameSave();
     } else if (e.key === 'Escape') {
-      handleNameCancel()
+      handleNameCancel();
     }
-  }
+  };
 
   if (error) {
     return (
@@ -416,7 +416,7 @@ export default function EditLookupTablePage({ params }: { params: Promise<{ uuid
           </Alert>
         </div>
       </div>
-    )
+    );
   }
 
   if (isFetching) {
@@ -444,7 +444,7 @@ export default function EditLookupTablePage({ params }: { params: Promise<{ uuid
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (!lookupTable) {
@@ -474,13 +474,13 @@ export default function EditLookupTablePage({ params }: { params: Promise<{ uuid
           </Alert>
         </div>
       </div>
-    )
+    );
   }
 
   // Convert backend data to frontend format for editing
-  const frontendData = backendToFrontend(lookupTable as any)
-  const displayData = currentFrontendData || frontendData
-  const is2D = displayData.inputVariable2 !== undefined
+  const frontendData = backendToFrontend(lookupTable as any);
+  const displayData = currentFrontendData || frontendData;
+  const is2D = displayData.inputVariable2 !== undefined;
 
   return (
     <div className={pageStyles.container}>
@@ -547,7 +547,7 @@ export default function EditLookupTablePage({ params }: { params: Promise<{ uuid
                     </Button>
                   </div>
                 ) : (
-                  <h2 
+                  <h2
                     className={cn(headerStyles.title, "cursor-pointer hover:bg-muted/50 rounded px-2 py-1 -mx-2 -my-1")}
                     onClick={handleNameClick}
                   >
@@ -606,113 +606,6 @@ export default function EditLookupTablePage({ params }: { params: Promise<{ uuid
           </TabsList>
 
           <TabsContent value="editor" className={tabStyles.content}>
-            {/* Compact Variable Configuration */}
-            <div className="border rounded-lg p-4 mb-6 bg-muted/20">
-              <div className="flex items-center justify-between mb-3">
-                <Label className="text-sm font-medium">Variable Configuration</Label>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setIsEditingVariables(!isEditingVariables)}
-                >
-                  {isEditingVariables ? 'Done' : 'Edit Variables'}
-                </Button>
-              </div>
-              
-              {isEditingVariables ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label className="text-xs font-medium text-muted-foreground">ROW INPUT</Label>
-                    <Select
-                      value={currentFrontendData?.inputVariable1?.id.toString()}
-                      onValueChange={(value) => updateVariable('input1', value)}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {variables?.map((variable) => (
-                          <SelectItem key={variable.id} value={variable.id.toString()}>
-                            {variable.name} ({variable.dataType})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs font-medium text-muted-foreground">COLUMN INPUT</Label>
-                    <Select
-                      value={currentFrontendData?.inputVariable2?.id.toString() || "none"}
-                      onValueChange={(value) => updateVariable('input2', value === 'none' ? null : value)}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="None (1D)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None (1D Table)</SelectItem>
-                        {variables?.filter((v) => v.id !== currentFrontendData?.inputVariable1?.id).map((variable) => (
-                          <SelectItem key={variable.id} value={variable.id.toString()}>
-                            {variable.name} ({variable.dataType})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs font-medium text-muted-foreground">OUTPUT</Label>
-                    <Select
-                      value={currentFrontendData?.outputVariable?.id.toString()}
-                      onValueChange={(value) => updateVariable('output', value)}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {variables?.map((variable) => (
-                          <SelectItem key={variable.id} value={variable.id.toString()}>
-                            {variable.name} ({variable.dataType})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <Label className="text-xs font-medium text-muted-foreground">ROW INPUT</Label>
-                    <div className="mt-1">
-                      <span className="font-medium">{displayData.inputVariable1?.name}</span>
-                      <span className="text-muted-foreground ml-2">({displayData.inputVariable1?.dataType})</span>
-                    </div>
-                  </div>
-                  {displayData.inputVariable2 && (
-                    <div>
-                      <Label className="text-xs font-medium text-muted-foreground">COLUMN INPUT</Label>
-                      <div className="mt-1">
-                        <span className="font-medium">{displayData.inputVariable2.name}</span>
-                        <span className="text-muted-foreground ml-2">({displayData.inputVariable2.dataType})</span>
-                      </div>
-                    </div>
-                  )}
-                  <div>
-                    <Label className="text-xs font-medium text-muted-foreground">OUTPUT</Label>
-                    <div className="mt-1">
-                      <span className="font-medium">{displayData.outputVariable?.name}</span>
-                      <span className="text-muted-foreground ml-2">({displayData.outputVariable?.dataType})</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
-                {Object.keys(frontendData.cells).length} cells configured • 
-                {frontendData.dimension1Bins.length} row{frontendData.dimension1Bins.length !== 1 ? 's' : ''}
-                {frontendData.dimension2Bins.length > 0 && ` × ${frontendData.dimension2Bins.length} column${frontendData.dimension2Bins.length !== 1 ? 's' : ''}`}
-              </div>
-            </div>
-
-            {/* Main Editor Area - Matrix Only */}
             <LookupTableEditor
               initialData={frontendData}
               currentData={currentFrontendData}
@@ -792,30 +685,30 @@ export default function EditLookupTablePage({ params }: { params: Promise<{ uuid
                   value={testInputs[frontendData.inputVariable1?.name] || ''}
                   onChange={(e) => setTestInputs(prev => ({
                     ...prev,
-                    [frontendData.inputVariable1?.name]: frontendData.inputVariable1?.dataType === 'number' 
-                      ? Number(e.target.value) 
+                    [frontendData.inputVariable1?.name]: frontendData.inputVariable1?.dataType === 'number'
+                      ? Number(e.target.value)
                       : e.target.value
                   }))}
                   placeholder={`Enter ${frontendData.inputVariable1?.name}`}
                 />
               </div>
-                             {frontendData.inputVariable2 && (
-                 <div>
-                   <Label htmlFor="input2">{frontendData.inputVariable2.name} ({frontendData.inputVariable2.dataType})</Label>
-                   <Input
-                     id="input2"
-                     type={frontendData.inputVariable2.dataType === 'number' ? 'number' : 'text'}
-                     value={testInputs[frontendData.inputVariable2.name] || ''}
-                     onChange={(e) => setTestInputs(prev => ({
-                       ...prev,
-                       [frontendData.inputVariable2!.name]: frontendData.inputVariable2!.dataType === 'number' 
-                         ? Number(e.target.value) 
-                         : e.target.value
-                     }))}
-                     placeholder={`Enter ${frontendData.inputVariable2.name}`}
-                   />
-                 </div>
-               )}
+              {frontendData.inputVariable2 && (
+                <div>
+                  <Label htmlFor="input2">{frontendData.inputVariable2.name} ({frontendData.inputVariable2.dataType})</Label>
+                  <Input
+                    id="input2"
+                    type={frontendData.inputVariable2.dataType === 'number' ? 'number' : 'text'}
+                    value={testInputs[frontendData.inputVariable2.name] || ''}
+                    onChange={(e) => setTestInputs(prev => ({
+                      ...prev,
+                      [frontendData.inputVariable2!.name]: frontendData.inputVariable2!.dataType === 'number'
+                        ? Number(e.target.value)
+                        : e.target.value
+                    }))}
+                    placeholder={`Enter ${frontendData.inputVariable2.name}`}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Test Result */}
@@ -844,5 +737,5 @@ export default function EditLookupTablePage({ params }: { params: Promise<{ uuid
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

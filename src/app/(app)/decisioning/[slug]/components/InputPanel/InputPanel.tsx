@@ -21,7 +21,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { SampleButton } from "@/components/ui/sample-button";
-import { SampleInput } from "@/components/ui/sample-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -37,21 +36,21 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { InputColumn } from "@/types/DecisionTable";
-import { DecisionDataTypes } from "@/constants/decisionTable";
+import { VariableDataTypes } from "@/db/schema/variable";
 
 const DefaultInput: InputColumn = {
-  name: "",
-  dataType: "",
-  description: "",
+  variable_id: "",
   uuid: "",
 };
 
 const InputPanel = ({
   inputs,
+  variables,
   addNewInput,
   removeInput,
 }: {
   inputs: InputColumn[];
+  variables: any[];
   addNewInput: (newInput: InputColumn) => void;
   removeInput: (inputId: string | undefined) => void;
 }) => {
@@ -59,34 +58,29 @@ const InputPanel = ({
   const [newInput, setNewInput] = useState<InputColumn>(DefaultInput);
   const [nameError, setNameError] = useState<string | null>(null);
 
-  const validateName = (name: string) => {
-    if (!name) return "Name is required";
-    if (!/^[a-z0-9_]+$/.test(name))
-      return "Only lowercase letters, numbers and underscores are allowed";
+  const validateVariable = (variableId: string) => {
+    if (!variableId) return "Variable is required";
     return null;
   };
 
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value;
-    const formattedValue = rawValue
-      .toLowerCase()
-      .replace(/\s+/g, "_")
-      .replace(/[^a-z0-9_]/g, "");
-
-    setNewInput({ ...newInput, name: formattedValue });
-    setNameError(validateName(formattedValue));
+  const handleVariableChange = (rawValue: string) => {
+    // Find dataType from variables;
+    setNewInput({ ...newInput, variable_id: rawValue });
+    setNameError(validateVariable(rawValue));
   };
 
   const doAddNewInput = () => {
-    const error = validateName(newInput.name);
+    const error = validateVariable(newInput.variable_id);
     if (error) {
       setNameError(error);
       return;
     }
     // Check whether have same name
-    const isSameName = inputs.some((input) => input.name === newInput.name);
+    const isSameName = inputs.some(
+      (input) => input.variable_id === newInput.variable_id,
+    );
     if (isSameName) {
-      toast.error("Input name already exists.");
+      toast.error("Input variable already exists.");
       return;
     }
     addNewInput({
@@ -128,60 +122,28 @@ const InputPanel = ({
 
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="input-name">Name</Label>
-                <SampleInput
-                  id="input-name"
-                  placeholder="Enter input name"
-                  value={newInput.name || ""}
-                  onChange={handleNameChange}
-                />
-                {nameError && (
-                  <p className="text-sm text-destructive">{nameError}</p>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Only lowercase letters, numbers and underscores are allowed
-                </p>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="input-type">Data Type</Label>
+                <Label htmlFor="input-name">Variable</Label>
                 <Select
-                  value={newInput.dataType || ""}
-                  onValueChange={(value) =>
-                    setNewInput({ ...newInput, dataType: value })
-                  }
+                  value={newInput.variable_id || ""}
+                  onValueChange={handleVariableChange}
                 >
-                  <SelectTrigger id="input-type">
-                    <SelectValue placeholder="Select data type" />
+                  <SelectTrigger id="input-name">
+                    <SelectValue placeholder="Select variable" />
                   </SelectTrigger>
                   <SelectContent>
-                    {DecisionDataTypes.map((dataType) => (
+                    {variables.map((va) => (
                       <SelectItem
-                        key={`dataType-${dataType.value}`}
-                        value={dataType.value}
+                        key={`input-variable-${va.uuid}`}
+                        value={va.uuid}
                       >
-                        {dataType.value}
+                        {va.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="input-description">
-                  Description (Optional)
-                </Label>
-                <SampleInput
-                  id="input-description"
-                  placeholder="Enter description"
-                  value={newInput.description || ""}
-                  onChange={(e) =>
-                    setNewInput({
-                      ...newInput,
-                      description: e.target.value,
-                    })
-                  }
-                />
+                {nameError && (
+                  <p className="text-sm text-destructive">{nameError}</p>
+                )}
               </div>
             </div>
 
@@ -194,7 +156,7 @@ const InputPanel = ({
               </SampleButton>
               <SampleButton
                 onClick={doAddNewInput}
-                disabled={!newInput.name || !newInput.dataType}
+                disabled={!newInput.variable_id}
               >
                 Add Input
               </SampleButton>
@@ -214,36 +176,41 @@ const InputPanel = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {inputs.map((input) => (
-                <TableRow key={`input-${input.uuid}`}>
-                  <TableCell>
-                    <div className="font-medium">{input.name}</div>
-                    {input.description && (
-                      <div className="text-xs text-muted-foreground">
-                        {input.description}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>{input.dataType}</TableCell>
-                  <TableCell>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <SampleButton
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive"
-                            onClick={() => removeInput(input.uuid)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </SampleButton>
-                        </TooltipTrigger>
-                        <TooltipContent>Delete Input</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {inputs.map((input) => {
+                const variable = variables.find(
+                  (va) => va.uuid === input.variable_id,
+                );
+                return (
+                  <TableRow key={`input-${input.uuid}`}>
+                    <TableCell>
+                      <div className="font-medium">{variable.name}</div>
+                      {variable.description && (
+                        <div className="text-xs text-muted-foreground">
+                          {variable.description}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>{variable.dataType}</TableCell>
+                    <TableCell>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <SampleButton
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive"
+                              onClick={() => removeInput(input.uuid)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </SampleButton>
+                          </TooltipTrigger>
+                          <TooltipContent>Delete Input</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         ) : (

@@ -3,6 +3,7 @@ export type SessionRole = {
   name: string;
   title: string;
   policies: SessionPolicy[];
+  orgId: number;
 };
 
 export type SessionPolicy = {

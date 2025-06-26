@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useMemo } from "react";
 import {
   ExternalLink,
   FileSpreadsheet,
@@ -10,7 +10,6 @@ import {
   Download,
   Upload,
 } from "lucide-react";
-import Link from "next/link";
 import { v4 as uuidv4 } from "uuid";
 import { api, useUtils } from "@/utils/trpc";
 import { useParams } from "next/navigation";
@@ -30,7 +29,10 @@ import {
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { AppRoutes } from "@/constants/routes";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
-import { DecisionStatus } from "@/constants/decisionTable";
+import {
+  DecisionStatus,
+  DecisionTableRowTypes,
+} from "@/constants/decisionTable";
 import { getTimeAgo } from "@/utils/func";
 import DecisionRuleTable from "../components/DecisionRuleTable";
 import {
@@ -49,6 +51,8 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { DefaultSkeleton } from "@/components/skeletons/default-skeleton";
 import LoadingSkelenton from "./components/LoadingSkelenton";
 
+const DefaultRowOrder = 999;
+
 const DecisionTableDetailPage = () => {
   // Find the table based on the ID
   const params = useParams();
@@ -61,6 +65,12 @@ const DecisionTableDetailPage = () => {
 
   // tRPC hooks
   const utils = useUtils();
+  const publishedVariables = api.variable.getPublished.useQuery();
+  
+  // Debug logging
+  console.log('slug parameter:', slug);
+  console.log('params:', params);
+  
   const decisionTable = api.decisionTable.getByUUID.useQuery(slug);
   const updateStatus = api.decisionTable.updateStatus.useMutation({
     onSuccess: () => {
@@ -101,6 +111,15 @@ const DecisionTableDetailPage = () => {
       }
     }
   }, [decisionTable?.isLoading, decisionTable?.data]);
+
+  const haveDefaultRow = useMemo(() => {
+    // Find whether have type is Default row
+    const defaultRows = rows.find(
+      (row) => row.type === DecisionTableRowTypes.DEFAULT,
+    );
+    return !!defaultRows;
+  }, [rows]);
+
   const addNewInput = (newInput: InputColumn) => {
     // Add new Input
     setInputs([
@@ -188,16 +207,57 @@ const DecisionTableDetailPage = () => {
   };
 
   const addNewRow = () => {
-    // Find the highest order value in rows
+    // Find the highest order value in rows except 999
     const highestOrder = rows.reduce(
-      (max, row) => Math.max(max, row.order || 1),
+      (max, row) =>
+        row.order === DefaultRowOrder ? max : Math.max(max, row.order || 1),
       0,
     );
     const newRowID = uuidv4();
     const newRow: DecisionTableRow = {
       uuid: newRowID,
       order: highestOrder + 1,
+      type: DecisionTableRowTypes.NORMAL,
       dt_id: table?.id,
+      decisionTableInputConditions: inputs.map((input) => {
+        return {
+          uuid: uuidv4(),
+          ...DefaultDecisionTableInputCondition,
+          dt_input_id: input.uuid,
+          dt_row_id: newRowID,
+        };
+      }),
+      decisionTableOutputResults: outputs.map((output) => {
+        return {
+          uuid: uuidv4(),
+          ...DefaultDecisionTableOutputResult,
+          dt_output_id: output.uuid,
+          dt_row_id: newRowID,
+        };
+      }),
+    };
+    if (haveDefaultRow) {
+      // Insert the new row before the Default row
+      const defaultRow = rows.find(
+        (row) => row.type === DecisionTableRowTypes.DEFAULT,
+      );
+      setRows([
+        ...rows.slice(0, rows.indexOf(defaultRow!)),
+        newRow,
+        ...rows.slice(rows.indexOf(defaultRow!)),
+      ]);
+    } else {
+      setRows([...rows, newRow]);
+    }
+  };
+
+  const addDefaultRow = () => {
+    const newRowID = uuidv4();
+    const newRow: DecisionTableRow = {
+      uuid: newRowID,
+      order: DefaultRowOrder,
+      dt_id: table?.id,
+      type: DecisionTableRowTypes.DEFAULT,
       decisionTableInputConditions: inputs.map((input) => {
         return {
           uuid: uuidv4(),
@@ -322,7 +382,6 @@ const DecisionTableDetailPage = () => {
       </div>
     );
   }
-
   return (
     <ErrorBoundary>
       <Suspense fallback={<DefaultSkeleton count={5} className="m-6" />}>
@@ -423,10 +482,19 @@ const DecisionTableDetailPage = () => {
                     <h3 className="text-lg font-medium">
                       Decision Table Rules
                     </h3>
-                    <SampleButton onClick={addNewRow}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Rule
-                    </SampleButton>
+                    <div className="space-x-2">
+                      <SampleButton
+                        disabled={haveDefaultRow}
+                        onClick={addDefaultRow}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Default Rule
+                      </SampleButton>
+                      <SampleButton onClick={addNewRow}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Rule
+                      </SampleButton>
+                    </div>
                   </div>
 
                   <div className="border rounded-md">
@@ -438,6 +506,7 @@ const DecisionTableDetailPage = () => {
                       updateOutputResult={updateOutputResult}
                       removeRow={removeRow}
                       updateRowOrder={handleRowOrderUpdate}
+                      variables={publishedVariables.data || []}
                     />
                   </div>
                 </TabsContent>
@@ -449,6 +518,7 @@ const DecisionTableDetailPage = () => {
                       inputs={inputs}
                       addNewInput={addNewInput}
                       removeInput={removeInput}
+                      variables={publishedVariables.data || []}
                     />
 
                     {/* Outputs Section */}
@@ -456,6 +526,7 @@ const DecisionTableDetailPage = () => {
                       outputs={outputs}
                       addNewOutput={addNewOutput}
                       removeOutput={removeOutput}
+                      variables={publishedVariables.data || []}
                     />
                   </div>
                 </TabsContent>

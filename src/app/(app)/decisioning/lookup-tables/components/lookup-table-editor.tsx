@@ -701,6 +701,209 @@ export function LookupTableEditor({ initialData, currentData, onSave, onTest, on
 
   return (
     <div className="space-y-6">
+      {/* Basic Information */}
+      {showBasicInfo && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Basic Information</CardTitle>
+            <CardDescription>
+              Configure the basic details of your lookup table
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="table-name">Table Name *</Label>
+                <SampleInput
+                  id="table-name"
+                  value={data.name}
+                  onChange={(e) => setData((prev) => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter table name"
+                  className={cn(formErrors.name && "border-destructive")}
+                />
+                {formErrors.name && (
+                  <p className="text-sm text-destructive">{formErrors.name}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="table-status">Status</Label>
+                <Select
+                  value={data.status}
+                  onValueChange={(value: "draft" | "published" | "deprecated") => 
+                    setData((prev) => ({ ...prev, status: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">Draft</Badge>
+                        <span>Work in progress</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="published">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="default">Published</Badge>
+                        <span>Active and available</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="deprecated">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="destructive">Deprecated</Badge>
+                        <span>No longer recommended</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="table-description">Description</Label>
+              <Textarea
+                id="table-description"
+                value={data.description}
+                onChange={(e) => setData((prev) => ({ ...prev, description: e.target.value }))}
+                placeholder="Enter table description"
+                rows={3}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Variables Configuration */}
+      {showBasicInfo && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Variables Configuration</CardTitle>
+            <CardDescription>
+              Select the input and output variables for your lookup table
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Primary Input Variable *</Label>
+                <Select
+                  value={data.inputVariable1.id.toString()}
+                  onValueChange={(value) => {
+                    const variable = variables?.find(v => v.id === parseInt(value))
+                    if (variable) {
+                      setData((prev) => ({
+                        ...prev,
+                        inputVariable1: { id: variable.id, name: variable.name, dataType: variable.dataType }
+                      }))
+                    }
+                  }}
+                  disabled={isLoadingVariables}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select variable" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {variables?.map((variable) => (
+                      <SelectItem key={variable.id} value={variable.id.toString()}>
+                        <div className="flex items-center gap-2">
+                          <span>{variable.name}</span>
+                          <Badge variant="outline">{variable.dataType}</Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {data.inputVariable1.name && (
+                  <p className="text-sm text-muted-foreground">
+                    Selected: {data.inputVariable1.name} ({data.inputVariable1.dataType})
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Secondary Input Variable (Optional)</Label>
+                <Select
+                  value={data.inputVariable2?.id.toString() || "none"}
+                  onValueChange={(value) => {
+                    if (value === "none") {
+                      setData((prev) => ({ ...prev, inputVariable2: undefined, dimension2Bins: [] }))
+                    } else {
+                      const variable = variables?.find(v => v.id === parseInt(value))
+                      if (variable) {
+                        setData((prev) => ({
+                          ...prev,
+                          inputVariable2: { id: variable.id, name: variable.name, dataType: variable.dataType }
+                        }))
+                      }
+                    }
+                  }}
+                  disabled={isLoadingVariables}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select variable (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None (1D Table)</SelectItem>
+                    {variables?.filter(v => v.id !== data.inputVariable1.id).map((variable) => (
+                      <SelectItem key={variable.id} value={variable.id.toString()}>
+                        <div className="flex items-center gap-2">
+                          <span>{variable.name}</span>
+                          <Badge variant="outline">{variable.dataType}</Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {data.inputVariable2 && (
+                  <p className="text-sm text-muted-foreground">
+                    Selected: {data.inputVariable2.name} ({data.inputVariable2.dataType})
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Output Variable *</Label>
+                <Select
+                  value={data.outputVariable.id.toString()}
+                  onValueChange={(value) => {
+                    const variable = variables?.find(v => v.id === parseInt(value))
+                    if (variable) {
+                      setData((prev) => ({
+                        ...prev,
+                        outputVariable: { id: variable.id, name: variable.name, dataType: variable.dataType }
+                      }))
+                    }
+                  }}
+                  disabled={isLoadingVariables}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select variable" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {variables?.filter(v => v.id !== data.inputVariable1.id && v.id !== data.inputVariable2?.id).map((variable) => (
+                      <SelectItem key={variable.id} value={variable.id.toString()}>
+                        <div className="flex items-center gap-2">
+                          <span>{variable.name}</span>
+                          <Badge variant="outline">{variable.dataType}</Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {data.outputVariable.name && (
+                  <p className="text-sm text-muted-foreground">
+                    Selected: {data.outputVariable.name} ({data.outputVariable.dataType})
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {isLoadingVariables && (
+              <div className="text-sm text-muted-foreground">Loading variables...</div>
+            )}
+          </CardContent>
+        </Card>
+      )}
      
       {/* Save Button and Errors */}
       <div className="flex items-center justify-between">

@@ -14,7 +14,7 @@ import { api, useUtils } from "@/utils/trpc";
 import { AppRoutes } from "@/constants/routes";
 import { useModalState } from "@/framework/hooks/useModalState";
 import SkeletonLoading from "@/components/ui/skeleton-loading/SkeletonLoading";
-  import { RouteGuard } from "@/components/auth/RouteGuard";
+import { RouteGuard } from "@/components/auth/RouteGuard";
 
 export default function RulesPage() {
   const [isClient, setIsClient] = React.useState(false);

@@ -20,9 +20,9 @@ CREATE TABLE "lookup_table_outputs" (
 	CONSTRAINT "lookup_table_outputs_uuid_unique" UNIQUE("uuid")
 );
 --> statement-breakpoint
-ALTER TABLE "lookup_table_cells" ALTER COLUMN "id" SET DATA TYPE serial;--> statement-breakpoint
-ALTER TABLE "lookup_table_dimension_bins" ALTER COLUMN "id" SET DATA TYPE serial;--> statement-breakpoint
-ALTER TABLE "lookup_tables" ALTER COLUMN "id" SET DATA TYPE serial;--> statement-breakpoint
+ALTER TABLE "lookup_table_cells" ALTER COLUMN "id" SET DATA TYPE integer;--> statement-breakpoint
+ALTER TABLE "lookup_table_dimension_bins" ALTER COLUMN "id" SET DATA TYPE integer;--> statement-breakpoint
+ALTER TABLE "lookup_tables" ALTER COLUMN "id" SET DATA TYPE integer;--> statement-breakpoint
 ALTER TABLE "lookup_table_cells" ADD COLUMN "input_coordinates" json NOT NULL;--> statement-breakpoint
 ALTER TABLE "lookup_table_cells" ADD COLUMN "output_values" json NOT NULL;--> statement-breakpoint
 ALTER TABLE "lookup_table_dimension_bins" ADD COLUMN "dimension_order" integer NOT NULL;--> statement-breakpoint

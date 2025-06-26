@@ -14,9 +14,19 @@ CREATE TABLE "knowledge_base_chunks" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "knowledge_base_chunks_uuid_unique" UNIQUE("uuid")
 );
---> statement-breakpoint
-ALTER TABLE "knowledge_base_chunks" ADD CONSTRAINT "knowledge_base_chunks_document_id_knowledge_base_documents_uuid_fk" FOREIGN KEY ("document_id") REFERENCES "public"."knowledge_base_documents"("uuid") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "kb_chunk_id_idx" ON "knowledge_base_chunks" USING btree ("id");--> statement-breakpoint
-CREATE INDEX "kb_chunk_uuid_idx" ON "knowledge_base_chunks" USING btree ("uuid");--> statement-breakpoint
-CREATE INDEX "kb_chunk_document_id_idx" ON "knowledge_base_chunks" USING btree ("document_id");--> statement-breakpoint
-CREATE INDEX "kb_chunk_strategy_idx" ON "knowledge_base_chunks" USING btree ("chunking_strategy");
+
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'knowledge_base_documents') THEN
+        BEGIN
+            ALTER TABLE "knowledge_base_chunks" ADD CONSTRAINT "knowledge_base_chunks_document_id_knowledge_base_documents_uuid_fk" FOREIGN KEY ("document_id") REFERENCES "public"."knowledge_base_documents"("uuid") ON DELETE cascade ON UPDATE no action;
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END;
+    END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS "kb_chunk_id_idx" ON "knowledge_base_chunks" USING btree ("id");
+CREATE INDEX IF NOT EXISTS "kb_chunk_uuid_idx" ON "knowledge_base_chunks" USING btree ("uuid");
+CREATE INDEX IF NOT EXISTS "kb_chunk_document_id_idx" ON "knowledge_base_chunks" USING btree ("document_id");
+CREATE INDEX IF NOT EXISTS "kb_chunk_strategy_idx" ON "knowledge_base_chunks" USING btree ("chunking_strategy");

@@ -69,14 +69,18 @@ interface OrgRoleData {
 }
 
 /**
-* Options for NextAuth.js used to configure adapters, providers, callbacks,
-* etc.
-**/
+ * Options for NextAuth.js used to configure adapters, providers, callbacks,
+ * etc.
+ **/
 export const authOptions: NextAuthOptions = {
   callbacks: {
     jwt: async ({ token, user, trigger }) => {
-      console.log('JWT callback triggered:', { trigger, user: user?.email, tokenSub: token.sub });
-      
+      console.log("JWT callback triggered:", {
+        trigger,
+        user: user?.email,
+        tokenSub: token.sub,
+      });
+
       if (trigger === "signIn" && user) {
         // Safe type assertion with unknown intermediate
         const extendedUser = user as unknown as ExtendedUser;
@@ -125,8 +129,11 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     session: async ({ session, token }) => {
-      console.log('Session callback triggered:', { sessionUser: session.user?.email, tokenSub: token.sub });
-      
+      console.log("Session callback triggered:", {
+        sessionUser: session.user?.email,
+        tokenSub: token.sub,
+      });
+
       if (token && session.user) {
         // Safe type assertion with unknown intermediate
         const extendedToken = token as unknown as ExtendedJWTToken;
@@ -321,9 +328,9 @@ export const authOptions: NextAuthOptions = {
         rolesCount: extendedUser?.roles?.length || 0,
         permissionsCount: extendedUser?.roles?.flatMap((r: any) => r.policies).length || 0
       });
-      
+
       return session;
-    }
+    },
   },
   pages: {
     signIn: "/login",
@@ -334,9 +341,11 @@ export const authOptions: NextAuthOptions = {
       name: `next-auth.session-token`,
       options: {
         httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production', // SECURITY: Secure cookies in production
+        sameSite: "lax",
+        path: "/",
+        secure:
+          process.env.NEXTAUTH_COOKIE_SECURE === "true" ||
+          !process.env.NEXTAUTH_COOKIE_SECURE,
       },
     },
   },
@@ -350,24 +359,24 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { 
-          label: "Email", 
+        email: {
+          label: "Email",
           type: "email",
-          placeholder: "admin@example.com"
+          placeholder: "admin@example.com",
         },
-        password: { 
-          label: "Password", 
+        password: {
+          label: "Password",
           type: "password",
-          placeholder: "password"
-        }
+          placeholder: "password",
+        },
       },
       async authorize(credentials) {
         // SECURITY: Only log in development to avoid exposing sensitive info in production
-        if (process.env.NODE_ENV === 'development') {
+        if (process.env.NODE_ENV === "development") {
           console.log("=== AUTHORIZE FUNCTION CALLED ===");
-          console.log("Credentials received:", { 
-            email: credentials?.email, 
-            passwordLength: credentials?.password?.length 
+          console.log("Credentials received:", {
+            email: credentials?.email,
+            passwordLength: credentials?.password?.length,
           });
         }
 
@@ -379,70 +388,79 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          if (process.env.NODE_ENV === 'development') {
+          if (process.env.NODE_ENV === "development") {
             console.log("🔍 Searching for user:", credentials.email);
           }
-          
+
           // Check if database connection is available
           if (!db) {
             console.error("❌ Database connection not available");
             return null;
           }
-          
+
           const userData = await db.query.users.findFirst({
-            where: eq(users.email, credentials.email)
+            where: eq(users.email, credentials.email),
           });
 
-          if (process.env.NODE_ENV === 'development') {
+          if (process.env.NODE_ENV === "development") {
             console.log("User lookup result:", !!userData);
             if (userData) {
               console.log("User data found:", {
                 id: userData.id,
                 email: userData.email,
-                hasPassword: !!userData.password
+                hasPassword: !!userData.password,
               });
             }
           }
 
           if (!userData) {
-            if (process.env.NODE_ENV === 'development') {
+            if (process.env.NODE_ENV === "development") {
               console.log("❌ User not found in database");
             }
             // SECURITY: Add timing delay to prevent user enumeration attacks
-            await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
+            await new Promise((resolve) =>
+              setTimeout(resolve, Math.random() * 100 + 50),
+            );
             return null;
           }
 
           if (!userData.password) {
-            if (process.env.NODE_ENV === 'development') {
+            if (process.env.NODE_ENV === "development") {
               console.log("❌ User has no password set");
             }
             // SECURITY: Add timing delay to prevent user enumeration attacks
-            await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
+            await new Promise((resolve) =>
+              setTimeout(resolve, Math.random() * 100 + 50),
+            );
             return null;
           }
 
-          if (process.env.NODE_ENV === 'development') {
+          if (process.env.NODE_ENV === "development") {
             console.log("🔐 Comparing passwords...");
           }
-          
+
           // SECURITY: Use constant-time comparison to prevent timing attacks
-          const isValidPassword = await bcrypt.compare(credentials.password, userData.password);
-          
-          if (process.env.NODE_ENV === 'development') {
+          const isValidPassword = await bcrypt.compare(
+            credentials.password,
+            userData.password,
+          );
+
+          if (process.env.NODE_ENV === "development") {
             console.log("Password comparison result:", isValidPassword);
           }
-          
+
           if (!isValidPassword) {
-            if (process.env.NODE_ENV === 'development') {
+            if (process.env.NODE_ENV === "development") {
               console.log("❌ Invalid password");
             }
             // SECURITY: Add a small delay to prevent timing attacks on user enumeration
-            await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
+            await new Promise((resolve) =>
+              setTimeout(resolve, Math.random() * 100 + 50),
+            );
             return null;
           }
 
-          if (process.env.NODE_ENV === 'development') {
+          if (process.env.NODE_ENV === "development") {
             console.log("✅ Authentication successful for:", credentials.email);
           }
 
@@ -457,16 +475,16 @@ export const authOptions: NextAuthOptions = {
             orgUser: [],
             roles: [],
             avatar: userData.avatar || "",
-            firstName: userData.firstName || '',
-            lastName: userData.lastName || '',
+            firstName: userData.firstName || "",
+            lastName: userData.lastName || "",
           };
 
-          if (process.env.NODE_ENV === 'development') {
+          if (process.env.NODE_ENV === "development") {
             console.log("🎯 Returning user object:", {
               id: userResult.id,
               email: userResult.email,
               name: userResult.name,
-              uuid: userResult.uuid
+              uuid: userResult.uuid,
             });
           }
 
@@ -474,31 +492,31 @@ export const authOptions: NextAuthOptions = {
         } catch (error) {
           console.error("❌ Auth error:", error);
           console.error("❌ Database error details:", {
-            message: error instanceof Error ? error.message : 'Unknown error',
-            stack: error instanceof Error ? error.stack : undefined
+            message: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined,
           });
           return null;
         }
-      }
+      },
     }),
   ],
-  debug: process.env.NODE_ENV === 'development', // SECURITY: Only enable debug in development
+  debug: process.env.NODE_ENV === "development", // SECURITY: Only enable debug in development
   logger: {
     error(code, metadata) {
       // Always log errors, but with less detail in production
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === "development") {
         console.error("NextAuth Error:", code, metadata);
       } else {
         console.error("NextAuth Error:", code);
       }
     },
     warn(code) {
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === "development") {
         console.warn("NextAuth Warning:", code);
       }
     },
     debug(code, metadata) {
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === "development") {
         console.log("NextAuth Debug:", code, metadata);
       }
     },
@@ -507,21 +525,21 @@ export const authOptions: NextAuthOptions = {
 
 // Helper function to find user by email
 const findUserByEmail = async (email: string) => {
-  console.log('in findUserByEmail: email', email);
-  
+  console.log("in findUserByEmail: email", email);
+
   try {
     // Check if database connection is available
     if (!db) {
-      console.error('Database connection not available in findUserByEmail');
+      console.error("Database connection not available in findUserByEmail");
       return null;
     }
 
     const userData = await db.query.users.findFirst({
-      where: eq(users.email, email)
+      where: eq(users.email, email),
     });
 
     if (!userData) {
-      console.log('User not found for email:', email);
+      console.log("User not found for email:", email);
       return null;
     }
 
@@ -533,21 +551,21 @@ const findUserByEmail = async (email: string) => {
       email: email,
       password: userData.password,
       avatar: userData.avatar,
-      firstName: userData.firstName || '',
-      lastName: userData.lastName || '',
+      firstName: userData.firstName || "",
+      lastName: userData.lastName || "",
     };
   } catch (error) {
-    console.error('Error in findUserByEmail:', error);
+    console.error("Error in findUserByEmail:", error);
     return null;
   }
 };
 
 /**
-* Wrapper for `getServerSession`
-**/
+ * Wrapper for `getServerSession`
+ **/
 export const getServerAuthSession = (ctx: {
   req: GetServerSidePropsContext["req"];
   res: GetServerSidePropsContext["res"];
 }) => {
   return getServerSession(ctx.req, ctx.res, authOptions);
-}; 
+};

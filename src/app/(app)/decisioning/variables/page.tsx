@@ -31,8 +31,13 @@ import { ViewToggle } from "@/components/view-toggle";
 import { useViewToggle } from "@/framework/hooks/useViewToggle";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { DefaultSkeleton } from "@/components/skeletons/default-skeleton";
-import { VariableStatus, VariableLogicTypes, VariableDataTypes } from "@/db/schema/variable";
+import {
+  VariableStatus,
+  VariableLogicTypes,
+  VariableDataTypes,
+} from "@/db/schema/variable";
 import { VariablesList, VariablesSummary } from "./components";
+import { formatName } from "@/utils/func";
 
 interface Variable {
   id: number;
@@ -59,13 +64,13 @@ const VariablesPage = () => {
   const [creating, setCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const { viewMode, setViewMode } = useViewToggle("medium-grid");
-  
+
   // Form state
   const [formData, setFormData] = useState<{
     name: string;
     description: string;
-    dataType: typeof VariableDataTypes[keyof typeof VariableDataTypes];
-    logicType: typeof VariableLogicTypes[keyof typeof VariableLogicTypes];
+    dataType: (typeof VariableDataTypes)[keyof typeof VariableDataTypes];
+    logicType: (typeof VariableLogicTypes)[keyof typeof VariableLogicTypes];
     formula: string;
     lookupTableId: string;
     defaultValue: string;
@@ -163,8 +168,8 @@ const VariablesPage = () => {
       const payload: {
         name: string;
         description?: string;
-        dataType: typeof VariableDataTypes[keyof typeof VariableDataTypes];
-        logicType: typeof VariableLogicTypes[keyof typeof VariableLogicTypes];
+        dataType: (typeof VariableDataTypes)[keyof typeof VariableDataTypes];
+        logicType: (typeof VariableLogicTypes)[keyof typeof VariableLogicTypes];
         formula?: string;
         lookupTableId?: string;
         defaultValue?: string;
@@ -197,14 +202,25 @@ const VariablesPage = () => {
   };
 
   // Filter variables based on search term
-  const filteredVariables = variables.data?.filter((variable) =>
-    variable.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (variable.description && variable.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  ) || [];
+  const filteredVariables =
+    variables.data?.filter(
+      (variable) =>
+        variable.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (variable.description &&
+          variable.description
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())),
+    ) || [];
 
-  const draftVariables = filteredVariables.filter(v => v.status === VariableStatus.DRAFT);
-  const publishedVariables = filteredVariables.filter(v => v.status === VariableStatus.PUBLISHED);
-  const deprecatedVariables = filteredVariables.filter(v => v.status === VariableStatus.DEPRECATED);
+  const draftVariables = filteredVariables.filter(
+    (v) => v.status === VariableStatus.DRAFT,
+  );
+  const publishedVariables = filteredVariables.filter(
+    (v) => v.status === VariableStatus.PUBLISHED,
+  );
+  const deprecatedVariables = filteredVariables.filter(
+    (v) => v.status === VariableStatus.DEPRECATED,
+  );
 
   return (
     <div className="flex flex-col grow max-w-[100vw] p-4 md:p-4">
@@ -234,7 +250,7 @@ const VariablesPage = () => {
               <ViewToggle viewMode={viewMode} onChange={setViewMode} />
             </div>
           </div>
-          
+
           <Separator className="my-6" />
 
           {!variables.isLoading ? (
@@ -261,10 +277,18 @@ const VariablesPage = () => {
               {/* Tabs for filtering */}
               <Tabs defaultValue="all">
                 <TabsList>
-                  <TabsTrigger value="all">All Variables ({filteredVariables.length})</TabsTrigger>
-                  <TabsTrigger value="draft">Draft ({draftVariables.length})</TabsTrigger>
-                  <TabsTrigger value="published">Published ({publishedVariables.length})</TabsTrigger>
-                  <TabsTrigger value="deprecated">Deprecated ({deprecatedVariables.length})</TabsTrigger>
+                  <TabsTrigger value="all">
+                    All Variables ({filteredVariables.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="draft">
+                    Draft ({draftVariables.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="published">
+                    Published ({publishedVariables.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="deprecated">
+                    Deprecated ({deprecatedVariables.length})
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="all" className="mt-4">
@@ -301,11 +325,16 @@ const VariablesPage = () => {
               </Tabs>
 
               {/* Create Variable Dialog */}
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <Dialog
+                open={isCreateDialogOpen}
+                onOpenChange={setIsCreateDialogOpen}
+              >
                 <DialogContent className="modal-content max-w-2xl">
                   <DialogHeader className="modal-header">
                     <DialogTitle className="modal-title">
-                      {isConfirming ? "Confirm Variable Details" : "Create New Variable"}
+                      {isConfirming
+                        ? "Confirm Variable Details"
+                        : "Create New Variable"}
                     </DialogTitle>
                   </DialogHeader>
 
@@ -314,36 +343,60 @@ const VariablesPage = () => {
                       <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
                           <Label className="text-sm font-medium">Name</Label>
-                          <p className="text-sm text-muted-foreground">{formData.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {formData.name}
+                          </p>
                         </div>
                         {formData.description && (
                           <div className="grid gap-2">
-                            <Label className="text-sm font-medium">Description</Label>
-                            <p className="text-sm text-muted-foreground">{formData.description}</p>
+                            <Label className="text-sm font-medium">
+                              Description
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                              {formData.description}
+                            </p>
                           </div>
                         )}
                         <div className="grid grid-cols-2 gap-4">
                           <div className="grid gap-2">
-                            <Label className="text-sm font-medium">Data Type</Label>
-                            <p className="text-sm text-muted-foreground capitalize">{formData.dataType}</p>
+                            <Label className="text-sm font-medium">
+                              Data Type
+                            </Label>
+                            <p className="text-sm text-muted-foreground capitalize">
+                              {formData.dataType}
+                            </p>
                           </div>
                           <div className="grid gap-2">
-                            <Label className="text-sm font-medium">Logic Type</Label>
-                            <p className="text-sm text-muted-foreground capitalize">{formData.logicType.replace('_', ' ')}</p>
+                            <Label className="text-sm font-medium">
+                              Logic Type
+                            </Label>
+                            <p className="text-sm text-muted-foreground capitalize">
+                              {formData.logicType.replace("_", " ")}
+                            </p>
                           </div>
                         </div>
-                        {formData.logicType === VariableLogicTypes.FORMULA && formData.formula && (
-                          <div className="grid gap-2">
-                            <Label className="text-sm font-medium">Formula</Label>
-                            <p className="text-sm text-muted-foreground font-mono bg-muted p-2 rounded">{formData.formula}</p>
-                          </div>
-                        )}
-                        {formData.logicType === VariableLogicTypes.DIRECT_MAP && formData.defaultValue && (
-                          <div className="grid gap-2">
-                            <Label className="text-sm font-medium">Default Value</Label>
-                            <p className="text-sm text-muted-foreground">{formData.defaultValue}</p>
-                          </div>
-                        )}
+                        {formData.logicType === VariableLogicTypes.FORMULA &&
+                          formData.formula && (
+                            <div className="grid gap-2">
+                              <Label className="text-sm font-medium">
+                                Formula
+                              </Label>
+                              <p className="text-sm text-muted-foreground font-mono bg-muted p-2 rounded">
+                                {formData.formula}
+                              </p>
+                            </div>
+                          )}
+                        {formData.logicType === VariableLogicTypes.DIRECT_MAP &&
+                          formData.defaultValue && (
+                            <div className="grid gap-2">
+                              <Label className="text-sm font-medium">
+                                Default Value
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                {formData.defaultValue}
+                              </p>
+                            </div>
+                          )}
                       </div>
                     </div>
                   ) : (
@@ -354,8 +407,17 @@ const VariablesPage = () => {
                           id="name"
                           placeholder="Enter variable name"
                           value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              name: formatName(e.target.value),
+                            })
+                          }
                         />
+                        <p className="text-xs text-muted-foreground">
+                          Only lowercase letters, numbers and underscores are
+                          allowed
+                        </p>
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="description">Description</Label>
@@ -363,7 +425,12 @@ const VariablesPage = () => {
                           id="description"
                           placeholder="Enter variable description"
                           value={formData.description}
-                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              description: e.target.value,
+                            })
+                          }
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
@@ -371,16 +438,30 @@ const VariablesPage = () => {
                           <Label htmlFor="dataType">Data Type *</Label>
                           <Select
                             value={formData.dataType}
-                            onValueChange={(value) => setFormData({ ...formData, dataType: value as typeof VariableDataTypes[keyof typeof VariableDataTypes] })}
+                            onValueChange={(value) =>
+                              setFormData({
+                                ...formData,
+                                dataType:
+                                  value as (typeof VariableDataTypes)[keyof typeof VariableDataTypes],
+                              })
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value={VariableDataTypes.STRING}>String</SelectItem>
-                              <SelectItem value={VariableDataTypes.NUMBER}>Number</SelectItem>
-                              <SelectItem value={VariableDataTypes.BOOLEAN}>Boolean</SelectItem>
-                              <SelectItem value={VariableDataTypes.DATE}>Date</SelectItem>
+                              <SelectItem value={VariableDataTypes.STRING}>
+                                String
+                              </SelectItem>
+                              <SelectItem value={VariableDataTypes.NUMBER}>
+                                Number
+                              </SelectItem>
+                              <SelectItem value={VariableDataTypes.BOOLEAN}>
+                                Boolean
+                              </SelectItem>
+                              <SelectItem value={VariableDataTypes.DATE}>
+                                Date
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -388,15 +469,27 @@ const VariablesPage = () => {
                           <Label htmlFor="logicType">Logic Type *</Label>
                           <Select
                             value={formData.logicType}
-                            onValueChange={(value) => setFormData({ ...formData, logicType: value as typeof VariableLogicTypes[keyof typeof VariableLogicTypes] })}
+                            onValueChange={(value) =>
+                              setFormData({
+                                ...formData,
+                                logicType:
+                                  value as (typeof VariableLogicTypes)[keyof typeof VariableLogicTypes],
+                              })
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value={VariableLogicTypes.DIRECT_MAP}>Direct Map</SelectItem>
-                              <SelectItem value={VariableLogicTypes.FORMULA}>Formula</SelectItem>
-                              <SelectItem value={VariableLogicTypes.LOOKUP}>Lookup</SelectItem>
+                              <SelectItem value={VariableLogicTypes.DIRECT_MAP}>
+                                Direct Map
+                              </SelectItem>
+                              <SelectItem value={VariableLogicTypes.FORMULA}>
+                                Formula
+                              </SelectItem>
+                              <SelectItem value={VariableLogicTypes.LOOKUP}>
+                                Lookup
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -410,7 +503,12 @@ const VariablesPage = () => {
                             id="formula"
                             placeholder="Enter formula (e.g., price * 0.1)"
                             value={formData.formula}
-                            onChange={(e) => setFormData({ ...formData, formula: e.target.value })}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                formula: e.target.value,
+                              })
+                            }
                           />
                         </div>
                       )}
@@ -420,13 +518,17 @@ const VariablesPage = () => {
                           <Label htmlFor="lookupTableId">Lookup Table *</Label>
                           <Select
                             value={formData.lookupTableId}
-                            onValueChange={(value) => setFormData({ ...formData, lookupTableId: value })}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, lookupTableId: value })
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select lookup table" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="placeholder">No lookup tables available</SelectItem>
+                              <SelectItem value="placeholder">
+                                No lookup tables available
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -439,7 +541,12 @@ const VariablesPage = () => {
                             id="defaultValue"
                             placeholder="Enter default value"
                             value={formData.defaultValue}
-                            onChange={(e) => setFormData({ ...formData, defaultValue: e.target.value })}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                defaultValue: e.target.value,
+                              })
+                            }
                           />
                         </div>
                       )}
@@ -491,15 +598,21 @@ const VariablesPage = () => {
               </Dialog>
 
               {/* Delete Confirmation Dialog */}
-              <Dialog open={deleteConfirmOpen} onOpenChange={closeDeleteConfirm}>
+              <Dialog
+                open={deleteConfirmOpen}
+                onOpenChange={closeDeleteConfirm}
+              >
                 <DialogContent className="modal-content">
                   <DialogHeader className="modal-header">
-                    <DialogTitle className="modal-title">Delete Variable</DialogTitle>
+                    <DialogTitle className="modal-title">
+                      Delete Variable
+                    </DialogTitle>
                   </DialogHeader>
                   <div className="modal-section">
                     <p className="modal-text">
-                      Are you sure you want to delete the variable &ldquo;{selectedVariable?.name}&rdquo;? 
-                      This action cannot be undone.
+                      Are you sure you want to delete the variable &ldquo;
+                      {selectedVariable?.name}&rdquo;? This action cannot be
+                      undone.
                     </p>
                   </div>
                   <DialogFooter className="modal-footer">
@@ -533,4 +646,4 @@ const VariablesPage = () => {
   );
 };
 
-export default memo(VariablesPage); 
+export default memo(VariablesPage);

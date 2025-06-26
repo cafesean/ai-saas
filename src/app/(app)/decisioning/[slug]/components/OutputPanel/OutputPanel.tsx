@@ -40,18 +40,18 @@ import { OutputColumn } from "@/types/DecisionTable";
 import { DecisionDataTypes } from "@/constants/decisionTable";
 
 const DefaultOutput: OutputColumn = {
-  name: "",
-  dataType: "",
-  description: "",
+  variable_id: "",
   uuid: "",
 };
 
 const OutputPanel = ({
   outputs,
+  variables,
   addNewOutput,
   removeOutput,
 }: {
   outputs: OutputColumn[];
+  variables: any[];
   addNewOutput: (newOutput: OutputColumn) => void;
   removeOutput: (outputId: string | undefined) => void;
 }) => {
@@ -59,34 +59,28 @@ const OutputPanel = ({
   const [newOutput, setNewOutput] = useState<OutputColumn>(DefaultOutput);
   const [nameError, setNameError] = useState<string | null>(null);
 
-  const validateName = (name: string) => {
-    if (!name) return "Name is required";
-    if (!/^[a-z0-9_]+$/.test(name))
-      return "Only lowercase letters, numbers and underscores are allowed";
+  const validateVariable = (variableId: string) => {
+    if (!variableId) return "Variable is required";
     return null;
   };
 
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value;
-    const formattedValue = rawValue
-      .toLowerCase()
-      .replace(/\s+/g, "_")
-      .replace(/[^a-z0-9_]/g, "");
-
-    setNewOutput({ ...newOutput, name: formattedValue });
-    setNameError(validateName(formattedValue));
+  const handleVariableChange = (rawValue: string) => {
+    setNewOutput({ ...newOutput, variable_id: rawValue });
+    setNameError(validateVariable(rawValue));
   };
 
   const doAddNewOutput = () => {
-    const error = validateName(newOutput.name);
+    const error = validateVariable(newOutput.variable_id);
     if (error) {
       setNameError(error);
       return;
     }
     // Check whether have same name
-    const isSameName = outputs.some((output) => output.name === newOutput.name);
+    const isSameName = outputs.some(
+      (output) => output.variable_id === newOutput.variable_id,
+    );
     if (isSameName) {
-      toast.error("Output name already exists.");
+      toast.error("Output variable already exists.");
       return;
     }
     addNewOutput({
@@ -129,59 +123,27 @@ const OutputPanel = ({
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="output-name">Name</Label>
-                <SampleInput
-                  id="output-name"
-                  placeholder="Enter output name"
-                  value={newOutput.name || ""}
-                  onChange={handleNameChange}
-                />
-                {nameError && (
-                  <p className="text-sm text-destructive">{nameError}</p>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Only lowercase letters, numbers and underscores are allowed
-                </p>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="output-type">Data Type</Label>
                 <Select
-                  value={newOutput.dataType || ""}
-                  onValueChange={(value) =>
-                    setNewOutput({ ...newOutput, dataType: value })
-                  }
+                  value={newOutput.variable_id || ""}
+                  onValueChange={handleVariableChange}
                 >
-                  <SelectTrigger id="output-type">
-                    <SelectValue placeholder="Select data type" />
+                  <SelectTrigger id="input-name">
+                    <SelectValue placeholder="Select variable" />
                   </SelectTrigger>
                   <SelectContent>
-                    {DecisionDataTypes.map((dataType) => (
+                    {variables.map((va) => (
                       <SelectItem
-                        key={`dataType-${dataType.value}`}
-                        value={dataType.value}
+                        key={`input-variable-${va.uuid}`}
+                        value={va.uuid}
                       >
-                        {dataType.value}
+                        {va.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="output-description">
-                  Description (Optional)
-                </Label>
-                <SampleInput
-                  id="output-description"
-                  placeholder="Enter description"
-                  value={newOutput.description || ""}
-                  onChange={(e) =>
-                    setNewOutput({
-                      ...newOutput,
-                      description: e.target.value,
-                    })
-                  }
-                />
+                {nameError && (
+                  <p className="text-sm text-destructive">{nameError}</p>
+                )}
               </div>
             </div>
 
@@ -194,7 +156,7 @@ const OutputPanel = ({
               </SampleButton>
               <SampleButton
                 onClick={doAddNewOutput}
-                disabled={!newOutput.name || !newOutput.dataType}
+                disabled={!newOutput.variable_id}
               >
                 Add Output
               </SampleButton>
@@ -214,36 +176,41 @@ const OutputPanel = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {outputs.map((output) => (
-                <TableRow key={`output-${output.uuid}`}>
-                  <TableCell>
-                    <div className="font-medium">{output.name}</div>
-                    {output.description && (
-                      <div className="text-xs text-muted-foreground">
-                        {output.description}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>{output.dataType}</TableCell>
-                  <TableCell>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <SampleButton
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive"
-                            onClick={() => removeOutput(output.uuid)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </SampleButton>
-                        </TooltipTrigger>
-                        <TooltipContent>Delete Output</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {outputs.map((output) => {
+                const variable = variables.find(
+                  (va) => va.uuid === output.variable_id,
+                );
+                return (
+                  <TableRow key={`output-${output.uuid}`}>
+                    <TableCell>
+                      <div className="font-medium">{variable.name}</div>
+                      {variable.description && (
+                        <div className="text-xs text-muted-foreground">
+                          {variable.description}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>{variable.dataType}</TableCell>
+                    <TableCell>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <SampleButton
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive"
+                              onClick={() => removeOutput(output.uuid)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </SampleButton>
+                          </TooltipTrigger>
+                          <TooltipContent>Delete Output</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         ) : (
