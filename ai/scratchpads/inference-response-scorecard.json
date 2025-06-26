@@ -1,0 +1,236 @@
+{
+  "success": true,
+  "prediction": 1,
+  "probability": 0.5920330226443732,
+  "feature_contributions": [
+    {
+      "type": "coefficients",
+      "values": {
+        "term": -0.9096997849528348,
+        "home_ownership": -0.8405959457623824,
+        "annual_inc": -0.7197311168581012,
+        "verification_status": -0.13975540180915197,
+        "purpose": -0.8816026416626508,
+        "dti": -0.4193992816224433,
+        "inq_last_6mths": -1.172610807671646,
+        "revol_util": -1.1571612007736802,
+        "credit_age_years": -0.5510610083660795,
+        "income_to_loan_ratio": -0.49741854546048386,
+        "utilization_category": 0.11403480014413034,
+        "high_risk_purpose": -2.3503310411586416,
+        "dti_category": -0.07084792317512631,
+        "income_brackets": -0.20161650012346066
+      },
+      "intercept": -0.0007058340515477283,
+      "input_contributions": {
+        "term": -0.0,
+        "home_ownership": -0.0,
+        "annual_inc": -0.0,
+        "verification_status": -0.0,
+        "purpose": -0.0,
+        "dti": -0.0,
+        "inq_last_6mths": -0.0,
+        "revol_util": -0.0,
+        "credit_age_years": -0.0,
+        "income_to_loan_ratio": -0.0,
+        "utilization_category": 0.0,
+        "high_risk_purpose": -0.0,
+        "dti_category": -0.0,
+        "income_brackets": -0.0
+      },
+      "scorecard": {
+        "application_id": "APP-2025-06-26-651",
+        "date_generated": "2025-06-26 02:31",
+        "ai_model_score": 575,
+        "risk_tier": "Medium Risk",
+        "decision_recommendation": "Manual Review Required",
+        "conditions": "Requires senior underwriter approval",
+        "default_probability": 50.0,
+        "feature_breakdown": [
+          {
+            "rank": 1,
+            "feature_category": "Other Factors",
+            "feature_name": "High Risk Purpose",
+            "applicant_value": "0.0",
+            "coefficient": -2.35,
+            "score_points": -0.0,
+            "reason_code": "OT01",
+            "reason_description": "Factor contributes to decreased risk",
+            "risk_direction": "negative"
+          },
+          {
+            "rank": 2,
+            "feature_category": "Credit Behavior",
+            "feature_name": "Recent Credit Inquiries",
+            "applicant_value": "0 inquiries",
+            "coefficient": -1.173,
+            "score_points": -0.0,
+            "reason_code": "INQ01",
+            "reason_description": "Few inquiries indicate stable credit usage",
+            "risk_direction": "negative"
+          },
+          {
+            "rank": 3,
+            "feature_category": "Credit Behavior",
+            "feature_name": "Credit Utilization Rate",
+            "applicant_value": "0.0%",
+            "coefficient": -1.157,
+            "score_points": -0.0,
+            "reason_code": "CU01",
+            "reason_description": "Low utilization shows good credit management",
+            "risk_direction": "negative"
+          },
+          {
+            "rank": 4,
+            "feature_category": "Loan Application Details",
+            "feature_name": "Loan Term (Months)",
+            "applicant_value": "0.0 months",
+            "coefficient": -0.91,
+            "score_points": -0.0,
+            "reason_code": "LT01",
+            "reason_description": "Shorter loan term reduces default risk",
+            "risk_direction": "negative"
+          },
+          {
+            "rank": 5,
+            "feature_category": "Loan Application Details",
+            "feature_name": "Loan Purpose",
+            "applicant_value": "0.0",
+            "coefficient": -0.882,
+            "score_points": -0.0,
+            "reason_code": "LP01",
+            "reason_description": "Purpose indicates lower risk profile",
+            "risk_direction": "negative"
+          },
+          {
+            "rank": 6,
+            "feature_category": "Demographics & Stability",
+            "feature_name": "Home Ownership Status",
+            "applicant_value": "0.0",
+            "coefficient": -0.841,
+            "score_points": -0.0,
+            "reason_code": "HO01",
+            "reason_description": "Ownership status indicates lower stability",
+            "risk_direction": "negative"
+          },
+          {
+            "rank": 7,
+            "feature_category": "Financial Performance",
+            "feature_name": "Annual Income",
+            "applicant_value": "$0",
+            "coefficient": -0.72,
+            "score_points": -0.0,
+            "reason_code": "AI01",
+            "reason_description": "Lower income increases default risk",
+            "risk_direction": "negative"
+          },
+          {
+            "rank": 8,
+            "feature_category": "Demographics & Stability",
+            "feature_name": "Credit History Length",
+            "applicant_value": "0.0 years",
+            "coefficient": -0.551,
+            "score_points": -0.0,
+            "reason_code": "CAY01",
+            "reason_description": "Shorter credit history indicates limited experience",
+            "risk_direction": "negative"
+          },
+          {
+            "rank": 9,
+            "feature_category": "Financial Performance",
+            "feature_name": "Income to Loan Ratio",
+            "applicant_value": "0.00x",
+            "coefficient": -0.497,
+            "score_points": -0.0,
+            "reason_code": "ILR01",
+            "reason_description": "Lower ratio indicates potential payment stress",
+            "risk_direction": "negative"
+          },
+          {
+            "rank": 10,
+            "feature_category": "Financial Performance",
+            "feature_name": "Debt-to-Income Ratio",
+            "applicant_value": "0.0%",
+            "coefficient": -0.419,
+            "score_points": -0.0,
+            "reason_code": "DTI01",
+            "reason_description": "Lower DTI indicates healthy finances",
+            "risk_direction": "negative"
+          },
+          {
+            "rank": 11,
+            "feature_category": "Other Factors",
+            "feature_name": "Income Brackets",
+            "applicant_value": "0.0",
+            "coefficient": -0.202,
+            "score_points": -0.0,
+            "reason_code": "OT01",
+            "reason_description": "Factor contributes to decreased risk",
+            "risk_direction": "negative"
+          },
+          {
+            "rank": 12,
+            "feature_category": "Demographics & Stability",
+            "feature_name": "Income Verification Status",
+            "applicant_value": "0.0",
+            "coefficient": -0.14,
+            "score_points": -0.0,
+            "reason_code": "VS01",
+            "reason_description": "Unverified income increases uncertainty",
+            "risk_direction": "negative"
+          },
+          {
+            "rank": 13,
+            "feature_category": "Other Factors",
+            "feature_name": "Utilization Category",
+            "applicant_value": "0.0",
+            "coefficient": 0.114,
+            "score_points": 0.0,
+            "reason_code": "OT01",
+            "reason_description": "Factor contributes to increased risk",
+            "risk_direction": "positive"
+          },
+          {
+            "rank": 14,
+            "feature_category": "Other Factors",
+            "feature_name": "Dti Category",
+            "applicant_value": "0.0",
+            "coefficient": -0.071,
+            "score_points": -0.0,
+            "reason_code": "OT01",
+            "reason_description": "Factor contributes to decreased risk",
+            "risk_direction": "negative"
+          }
+        ],
+        "primary_positive_reasons": [
+          {
+            "reason_code": "OT01",
+            "description": "Factor contributes to increased risk"
+          }
+        ],
+        "primary_negative_reasons": [
+          {
+            "reason_code": "OT01",
+            "description": "Factor contributes to decreased risk"
+          },
+          {
+            "reason_code": "INQ01",
+            "description": "Few inquiries indicate stable credit usage"
+          },
+          {
+            "reason_code": "CU01",
+            "description": "Low utilization shows good credit management"
+          }
+        ],
+        "model_info": {
+          "model_version": "AI_CreditRisk_v2.0",
+          "model_type": "Logistic Regression with WoE",
+          "features_count": 14,
+          "score_scale": "300-850 (Higher is Better)"
+        },
+        "scorecard_format": "professional_credit_assessment",
+        "explanation": "This scorecard provides comprehensive risk assessment with business reasoning for lending decisions"
+      }
+    }
+  ]
+}

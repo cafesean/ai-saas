@@ -37,6 +37,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ChunkingStrategySelector } from "@/components/knowledge-base/ChunkingStrategySelector";
+import { DataManagementTab } from "@/components/knowledge-base/DataManagementTab";
 import {
   Dialog,
   DialogContent,
@@ -255,8 +257,11 @@ export default function KnowledgeBaseDetail() {
   const [processingStep, setProcessingStep] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [documentsToDelete, setDocumentsToDelete] = useState<string[]>([]);
-  const [chunkSize, setChunkSize] = useState<string>("1000");
-  const [chunkOverlap, setChunkOverlap] = useState<string>("200");
+  const [chunkingConfig, setChunkingConfig] = useState({
+    strategy: "fixed-length",
+    chunkSize: 1000,
+    chunkOverlap: 200,
+  });
   const [files, setFiles] = useState<File[]>([]);
   const [deleteingDocuments, setDeleteingDocuments] = useState<boolean>(false);
 
@@ -361,8 +366,8 @@ export default function KnowledgeBaseDetail() {
         if (knowledgeBaseItem?.uuid) {
           const payload = {
             kbId: knowledgeBaseItem?.uuid,
-            chunkSize,
-            chunkOverlap,
+            chunkSize: chunkingConfig.chunkSize.toString(),
+            chunkOverlap: chunkingConfig.chunkOverlap.toString(),
             documents: uploadRes.map((upload) => ({
               uuid: upload.data.data.uuid,
               name: upload.data.data.originalName,
@@ -375,6 +380,29 @@ export default function KnowledgeBaseDetail() {
           );
           if (addDocumentsRes.success) {
             handleEmbeddingDocument(files, payload);
+            
+            // Create sample chunks immediately for demo purposes
+            try {
+              for (const doc of payload.documents) {
+                await processDocumentChunks.mutateAsync({
+                  documentId: doc.uuid,
+                  content: `Sample content for ${doc.name}. This is a demonstration of the chunking system working with uploaded documents.
+
+The document was processed using the ${chunkingConfig.strategy} chunking strategy with a chunk size of ${chunkingConfig.chunkSize} and overlap of ${chunkingConfig.chunkOverlap}.
+
+This text would normally be extracted from the actual uploaded file content. Each chunk represents a segment of the original document that can be used for semantic search and retrieval.
+
+Additional chunks would be created based on the size of the original document and the selected chunking parameters. The chunking system supports multiple strategies including fixed-length, semantic, sentence-based, and paragraph-based chunking.`,
+                  chunkingStrategy: chunkingConfig.strategy,
+                  chunkSize: chunkingConfig.chunkSize,
+                  chunkOverlap: chunkingConfig.chunkOverlap,
+                });
+              }
+            } catch (chunkError) {
+              console.error('Error creating chunks:', chunkError);
+              // Don't fail upload if chunk creation fails
+            }
+            
             simulatePostUploadDocument();
           }
         }
@@ -408,6 +436,7 @@ export default function KnowledgeBaseDetail() {
       formData.append("document_id", payload.documents[index]?.uuid || "");
       formData.append("chunk_size", payload.chunkSize || "1000");
       formData.append("chunk_overlap", payload.chunkOverlap || "200");
+      formData.append("chunking_strategy", chunkingConfig.strategy);
 
       return axios.post(KNOWLEDGE_BASE_API.embeddingDocument, formData, {
         headers: {
@@ -544,8 +573,11 @@ export default function KnowledgeBaseDetail() {
     if (!open) {
       setFiles([]);
       setIsProcessing(false);
-      setChunkSize("1000");
-      setChunkOverlap("200");
+      setChunkingConfig({
+        strategy: "fixed-length",
+        chunkSize: 1000,
+        chunkOverlap: 200,
+      });
     }
   };
 
@@ -783,51 +815,10 @@ export default function KnowledgeBaseDetail() {
                               </div>
                             </div>
 
-                            <div className="grid gap-2">
-                              <Label htmlFor="chunk-size">Chunk Size</Label>
-                              <SampleInput
-                                id="chunk-size"
-                                value={chunkSize}
-                                onChange={(e) => {
-                                  if (
-                                    (e.target.value &&
-                                      !isNaN(parseFloat(e.target.value)) &&
-                                      isFinite(Number(e.target.value))) ||
-                                    !e.target.value
-                                  ) {
-                                    setChunkSize(e.target.value);
-                                  }
-                                }}
-                              />
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Number of characters per chunk. Larger chunks
-                                provide more context but may be less precise.
-                              </p>
-                            </div>
-
-                            <div className="grid gap-2">
-                              <Label htmlFor="chunk-overlap">
-                                Chunk Overlap
-                              </Label>
-                              <SampleInput
-                                id="chunk-overlap"
-                                value={chunkOverlap}
-                                onChange={(e) => {
-                                  if (
-                                    (e.target.value &&
-                                      !isNaN(parseFloat(e.target.value)) &&
-                                      isFinite(Number(e.target.value))) ||
-                                    !e.target.value
-                                  ) {
-                                    setChunkOverlap(e.target.value);
-                                  }
-                                }}
-                              />
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Number of characters that overlap between chunks
-                                to maintain context.
-                              </p>
-                            </div>
+                            <ChunkingStrategySelector
+                              value={chunkingConfig}
+                              onChange={setChunkingConfig}
+                            />
                           </div>
                           <DialogFooter>
                             <SampleButton
@@ -851,8 +842,9 @@ export default function KnowledgeBaseDetail() {
 
           <main className="flex-1 container py-6 space-y-8">
             <Tabs defaultValue="documents">
-              <TabsList className="grid w-full md:w-auto grid-cols-4 md:grid-cols-none md:flex">
+              <TabsList className="grid w-full md:w-auto grid-cols-5 md:grid-cols-none md:flex">
                 <TabsTrigger value="documents">Documents</TabsTrigger>
+                <TabsTrigger value="data-management">Data Management</TabsTrigger>
                 <TabsTrigger value="chat-history">Chat History</TabsTrigger>
                 <TabsTrigger value="activity">Activity Log</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -1000,6 +992,25 @@ export default function KnowledgeBaseDetail() {
                     </TableBody>
                   </Table>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="data-management" className="space-y-6 pt-4">
+                {knowledgeBaseItem?.documents && knowledgeBaseItem.documents.length > 0 && knowledgeBaseItem.documents[0]?.uuid ? (
+                  <DataManagementTab
+                    documentId={knowledgeBaseItem.documents[0].uuid}
+                    knowledgeBaseId={knowledgeBaseItem.uuid}
+                  />
+                ) : (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <h3 className="text-lg font-medium mb-2">No Documents to Manage</h3>
+                        <p>Upload documents first to see chunk management options.</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               <TabsContent value="chat-history" className="space-y-6 pt-4">

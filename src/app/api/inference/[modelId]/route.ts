@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { models, inferences } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { withApiAuth, createApiError, createApiSuccess } from "@/lib/api-auth";
+import { processInferenceResponse } from "@/lib/inference-utils";
 
 const instance = axios.create();
 
@@ -37,7 +38,7 @@ export const POST = withApiAuth(async (request: NextRequest, user) => {
     }
     if (model) {
       const inferenceOptions = {
-        baseURL: process.env.INFERENCE_URL?.replace("{model_uuid}", modelId),
+        baseURL: process.env.MODEL_SERVICE_URL?.replace("{model_uuid}", modelId),
         headers: {
           "Content-Type": "application/json",
           [`${process.env.MODEL_SERVICE_ACCESS_ID_KEY}`]: `${process.env.MODEL_SERVICE_ACCESS_ID_VALUE}`,
@@ -54,12 +55,22 @@ export const POST = withApiAuth(async (request: NextRequest, user) => {
       };
       const inferenceResponse = await instance(inferenceOptions);
       if (inferenceResponse.data && !inferenceResponse.data.error) {
+        // Fix feature contributions before storing and returning
+        const processedResponse = await processInferenceResponse(
+          inferenceResponse.data,
+          payload,
+          modelId,
+          user.orgId
+        );
+        
         // Insert inference into inferences table
         await db.insert(inferences).values({
           modelId: model.id,
           input: payload,
-          output: inferenceResponse.data,
+          output: processedResponse,
         });
+        
+        return createApiSuccess(processedResponse);
       }
       return createApiSuccess(inferenceResponse.data);
     } else {

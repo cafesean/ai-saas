@@ -1,23 +1,75 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import React from 'react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { SessionProvider } from 'next-auth/react';
 import { WithPermission } from './WithPermission';
-import { authTestUtils } from '@/test/utils/auth-store-mock';
+// Session-based testing - auth store utilities not needed
 
-// Mock the auth store before each test
+// Mock session data
+let mockSessionData: any = null;
+let mockSessionStatus: string = 'unauthenticated';
+
+// Mock NextAuth
+vi.mock('next-auth/react', () => ({
+  SessionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useSession: vi.fn(() => ({
+    data: mockSessionData,
+    status: mockSessionStatus
+  }))
+}));
+
+// Helper to set mock session data
+const setMockSession = (permissions: string[], roleName: string = 'Test Role') => {
+  mockSessionData = {
+    user: {
+      id: '1',
+      email: 'test@test.com',
+      name: 'Test User',
+      roles: [
+        {
+          name: roleName,
+          policies: permissions.map(permission => ({ name: permission }))
+        }
+      ]
+    }
+  };
+  mockSessionStatus = 'authenticated';
+};
+
+const clearMockSession = () => {
+  mockSessionData = null;
+  mockSessionStatus = 'unauthenticated';
+};
+
+const setMockSessionLoading = () => {
+  mockSessionData = null;
+  mockSessionStatus = 'loading';
+};
+
+// Helper to render components with SessionProvider
+const renderWithSession = (ui: React.ReactElement) => {
+  return render(
+    <SessionProvider session={null}>
+      {ui}
+    </SessionProvider>
+  );
+};
+
+// Reset session before each test
 beforeEach(() => {
-  authTestUtils.resetMocks();
+  clearMockSession();
 });
 
 afterEach(() => {
-  authTestUtils.resetMocks();
+  clearMockSession();
 });
 
 describe('WithPermission Component', () => {
   describe('Single Permission Checks', () => {
     it('should render children when user has required permission', () => {
-      authTestUtils.mockUserWithPermissions(['workflow:create']);
+      setMockSession(['workflow:create']);
       
-      render(
+      renderWithSession(
         <WithPermission permission="workflow:create">
           <div>Create Workflow Button</div>
         </WithPermission>
@@ -27,9 +79,9 @@ describe('WithPermission Component', () => {
     });
 
     it('should not render children when user lacks required permission', () => {
-      authTestUtils.mockUserWithPermissions(['workflow:read']);
+      setMockSession(['workflow:read']);
       
-      render(
+      renderWithSession(
         <WithPermission permission="workflow:create">
           <div>Create Workflow Button</div>
         </WithPermission>
@@ -39,9 +91,9 @@ describe('WithPermission Component', () => {
     });
 
     it('should render fallback when user lacks permission and fallback is provided', () => {
-      authTestUtils.mockUserWithPermissions(['workflow:read']);
+      setMockSession(['workflow:read']);
       
-      render(
+      renderWithSession(
         <WithPermission 
           permission="workflow:create"
           fallback={<div>Access Denied</div>}
@@ -57,13 +109,13 @@ describe('WithPermission Component', () => {
 
   describe('Multiple Permission Checks (ALL)', () => {
     it('should render when user has all required permissions', () => {
-      authTestUtils.mockUserWithPermissions([
+      setMockSession([
         'workflow:read',
         'workflow:create',
         'workflow:update'
       ]);
       
-      render(
+      renderWithSession(
         <WithPermission permissions={['workflow:read', 'workflow:create']}>
           <div>Workflow Management</div>
         </WithPermission>
@@ -73,9 +125,9 @@ describe('WithPermission Component', () => {
     });
 
     it('should not render when user lacks any required permission', () => {
-      authTestUtils.mockUserWithPermissions(['workflow:read']);
+      setMockSession(['workflow:read']);
       
-      render(
+      renderWithSession(
         <WithPermission permissions={['workflow:read', 'workflow:create']}>
           <div>Workflow Management</div>
         </WithPermission>
@@ -87,9 +139,9 @@ describe('WithPermission Component', () => {
 
   describe('Any Permission Checks (ANY)', () => {
     it('should render when user has any of the required permissions', () => {
-      authTestUtils.mockUserWithPermissions(['workflow:read']);
+      setMockSession(['workflow:read']);
       
-      render(
+      renderWithSession(
         <WithPermission anyPermissions={['workflow:read', 'workflow:create']}>
           <div>Workflow Access</div>
         </WithPermission>
@@ -99,9 +151,9 @@ describe('WithPermission Component', () => {
     });
 
     it('should not render when user has none of the required permissions', () => {
-      authTestUtils.mockUserWithPermissions(['models:read']);
+      setMockSession(['models:read']);
       
-      render(
+      renderWithSession(
         <WithPermission anyPermissions={['workflow:read', 'workflow:create']}>
           <div>Workflow Access</div>
         </WithPermission>
@@ -113,9 +165,9 @@ describe('WithPermission Component', () => {
 
   describe('Role-based Access', () => {
     it('should render when user has required role', () => {
-      authTestUtils.mockUserWithRole('Admin');
+      setMockSession(['admin:full_access'], 'Admin');
       
-      render(
+      renderWithSession(
         <WithPermission role="Admin">
           <div>Admin Panel</div>
         </WithPermission>
@@ -125,9 +177,9 @@ describe('WithPermission Component', () => {
     });
 
     it('should not render when user lacks required role', () => {
-      authTestUtils.mockUserWithRole('User');
+      setMockSession(['workflow:read'], 'User');
       
-      render(
+      renderWithSession(
         <WithPermission role="Admin">
           <div>Admin Panel</div>
         </WithPermission>
@@ -137,9 +189,9 @@ describe('WithPermission Component', () => {
     });
 
     it('should render when user has any of the required roles', () => {
-      authTestUtils.mockUserWithRole('Editor');
+      setMockSession(['workflow:create', 'documents:create'], 'Editor');
       
-      render(
+      renderWithSession(
         <WithPermission role={['Admin', 'Editor']}>
           <div>Content Management</div>
         </WithPermission>
@@ -151,9 +203,9 @@ describe('WithPermission Component', () => {
 
   describe('Unauthenticated Users', () => {
     it('should not render for unauthenticated users', () => {
-      authTestUtils.mockUnauthenticated();
+      clearMockSession();
       
-      render(
+      renderWithSession(
         <WithPermission permission="workflow:read">
           <div>Protected Content</div>
         </WithPermission>
@@ -163,9 +215,9 @@ describe('WithPermission Component', () => {
     });
 
     it('should render fallback for unauthenticated users', () => {
-      authTestUtils.mockUnauthenticated();
+      clearMockSession();
       
-      render(
+      renderWithSession(
         <WithPermission 
           permission="workflow:read"
           fallback={<div>Please log in</div>}
@@ -181,9 +233,9 @@ describe('WithPermission Component', () => {
 
   describe('Loading States', () => {
     it('should render loading component when auth is loading', () => {
-      authTestUtils.mockLoading();
+      setMockSessionLoading();
       
-      render(
+      renderWithSession(
         <WithPermission 
           permission="workflow:read"
           showLoading={true}
@@ -198,9 +250,9 @@ describe('WithPermission Component', () => {
     });
 
     it('should render default loading state when no loading component provided', () => {
-      authTestUtils.mockLoading();
+      setMockSessionLoading();
       
-      render(
+      renderWithSession(
         <WithPermission permission="workflow:read" showLoading={true}>
           <div>Protected Content</div>
         </WithPermission>
@@ -214,9 +266,9 @@ describe('WithPermission Component', () => {
 
   describe('Hide Option', () => {
     it('should render nothing when hideWhenUnauthorized=true and user lacks permission', () => {
-      authTestUtils.mockUserWithPermissions(['workflow:read']);
+      setMockSession(['workflow:read']);
       
-      const { container } = render(
+      const { container } = renderWithSession(
         <WithPermission permission="workflow:create" hideWhenUnauthorized>
           <div>Create Button</div>
         </WithPermission>
@@ -226,9 +278,9 @@ describe('WithPermission Component', () => {
     });
 
     it('should not render fallback when hideWhenUnauthorized=true', () => {
-      authTestUtils.mockUserWithPermissions(['workflow:read']);
+      setMockSession(['workflow:read']);
       
-      const { container } = render(
+      const { container } = renderWithSession(
         <WithPermission 
           permission="workflow:create" 
           hideWhenUnauthorized
@@ -245,9 +297,9 @@ describe('WithPermission Component', () => {
 
   describe('CSS Classes', () => {
     it('should apply CSS classes when provided', () => {
-      authTestUtils.mockUserWithPermissions(['workflow:read']);
+      setMockSession(['workflow:read']);
       
-      render(
+      renderWithSession(
         <WithPermission 
           permission="workflow:read"
           className="test-class"
@@ -263,9 +315,9 @@ describe('WithPermission Component', () => {
 
   describe('Real User Scenarios', () => {
     it('should work with admin user', () => {
-      authTestUtils.mockAdmin();
+      setMockSession(['admin:role_management', 'workflow:create', 'workflow:update', 'models:read', 'models:manage'], 'Admin');
       
-      render(
+      renderWithSession(
         <WithPermission permission="admin:role_management">
           <div>Role Management</div>
         </WithPermission>
@@ -275,9 +327,9 @@ describe('WithPermission Component', () => {
     });
 
     it('should work with regular user', () => {
-      authTestUtils.mockUser();
+      setMockSession(['workflow:read'], 'User');
       
-      render(
+      renderWithSession(
         <WithPermission permission="workflow:read">
           <div>View Workflows</div>
         </WithPermission>
@@ -287,9 +339,9 @@ describe('WithPermission Component', () => {
     });
 
     it('should deny admin features to regular user', () => {
-      authTestUtils.mockUser();
+      setMockSession(['workflow:read'], 'User');
       
-      render(
+      renderWithSession(
         <WithPermission permission="admin:role_management">
           <div>Role Management</div>
         </WithPermission>
@@ -299,9 +351,9 @@ describe('WithPermission Component', () => {
     });
 
     it('should work with editor permissions', () => {
-      authTestUtils.mockEditor();
+      setMockSession(['workflow:create', 'documents:create'], 'Editor');
       
-      render(
+      renderWithSession(
         <WithPermission anyPermissions={['workflow:create', 'documents:create']}>
           <div>Create Content</div>
         </WithPermission>
@@ -313,9 +365,9 @@ describe('WithPermission Component', () => {
 
   describe('Complex Permission Scenarios', () => {
     it('should handle complex admin workflow', () => {
-      authTestUtils.mockAdmin();
+      setMockSession(['admin:role_management', 'workflow:create', 'workflow:update', 'models:read', 'models:manage'], 'Admin');
       
-      render(
+      renderWithSession(
         <div>
           <WithPermission permission="admin:role_management">
             <div>Manage Roles</div>
@@ -335,9 +387,9 @@ describe('WithPermission Component', () => {
     });
 
     it('should handle limited user workflow', () => {
-      authTestUtils.mockUser();
+      setMockSession(['workflow:read'], 'User');
       
-      render(
+      renderWithSession(
         <div>
           <WithPermission permission="admin:role_management">
             <div>Manage Roles</div>

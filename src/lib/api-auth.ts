@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/server/auth-simple';
 import { db } from '@/db';
 import { eq, and, count } from 'drizzle-orm';
-import { users, userOrgs, userRoles, rolePermissions, permissions } from '@/db/schema';
+import { users, userRoles, rolePermissions, permissions } from '@/db/schema';
 import type { ExtendedSession } from '@/db/auth-hydration';
 
 /**
@@ -126,20 +126,15 @@ async function getCurrentUser(): Promise<AuthenticatedUser | null> {
       });
 
       if (mockUser) {
-        // Get user's org
-        const userOrg = await db.query.userOrgs.findFirst({
-          where: eq(userOrgs.userId, mockUser.id),
-          with: {
-            org: true,
-          },
-        });
-
-        if (userOrg?.orgId) {
+        // Extract org data from JSONB field
+        const orgData = mockUser.orgData as { currentOrgId?: number; orgs?: Array<{ orgId: number; role: string; isActive: boolean }> } | null;
+        
+        if (orgData?.currentOrgId) {
           return {
             id: mockUser.id,
             email: mockUser.email,
             name: mockUser.name || undefined,
-            orgId: userOrg.orgId,
+            orgId: orgData.currentOrgId,
           };
         }
       }
@@ -159,13 +154,14 @@ async function getCurrentUser(): Promise<AuthenticatedUser | null> {
         
         // Fallback to database query if not in session
         if (!orgId) {
-          const userOrg = await db.query.userOrgs.findFirst({
-            where: eq(userOrgs.userId, userId),
-            with: {
-              org: true,
-            },
+          const user = await db.query.users.findFirst({
+            where: eq(users.id, userId),
           });
-          orgId = userOrg?.orgId || null;
+          
+          if (user?.orgData) {
+            const orgData = user.orgData as { currentOrgId?: number; orgs?: Array<{ orgId: number; role: string; isActive: boolean }> } | null;
+            orgId = orgData?.currentOrgId || null;
+          }
         }
 
         if (orgId) {

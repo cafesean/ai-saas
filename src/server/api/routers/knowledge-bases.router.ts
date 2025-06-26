@@ -1,5 +1,6 @@
-import { eq, and, desc, inArray, asc } from "drizzle-orm";
+import { eq, and, desc, inArray, asc, count, like } from "drizzle-orm";
 import { z } from "zod";
+import crypto from "crypto";
 
 import {
   mockVectorDatabases,
@@ -11,6 +12,7 @@ import { createTRPCRouter, publicProcedure, protectedProcedure, withPermission }
 import { 
   knowledge_bases,
   knowledge_base_documents,
+  knowledge_base_chunks,
   conversations,
   conversation_messages
 } from "@/db/schema";
@@ -483,4 +485,324 @@ export const knowledgeBasesRouter = createTRPCRouter({
       total: mockEmbeddingModels.length,
     };
   }),
+
+  /**
+   * Get chunks for a document with filtering and pagination
+   */
+  getDocumentChunks: withPermission('bases:read')
+    .input(
+      z.object({
+        documentId: z.string(),
+        search: z.string().optional(),
+        chunkingStrategy: z.string().optional(),
+        limit: z.number().min(1).max(100).default(50),
+        offset: z.number().min(0).default(0),
+      }),
+    )
+    .query(async ({ input }) => {
+      try {
+        const whereConditions = [
+          eq(knowledge_base_chunks.document_id, input.documentId)
+        ];
+
+        if (input.search) {
+          // Add search condition for content
+          whereConditions.push(
+            like(knowledge_base_chunks.content, `%${input.search}%`)
+          );
+        }
+
+        if (input.chunkingStrategy) {
+          whereConditions.push(
+            eq(knowledge_base_chunks.chunkingStrategy, input.chunkingStrategy)
+          );
+        }
+
+        const chunks = await db.query.knowledge_base_chunks.findMany({
+          where: and(...whereConditions),
+          limit: input.limit,
+          offset: input.offset,
+          orderBy: asc(knowledge_base_chunks.createdAt),
+          with: {
+            document: {
+              columns: {
+                name: true,
+                uuid: true,
+              },
+            },
+          },
+        });
+
+        const totalResult = await db
+          .select({ count: count() })
+          .from(knowledge_base_chunks)
+          .where(and(...whereConditions));
+
+        return {
+          chunks,
+          total: totalResult[0]?.count || 0,
+          limit: input.limit,
+          offset: input.offset,
+        };
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to fetch document chunks");
+      }
+    }),
+
+  /**
+   * Create manual chunk
+   */
+  createChunk: withPermission('bases:create')
+    .input(
+      z.object({
+        documentId: z.string(),
+        content: z.string().min(1),
+        chunkingStrategy: z.string().default("manual"),
+        metadata: z.object({
+          chunkIndex: z.number(),
+          startChar: z.number(),
+          endChar: z.number(),
+          chunkingStrategy: z.string(),
+          pageNumber: z.number().optional(),
+          section: z.string().optional(),
+        }).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const [chunk] = await db
+          .insert(knowledge_base_chunks)
+          .values({
+            document_id: input.documentId,
+            content: input.content,
+            chunkingStrategy: input.chunkingStrategy,
+            metadata: input.metadata,
+            chunkSize: input.content.length,
+            chunkOverlap: 0,
+            isManual: true,
+            status: "processed",
+          })
+          .returning();
+
+        return chunk;
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to create chunk");
+      }
+    }),
+
+  /**
+   * Update chunk content and metadata
+   */
+  updateChunk: withPermission('bases:update')
+    .input(
+      z.object({
+        chunkId: z.string(),
+        content: z.string().optional(),
+        metadata: z.object({
+          chunkIndex: z.number(),
+          startChar: z.number(),
+          endChar: z.number(),
+          chunkingStrategy: z.string(),
+          pageNumber: z.number().optional(),
+          section: z.string().optional(),
+        }).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const updateData: any = { updatedAt: new Date() };
+        
+        if (input.content !== undefined) {
+          updateData.content = input.content;
+          updateData.chunkSize = input.content.length;
+          // Clear embedding when content changes
+          updateData.embedding = null;
+          updateData.status = "pending_embedding";
+        }
+        
+        if (input.metadata !== undefined) {
+          updateData.metadata = input.metadata;
+        }
+
+        const [chunk] = await db
+          .update(knowledge_base_chunks)
+          .set(updateData)
+          .where(eq(knowledge_base_chunks.uuid, input.chunkId))
+          .returning();
+
+        return chunk;
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to update chunk");
+      }
+    }),
+
+  /**
+   * Delete chunks (single or bulk)
+   */
+  deleteChunks: withPermission('bases:delete')
+    .input(
+      z.object({
+        chunkIds: z.array(z.string()).min(1),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const deletedChunks = await db
+          .delete(knowledge_base_chunks)
+          .where(inArray(knowledge_base_chunks.uuid, input.chunkIds))
+          .returning();
+
+        return {
+          success: true,
+          deletedCount: deletedChunks.length,
+          deletedChunks,
+        };
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to delete chunks");
+      }
+    }),
+
+  /**
+   * Re-embed chunks (trigger re-embedding process)
+   */
+  reEmbedChunks: withPermission('bases:update')
+    .input(
+      z.object({
+        chunkIds: z.array(z.string()).min(1),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        // Mark chunks as pending re-embedding
+        const updatedChunks = await db
+          .update(knowledge_base_chunks)
+          .set({
+            embedding: null,
+            status: "pending_embedding",
+            updatedAt: new Date(),
+          })
+          .where(inArray(knowledge_base_chunks.uuid, input.chunkIds))
+          .returning();
+
+        // In production, this would trigger the embedding service
+        // For now, we'll return the updated chunks
+        return {
+          success: true,
+          updatedCount: updatedChunks.length,
+          updatedChunks,
+        };
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to re-embed chunks");
+      }
+    }),
+
+  /**
+   * Get chunk statistics for a document
+   */
+  getChunkStats: withPermission('bases:read')
+    .input(
+      z.object({
+        documentId: z.string(),
+      }),
+    )
+    .query(async ({ input }) => {
+      try {
+        const stats = await db
+          .select({
+            total: count(),
+            strategy: knowledge_base_chunks.chunkingStrategy,
+          })
+          .from(knowledge_base_chunks)
+          .where(eq(knowledge_base_chunks.document_id, input.documentId))
+          .groupBy(knowledge_base_chunks.chunkingStrategy);
+
+        const totalChunks = stats.reduce((sum, stat) => sum + (stat.total || 0), 0);
+        
+        return {
+          totalChunks,
+          byStrategy: stats,
+        };
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to fetch chunk statistics");
+      }
+    }),
+
+  /**
+   * Process document and create chunks locally
+   */
+  processDocumentChunks: withPermission('bases:create')
+    .input(
+      z.object({
+        documentId: z.string(),
+        content: z.string(),
+        chunkingStrategy: z.string().default('fixed-length'),
+        chunkSize: z.number().min(100).max(10000).default(1000),
+        chunkOverlap: z.number().min(0).default(200),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        // Import chunking service
+        const { ChunkingService } = await import('@/lib/chunking/strategies');
+        
+        // Validate document exists
+        const document = await db.query.knowledge_base_documents.findFirst({
+          where: eq(knowledge_base_documents.uuid, input.documentId),
+        });
+
+        if (!document) {
+          throw new Error("Document not found");
+        }
+
+        // Create chunking options
+        const chunkingOptions = {
+          strategy: input.chunkingStrategy,
+          chunkSize: input.chunkSize,
+          chunkOverlap: input.chunkOverlap,
+        };
+
+        // Validate options
+        const validationErrors = ChunkingService.validateOptions(chunkingOptions);
+        if (validationErrors.length > 0) {
+          throw new Error(`Invalid chunking options: ${validationErrors.join(', ')}`);
+        }
+
+        // Generate chunks
+        const textChunks = await ChunkingService.chunkText(input.content, chunkingOptions);
+
+        // Prepare chunks for database insertion
+        const chunksToInsert = textChunks.map((chunk) => ({
+          uuid: crypto.randomUUID(),
+          document_id: input.documentId,
+          content: chunk.content,
+          metadata: chunk.metadata,
+          chunkingStrategy: input.chunkingStrategy,
+          chunkSize: chunk.content.length,
+          chunkOverlap: input.chunkOverlap,
+          isManual: false,
+          status: "processed" as const,
+        }));
+
+        // Insert chunks into database
+        const insertedChunks = await db
+          .insert(knowledge_base_chunks)
+          .values(chunksToInsert)
+          .returning();
+
+        return {
+          success: true,
+          chunksCreated: insertedChunks.length,
+          chunks: insertedChunks,
+        };
+      } catch (error) {
+        console.error('Error processing document chunks:', error);
+        throw new Error(`Failed to process document chunks: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }),
 });

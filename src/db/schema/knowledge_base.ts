@@ -11,6 +11,7 @@ import {
   integer,
   decimal,
   bigint,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -147,6 +148,52 @@ export const conversation_messages = pgTable("conversation_messages", {
     .notNull(),
 });
 
+export const knowledge_base_chunks = pgTable(
+  "knowledge_base_chunks",
+  {
+    id: serial("id").notNull().primaryKey(),
+    uuid: uuid("uuid").unique().notNull().defaultRandom(),
+    document_id: uuid("document_id")
+      .notNull()
+      .references(() => knowledge_base_documents.uuid, {
+        onDelete: "cascade",
+      }),
+    content: text("content").notNull(),
+    metadata: json("metadata").$type<{
+      chunkIndex: number;
+      startChar: number;
+      endChar: number;
+      chunkingStrategy: string;
+      pageNumber?: number;
+      section?: string;
+    }>(),
+    embedding: json("embedding").$type<number[]>(),
+    chunkingStrategy: varchar("chunking_strategy", { length: 100 }).notNull().default("fixed-length"),
+    chunkSize: integer("chunk_size").notNull(),
+    chunkOverlap: integer("chunk_overlap").notNull().default(0),
+    isManual: boolean("is_manual").notNull().default(false),
+    status: varchar("status", { length: 100 }).notNull().default("processed"),
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("kb_chunk_id_idx").on(table.id),
+    index("kb_chunk_uuid_idx").on(table.uuid),
+    index("kb_chunk_document_id_idx").on(table.document_id),
+    index("kb_chunk_strategy_idx").on(table.chunkingStrategy),
+  ],
+);
+
 // Relations
 export const knowledgeBaseRelations = relations(
   knowledge_bases,
@@ -162,11 +209,12 @@ export const knowledgeBaseRelations = relations(
 
 export const knowledgeBaseDocumentRelations = relations(
   knowledge_base_documents,
-  ({ one }) => ({
+  ({ one, many }) => ({
     knowledgeBase: one(knowledge_bases, {
       fields: [knowledge_base_documents.kb_id],
       references: [knowledge_bases.uuid],
     }),
+    chunks: many(knowledge_base_chunks),
   }),
 );
 
@@ -190,6 +238,16 @@ export const conversationMessageRelations = relations(
     conversation: one(conversations, {
       fields: [conversation_messages.conversationId],
       references: [conversations.uuid],
+    }),
+  }),
+);
+
+export const knowledgeBaseChunkRelations = relations(
+  knowledge_base_chunks,
+  ({ one }) => ({
+    document: one(knowledge_base_documents, {
+      fields: [knowledge_base_chunks.document_id],
+      references: [knowledge_base_documents.uuid],
     }),
   }),
 );

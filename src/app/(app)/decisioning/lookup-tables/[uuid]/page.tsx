@@ -15,6 +15,7 @@ import { api } from "@/utils/trpc"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, Loader2 } from "lucide-react"
 import { backendToFrontend } from "../lib/data-transformers"
+import Breadcrumbs from "@/components/ui/Breadcrumbs"
 
 export default function LookupTableDetailPage({ params }: { params: Promise<{ uuid: string }> }) {
   const router = useRouter()
@@ -80,23 +81,45 @@ export default function LookupTableDetailPage({ params }: { params: Promise<{ uu
 
   if (error) {
     return (
-      <div className="container mx-auto py-6">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Failed to load lookup table: {error.message}
-          </AlertDescription>
-        </Alert>
+      <div className="flex min-h-screen w-full flex-col bg-background">
+        <Breadcrumbs
+          items={[
+            {
+              label: "Back to Lookup Tables",
+              link: "/decisioning/lookup-tables",
+            },
+          ]}
+          title="Lookup Table Detail"
+        />
+        <div className="flex-1 p-4 md:p-6">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Failed to load lookup table: {error.message}
+            </AlertDescription>
+          </Alert>
+        </div>
       </div>
     )
   }
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-6">
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-2">Loading lookup table...</span>
+      <div className="flex min-h-screen w-full flex-col bg-background">
+        <Breadcrumbs
+          items={[
+            {
+              label: "Back to Lookup Tables",
+              link: "/decisioning/lookup-tables",
+            },
+          ]}
+          title="Lookup Table Detail"
+        />
+        <div className="flex-1 p-4 md:p-6">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Loading lookup table...</span>
+          </div>
         </div>
       </div>
     )
@@ -104,145 +127,160 @@ export default function LookupTableDetailPage({ params }: { params: Promise<{ uu
 
   if (!lookupTable) {
     return (
-      <div className="container mx-auto py-6">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Lookup table not found
-          </AlertDescription>
-        </Alert>
+      <div className="flex min-h-screen w-full flex-col bg-background">
+        <Breadcrumbs
+          items={[
+            {
+              label: "Back to Lookup Tables",
+              link: "/decisioning/lookup-tables",
+            },
+          ]}
+          title="Lookup Table Detail"
+        />
+        <div className="flex-1 p-4 md:p-6">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Lookup table not found
+            </AlertDescription>
+          </Alert>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">{lookupTable.name}</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge className={getStatusColor(lookupTable.status)}>{lookupTable.status}</Badge>
-              <Badge variant="outline">v{lookupTable.version}</Badge>
-            </div>
+    <div className="flex min-h-screen w-full flex-col bg-background">
+      {/* Breadcrumbs with Actions */}
+      <Breadcrumbs
+        items={[
+          {
+            label: "Back to Lookup Tables",
+            link: "/decisioning/lookup-tables",
+          },
+        ]}
+        title={lookupTable.name}
+        badge={
+          <div className="flex items-center gap-2">
+            <Badge className={getStatusColor(lookupTable.status)}>{lookupTable.status}</Badge>
+            <Badge variant="outline">v{lookupTable.version}</Badge>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline">
-            <Play className="h-4 w-4 mr-2" />
-            Test
-          </Button>
-          <Button variant="outline" onClick={() => router.push(`/decisioning/lookup-tables/${uuid}/edit`)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>
-                <Share className="h-4 w-4 mr-2" />
-                Share
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                className="text-red-600"
-                onClick={handleDelete}
-                disabled={deleteMutation.isPending}
-              >
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+        }
+        rightChildren={
+          <div className="flex items-center gap-2">
+            <Button variant="outline">
+              <Play className="h-4 w-4 mr-2" />
+              Test
+            </Button>
+            <Button variant="outline" onClick={() => router.push(`/decisioning/lookup-tables/${uuid}/edit`)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem>
+                  <Share className="h-4 w-4 mr-2" />
+                  Share
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  className="text-red-600"
+                  onClick={handleDelete}
+                  disabled={deleteMutation.isPending}
+                >
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        }
+      />
 
       {/* Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="history">Version History</TabsTrigger>
-        </TabsList>
+      <div className="flex-1 p-4 md:p-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="history">Version History</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Description</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">{lookupTable.description || "No description provided"}</p>
-                </CardContent>
-              </Card>
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Description</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">{lookupTable.description || "No description provided"}</p>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Matrix Preview</CardTitle>
-                  <CardDescription>A preview of your lookup matrix</CardDescription>
-                </CardHeader>
-                <CardContent>{renderMatrix()}</CardContent>
-              </Card>
-            </div>
-
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium">Status</Label>
-                    <div className="mt-1">
-                      <Badge className={getStatusColor(lookupTable.status)}>{lookupTable.status}</Badge>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Version</Label>
-                    <p className="text-sm text-muted-foreground mt-1">v{lookupTable.version}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Created</Label>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {new Date(lookupTable.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Last Updated</Label>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {new Date(lookupTable.updatedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-        <TabsContent value="history" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Version History</CardTitle>
-              <CardDescription>Track changes and versions of this lookup table</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                Version history feature coming soon
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Matrix Preview</CardTitle>
+                    <CardDescription>A preview of your lookup matrix</CardDescription>
+                  </CardHeader>
+                  <CardContent>{renderMatrix()}</CardContent>
+                </Card>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium">Status</Label>
+                      <div className="mt-1">
+                        <Badge className={getStatusColor(lookupTable.status)}>{lookupTable.status}</Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Version</Label>
+                      <p className="text-sm text-muted-foreground mt-1">v{lookupTable.version}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Created</Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {new Date(lookupTable.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Last Updated</Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {new Date(lookupTable.updatedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+          <TabsContent value="history" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Version History</CardTitle>
+                <CardDescription>Track changes and versions of this lookup table</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-muted-foreground">
+                  Version history feature coming soon
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 }

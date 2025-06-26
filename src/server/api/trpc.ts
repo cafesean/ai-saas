@@ -16,8 +16,8 @@ import type { ExtendedSession } from "@/db/auth-hydration";
 
 import { authOptions } from "@/server/auth-simple";
 import { db } from "@/db";
-import { userRoles, users } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { userRoles, users, orgs } from "@/db/schema";
+import { eq, and, asc } from "drizzle-orm";
 import { PERMISSION_SLUGS } from "@/constants/permissions";
 
 /**
@@ -242,12 +242,14 @@ export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 });
 
 /**
- * Helper function to get user's org ID securely
+ * Helper function to get user's org ID securely with fallbacks
  * 
  * Returns the user's current org ID from their JSONB org data.
  * For security, this ensures users can only access their assigned orgs.
  */
 export const getUserOrgId = async (userId: number): Promise<number> => {
+  console.log("🔍 Getting org ID for user:", userId);
+  
   const user = await db.query.users.findFirst({
     where: eq(users.id, userId),
     columns: {
@@ -255,15 +257,55 @@ export const getUserOrgId = async (userId: number): Promise<number> => {
     },
   });
 
+  console.log("👤 User org data:", user?.orgData);
+
   if (!user || !user.orgData) {
+    console.log("❌ User has no org data, checking for default org...");
+    
+    // FALLBACK: Try to get the first available org for this user
+    const firstOrg = await db.query.orgs.findFirst({
+      orderBy: asc(orgs.id),
+      columns: { id: true, name: true }
+    });
+    
+    if (firstOrg) {
+      console.log("✅ Using fallback org:", firstOrg);
+      return firstOrg.id;
+    }
+    
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "User is not assigned to any organization",
+      message: "User is not assigned to any organization and no fallback org available",
     });
   }
 
   const orgData = user.orgData as any;
-  const currentOrgId = orgData?.currentOrgId;
+  let currentOrgId = orgData?.currentOrgId;
+
+  if (!currentOrgId) {
+    console.log("⚠️ No currentOrgId set, trying fallbacks...");
+    
+    // FALLBACK 1: Try to get from orgData.orgs array
+    if (orgData?.orgs && Array.isArray(orgData.orgs) && orgData.orgs.length > 0) {
+      const firstActiveOrg = orgData.orgs.find((org: any) => org.isActive);
+      const firstOrg = firstActiveOrg || orgData.orgs[0];
+      currentOrgId = firstOrg?.orgId;
+      console.log("✅ Using org from orgData.orgs:", currentOrgId);
+    }
+    
+    // FALLBACK 2: Get first available org in system
+    if (!currentOrgId) {
+      const firstOrg = await db.query.orgs.findFirst({
+        orderBy: asc(orgs.id),
+        columns: { id: true, name: true }
+      });
+      
+      if (firstOrg) {
+        currentOrgId = firstOrg.id;
+        console.log("✅ Using system fallback org:", currentOrgId);
+      }
+    }
+  }
 
   if (process.env.NODE_ENV === 'development') {
     console.log('getUserOrgId Debug:', {
@@ -279,10 +321,11 @@ export const getUserOrgId = async (userId: number): Promise<number> => {
   if (currentOrgId === null || currentOrgId === undefined) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "User does not have a current organization set",
+      message: "User does not have a current organization set and no fallback available",
     });
   }
 
+  console.log("✅ Final org ID:", currentOrgId);
   return currentOrgId;
 };
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import axios from "axios";
 import { toast } from "sonner";
 
 import { SampleButton } from "@/components/ui/sample-button";
@@ -35,7 +34,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Check, ChevronDown, ChevronUp, Download, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, ChevronUp, Download, X } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -43,8 +42,6 @@ import {
 } from "@/components/ui/collapsible";
 import { mapFeatureType } from "@/lib/model-service";
 import { capitalizeFirstLetterLowercase } from "@/utils/func";
-
-const instance = axios.create();
 
 interface Feature {
   name: string;
@@ -107,8 +104,186 @@ export function RunInferenceDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [isResultOpen, setIsResultOpen] = useState(true);
+  
   // Extract features from model or use default credit scoring features
   const features: Feature[] = formatFeatures(model) || [];
+
+  // Generate complete test data scenarios based on actual model features
+  const generateCompleteTestData = () => {
+    // Base values for different risk profiles
+    const baseScenarios = {
+      lowRisk: {
+        name: "Low Risk Profile",
+        description: "High income, stable employment, good credit history",
+        values: {
+          loan_amnt: 15000,
+          term: " 36 months",
+          emp_length: "10+ years",
+          home_ownership: "MORTGAGE",
+          annual_inc: 85000,
+          verification_status: "Verified",
+          purpose: "debt_consolidation",
+          addr_state: "CA",
+          dti: 12.5,
+          delinq_2yrs: 0,
+          earliest_cr_line: "Jan-95",
+          inq_last_6mths: 1,
+          open_acc: 12,
+          pub_rec: 0,
+          revol_bal: 8500,
+          revol_util: 15.2,
+          total_acc: 25,
+          acc_now_delinq: 0,
+          issue_d: "Dec-23"
+        } as Record<string, any>
+      },
+      mediumRisk: {
+        name: "Medium Risk Profile", 
+        description: "Moderate income, some credit inquiries, average DTI",
+        values: {
+          loan_amnt: 18000,
+          term: " 60 months", 
+          emp_length: "3 years",
+          home_ownership: "RENT",
+          annual_inc: 55000,
+          verification_status: "Source Verified",
+          purpose: "credit_card",
+          addr_state: "TX",
+          dti: 18.7,
+          delinq_2yrs: 1,
+          earliest_cr_line: "Aug-05",
+          inq_last_6mths: 3,
+          open_acc: 8,
+          pub_rec: 0,
+          revol_bal: 12800,
+          revol_util: 28.5,
+          total_acc: 18,
+          acc_now_delinq: 0,
+          issue_d: "Nov-23"
+        } as Record<string, any>
+      },
+      highRisk: {
+        name: "High Risk Profile",
+        description: "Lower income, high DTI, recent credit activity",
+        values: {
+          loan_amnt: 25000,
+          term: " 60 months",
+          emp_length: "< 1 year", 
+          home_ownership: "RENT",
+          annual_inc: 42000,
+          verification_status: "Not Verified",
+          purpose: "home_improvement",
+          addr_state: "FL",
+          dti: 27.8,
+          delinq_2yrs: 2,
+          earliest_cr_line: "Mar-10",
+          inq_last_6mths: 6,
+          open_acc: 6,
+          pub_rec: 1,
+          revol_bal: 18500,
+          revol_util: 45.8,
+          total_acc: 12,
+          acc_now_delinq: 1,
+          issue_d: "Oct-23"
+        } as Record<string, any>
+      }
+    };
+
+    // Generate complete data for each scenario by filling in ALL model features
+    const completeScenarios: Record<string, any> = {};
+    
+    Object.entries(baseScenarios).forEach(([key, scenario]) => {
+      const completeData: Record<string, any> = {};
+      
+      // Fill in every feature that the model expects
+      features.forEach((feature) => {
+        if (scenario.values[feature.name] !== undefined) {
+          // Use predefined value from scenario
+          completeData[feature.name] = scenario.values[feature.name];
+        } else {
+          // Generate reasonable default based on feature name and type
+          completeData[feature.name] = generateDefaultValue(feature, key);
+        }
+      });
+      
+      completeScenarios[key] = {
+        name: scenario.name,
+        description: scenario.description,
+        data: completeData
+      };
+    });
+    
+    return completeScenarios;
+  };
+
+  // Generate reasonable default values for missing features
+  const generateDefaultValue = (feature: Feature, scenarioType: string): any => {
+    const { name, type, allowedValues } = feature;
+    
+    // If there are allowed values, pick one based on scenario
+    if (allowedValues && allowedValues.length > 0) {
+      const riskIndex = scenarioType === 'lowRisk' ? 0 : scenarioType === 'mediumRisk' ? Math.floor(allowedValues.length / 2) : allowedValues.length - 1;
+      return allowedValues[Math.min(riskIndex, allowedValues.length - 1)];
+    }
+    
+    // Generate values based on feature name patterns
+    if (type === 'number') {
+      // Numeric defaults based on common credit risk features
+      const numericDefaults: Record<string, Record<string, number>> = {
+        lowRisk: {
+          income: 80000, balance: 5000, amount: 15000, months: 36,
+          years: 8, count: 2, rate: 0.05, score: 750, util: 15
+        },
+        mediumRisk: {
+          income: 50000, balance: 10000, amount: 20000, months: 48,
+          years: 4, count: 4, rate: 0.15, score: 650, util: 30
+        },
+        highRisk: {
+          income: 35000, balance: 15000, amount: 25000, months: 60,
+          years: 2, count: 8, rate: 0.25, score: 550, util: 50
+        }
+      };
+      
+      const defaults = numericDefaults[scenarioType];
+      if (!defaults) return 0; // Fallback if scenario type not found
+      
+      const lowerName = name.toLowerCase();
+      
+      if (lowerName.includes('income') || lowerName.includes('annual')) return defaults.income;
+      if (lowerName.includes('balance') || lowerName.includes('bal')) return defaults.balance;
+      if (lowerName.includes('amount') || lowerName.includes('amnt')) return defaults.amount;
+      if (lowerName.includes('month') || lowerName.includes('term')) return defaults.months;
+      if (lowerName.includes('year') || lowerName.includes('length')) return defaults.years;
+      if (lowerName.includes('count') || lowerName.includes('acc') || lowerName.includes('inq')) return defaults.count;
+      if (lowerName.includes('rate') || lowerName.includes('dti')) return defaults.rate;
+      if (lowerName.includes('score')) return defaults.score;
+      if (lowerName.includes('util')) return defaults.util;
+      
+      return defaults.count; // Generic numeric default
+    }
+    
+    // String defaults based on feature patterns
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('state')) return scenarioType === 'lowRisk' ? 'CA' : scenarioType === 'mediumRisk' ? 'TX' : 'FL';
+    if (lowerName.includes('purpose')) return scenarioType === 'lowRisk' ? 'debt_consolidation' : scenarioType === 'mediumRisk' ? 'credit_card' : 'home_improvement';
+    if (lowerName.includes('home') || lowerName.includes('ownership')) return scenarioType === 'lowRisk' ? 'MORTGAGE' : 'RENT';
+    if (lowerName.includes('verification')) return scenarioType === 'lowRisk' ? 'Verified' : scenarioType === 'mediumRisk' ? 'Source Verified' : 'Not Verified';
+    if (lowerName.includes('emp')) return scenarioType === 'lowRisk' ? '10+ years' : scenarioType === 'mediumRisk' ? '3 years' : '< 1 year';
+    if (lowerName.includes('term')) return scenarioType === 'lowRisk' ? ' 36 months' : ' 60 months';
+    if (lowerName.includes('date') || lowerName.includes('issue')) return 'Dec-23';
+    if (lowerName.includes('earliest') || lowerName.includes('cr_line')) return scenarioType === 'lowRisk' ? 'Jan-95' : scenarioType === 'mediumRisk' ? 'Aug-05' : 'Mar-10';
+    
+    return ''; // Default empty string for unknown features
+  };
+
+  // Generate complete test data scenarios
+  const testDataScenarios = generateCompleteTestData();
+
+  const loadTestData = (scenario: keyof typeof testDataScenarios) => {
+    const testData = testDataScenarios[scenario].data;
+    setFormValues(testData);
+    toast.success(`Loaded ${testDataScenarios[scenario].name} test data (${Object.keys(testData).length} fields)`);
+  };
 
   const handleInputChange = (name: string, value: any, type: string) => {
     if (validateValueByDataType(value, type)) {
@@ -125,49 +300,95 @@ export function RunInferenceDialog({
 
   const handleSubmit = async () => {
     setIsLoading(true);
-    // Based on type of feature to convert str to float
-    for (const feature of features) {
-      if (feature.type === "number" && formValues[feature.name]) {
-        formValues[feature.name] = parseFloat(formValues[feature.name]);
+    setResult(null); // Clear previous results to prevent UI conflicts
+    
+    try {
+      // Based on type of feature to convert str to float
+      for (const feature of features) {
+        if (feature.type === "number" && formValues[feature.name]) {
+          formValues[feature.name] = parseFloat(formValues[feature.name]);
+        }
       }
-    }
-    const option = {
-      url: `/api/inference/${model.uuid}`,
-      method: "POST",
-      data: {
-        ...formValues,
-      },
-    };
-    const inferenceResponse = await instance(option);
-    if (!inferenceResponse?.data?.data?.error) {
-      // Only show the feature contributions if the feature in formValues
-      // is in the feature_contributions
-      const featureContributions =
-        inferenceResponse?.data?.data.feature_contributions[0].values;
-      const featureContributionsKeys = Object.keys(featureContributions);
-      const formValuesKeys = Object.keys(formValues);
-      const featureContributionsToShow = featureContributionsKeys.filter(
-        (key) => formValuesKeys.includes(key),
-      );
-      const featureContributionsToShowValues = featureContributionsToShow.map(
-        (key) => ({
-          name: key,
-          value: parseFloat(featureContributions[key]),
+      
+      const response = await fetch(`/api/inference/${model.uuid}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...formValues,
         }),
-      );
-      setResult({
-        prediction: inferenceResponse?.data?.data.prob,
-        probability:
-          Math.round(inferenceResponse?.data?.data.probability * 100) / 100,
-        timestamp: new Date().toISOString(),
-        featureContributionsToShowValues,
       });
-    } else {
-      toast.error(inferenceResponse?.data?.data?.error);
-    }
 
-    setActiveTab("result");
-    setIsLoading(false);
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (parseError) {
+          // If response is not JSON, use the default error message
+          console.warn("Could not parse error response as JSON:", parseError);
+        }
+        
+        // Show error message but don't throw - this prevents the error cascade
+        console.error("Inference failed:", errorMessage);
+        toast.error(errorMessage);
+        return; // Exit early instead of throwing
+      }
+
+      const inferenceResponse = await response.json();
+      
+      if (inferenceResponse?.success && !inferenceResponse?.error) {
+        // Extract data from the response - handle both nested and direct structures
+        const responseData = inferenceResponse.data || inferenceResponse;
+        const featureContributions = responseData.feature_contributions?.[0];
+        
+        // Get scorecard data if available
+        const scorecard = featureContributions?.scorecard;
+        
+        // Quick debug to see scorecard structure
+        console.log('Scorecard in response:', featureContributions?.scorecard ? 'EXISTS' : 'MISSING', featureContributions?.scorecard);
+        
+        // Process feature contributions for display
+        let featureContributionsToShowValues: { name: string; value: number }[] = [];
+        if (featureContributions?.values) {
+          const featureContributionsKeys = Object.keys(featureContributions.values);
+          const formValuesKeys = Object.keys(formValues);
+          const featureContributionsToShow = featureContributionsKeys.filter(
+            (key) => formValuesKeys.includes(key),
+          );
+          featureContributionsToShowValues = featureContributionsToShow.map(
+            (key) => ({
+              name: key,
+              value: parseFloat(featureContributions.values[key]),
+            }),
+          );
+        }
+        
+        // Set result with proper probability field
+        setResult({
+          prediction: responseData.prediction,
+          probability: responseData.probability || 0,
+          timestamp: new Date().toISOString(),
+          featureContributionsToShowValues,
+          scorecard: scorecard,
+          rawFeatureContributions: featureContributions,
+        });
+        
+        setActiveTab("result");
+      } else {
+        const errorMsg = inferenceResponse?.data?.error || inferenceResponse?.error || "Inference failed";
+        console.error("Inference response error:", errorMsg);
+        toast.error(errorMsg);
+      }
+      
+    } catch (error) {
+      console.error("Inference request failed:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to run inference";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const resetForm = () => {
@@ -178,7 +399,7 @@ export function RunInferenceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px]">
+      <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>Run Model Inference</DialogTitle>
           <DialogDescription>
@@ -187,7 +408,7 @@ export function RunInferenceDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col h-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="form">Input Form</TabsTrigger>
             <TabsTrigger value="json" disabled={isLoading}>
@@ -199,6 +420,36 @@ export function RunInferenceDialog({
           </TabsList>
 
           <TabsContent value="form" className="space-y-4 py-4">
+            {/* Test Data Quick Load Buttons */}
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium">Quick Test Data</h4>
+                <Badge variant="outline" className="text-xs">Load Sample</Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                {Object.entries(testDataScenarios).map(([key, scenario]) => (
+                  <div key={key} className="space-y-1">
+                    <SampleButton
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start h-auto p-3"
+                      onClick={() => loadTestData(key as keyof typeof testDataScenarios)}
+                    >
+                      <div className="text-left">
+                        <div className="font-medium text-xs">{scenario.name}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {scenario.description}
+                        </div>
+                      </div>
+                    </SampleButton>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Separator />
+
+            {/* Existing Form Fields */}
             <div className="grid gap-4 max-h-[60vh] overflow-y-auto pr-2">
               {features.map((feature) => (
                 <div
@@ -240,51 +491,13 @@ export function RunInferenceDialog({
             </p>
           </TabsContent>
 
-          <TabsContent value="result" className="py-4">
-            {result && (model?.type === "credit-scoring" || !model?.type) ? (
-              <CreditScoringResult
+          <TabsContent value="result" className="py-4 max-h-[70vh] overflow-y-auto">
+            {result ? (
+              <CreditScorecardResult
                 result={result}
                 isOpen={isResultOpen}
                 onToggle={() => setIsResultOpen(!isResultOpen)}
               />
-            ) : result ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  {model.metrics[0]?.inference?.inference?.output && (
-                    <div
-                      key={`${model.metrics[0]?.inference?.inference?.output.name}`}
-                      className="bg-muted/30 p-4 rounded-md"
-                    >
-                      <div className="text-sm text-muted-foreground">
-                        {capitalizeFirstLetterLowercase(model.metrics[0]?.inference?.inference?.output.name)}
-                      </div>
-                      <div className="text-2xl font-bold mt-1">
-                        {result[model.metrics[0]?.inference?.inference?.output.name]}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="rounded-md border p-4">
-                  <h4 className="text-sm font-medium mb-2">
-                    Feature Contributions
-                  </h4>
-                  <div className="space-y-2">
-                    {result.featureContributionsToShowValues.map(
-                      (feature: any, index: number) => (
-                        <div
-                          key={index}
-                          className="flex justify-between text-sm"
-                        >
-                          <span>{feature.name}</span>
-                          <span className="font-medium">
-                            {Math.round(feature.value * 10000) / 10000}
-                          </span>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </div>
-              </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <p>Run the model to see results</p>
@@ -442,6 +655,12 @@ function renderInputForFeature(
 }
 
 interface CreditScoringResultProps {
+  result: any;
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+interface CreditScorecardResultProps {
   result: any;
   isOpen: boolean;
   onToggle: () => void;
@@ -640,6 +859,218 @@ function CreditScoringResult({
           </div>
         </CollapsibleContent>
       </Collapsible>
+    </div>
+  );
+}
+
+function CreditScorecardResult({
+  result,
+  isOpen,
+  onToggle,
+}: CreditScorecardResultProps) {
+  const scorecard = result.scorecard;
+  
+  if (!scorecard) {
+    // Show basic result with probability if no scorecard
+    return (
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Credit Risk Prediction</CardTitle>
+            <CardDescription>Basic inference result</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-muted/30 p-3 rounded-lg">
+                <div className="text-sm text-muted-foreground">Prediction</div>
+                <div className="font-semibold text-lg">{result.prediction}</div>
+              </div>
+              <div className="bg-muted/30 p-3 rounded-lg">
+                <div className="text-sm text-muted-foreground">Probability</div>
+                <div className="font-semibold text-lg">
+                  {result.probability ? `${Math.round(result.probability * 100)}%` : 'N/A'}
+                </div>
+              </div>
+            </div>
+            
+            {/* Feature Contributions */}
+            {result.featureContributionsToShowValues?.length > 0 && (
+              <div className="border rounded-lg p-4">
+                <h4 className="text-sm font-medium mb-3">Feature Contributions</h4>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {result.featureContributionsToShowValues.map((feature: any, index: number) => (
+                    <div key={index} className="flex justify-between text-sm py-1">
+                      <span className="text-muted-foreground">{feature.name}</span>
+                      <span className="font-mono">{feature.value?.toFixed(4) || 'N/A'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Convert probability to percentage for display
+  const probabilityPercent = Math.round((result.probability || 0) * 100);
+  
+  return (
+    <div className="space-y-4">
+      {/* Credit Score Header */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-xl">Credit Risk Assessment</CardTitle>
+              <CardDescription className="mt-1">
+                Application: {scorecard.application_id} • Generated: {scorecard.date_generated}
+              </CardDescription>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold">{scorecard.ai_model_score}</div>
+              <Badge
+                variant={
+                  scorecard.ai_model_score >= 720
+                    ? "default"
+                    : scorecard.ai_model_score >= 680
+                    ? "secondary"
+                    : scorecard.ai_model_score >= 620
+                    ? "outline"
+                    : "destructive"
+                }
+                className="mt-1"
+              >
+                {scorecard.risk_tier}
+              </Badge>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-muted/30 p-3 rounded-lg">
+              <div className="text-sm text-muted-foreground">Decision</div>
+              <div className="font-semibold text-lg">{scorecard.decision_recommendation}</div>
+            </div>
+            <div className="bg-muted/30 p-3 rounded-lg">
+              <div className="text-sm text-muted-foreground">Default Probability</div>
+              <div className="font-semibold text-lg">{probabilityPercent}%</div>
+            </div>
+            <div className="bg-muted/30 p-3 rounded-lg">
+              <div className="text-sm text-muted-foreground">Conditions</div>
+              <div className="font-semibold text-sm">{scorecard.conditions}</div>
+            </div>
+          </div>
+          
+          {/* Score Scale Visual */}
+          <div className="relative pt-5">
+            <div className="absolute top-0 left-0 right-0 flex justify-between text-xs text-muted-foreground px-2">
+              <span>300</span>
+              <span>500</span>
+              <span>650</span>
+              <span>750</span>
+              <span>850</span>
+            </div>
+            <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"></div>
+            </div>
+            <div
+              className="absolute top-0 w-4 h-4 bg-primary rounded-full -mt-0.5 -ml-2 border-2 border-background"
+              style={{
+                left: `${Math.min(100, Math.max(0, (scorecard.ai_model_score - 300) / 5.5))}%`,
+              }}
+            ></div>
+          </div>
+        </CardContent>
+        <CardFooter className="pt-2 flex justify-between text-sm text-muted-foreground">
+          <div>Model: {scorecard.model_info?.model_version}</div>
+          <button
+            onClick={onToggle}
+            className="flex items-center hover:text-foreground"
+          >
+            {isOpen ? "Hide Details" : "Show Details"}
+            {isOpen ? (
+              <ChevronUp className="ml-1 h-4 w-4" />
+            ) : (
+              <ChevronDown className="ml-1 h-4 w-4" />
+            )}
+          </button>
+        </CardFooter>
+      </Card>
+
+      {/* Collapsible Details */}
+      {isOpen && (
+        <div className="space-y-4">
+          {/* Feature Breakdown */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Risk Factor Analysis</CardTitle>
+              <CardDescription>
+                Ranked features and their impact on the credit decision
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {scorecard.feature_breakdown?.slice(0, 8).map((feature: any, index: number) => (
+                  <div key={index} className="flex items-start justify-between p-3 bg-muted/20 rounded-lg">
+                    <div className="flex items-start space-x-3">
+                      <Badge variant="outline" className="text-xs">
+                        #{feature.rank}
+                      </Badge>
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{feature.feature_name}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {feature.feature_category}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {feature.reason_description}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right space-y-1">
+                      <div className="text-sm font-medium">{feature.applicant_value}</div>
+                      <Badge
+                        variant={feature.risk_direction === "negative" ? "outline" : "secondary"}
+                        className="text-xs"
+                      >
+                        {feature.risk_direction === "negative" ? "↓ Lower Risk" : "↑ Higher Risk"}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Feature Contributions (Technical) */}
+          {result.featureContributionsToShowValues.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Technical Feature Contributions</CardTitle>
+                <CardDescription>
+                  Raw feature contribution values for technical analysis
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {result.featureContributionsToShowValues.map(
+                    (feature: any, index: number) => (
+                      <div
+                        key={index}
+                        className="flex justify-between text-sm py-1"
+                      >
+                        <span className="text-muted-foreground">{feature.name}</span>
+                        <span className="font-mono">{feature.value.toFixed(4)}</span>
+                      </div>
+                    ),
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 }

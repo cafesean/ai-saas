@@ -14,6 +14,52 @@ export const KnowledgeBaseDocumentStatus = {
   processing: "Processing",
 };
 
+export const ChunkingStrategies = {
+  FIXED_LENGTH: "fixed-length",
+  SEMANTIC: "semantic",
+  SENTENCE: "sentence",
+  PARAGRAPH: "paragraph",
+  MANUAL: "manual",
+} as const;
+
+export const ChunkingStrategyOptions = [
+  {
+    value: ChunkingStrategies.FIXED_LENGTH,
+    label: "Fixed Length",
+    description: "Split text into chunks of fixed character length with overlap",
+    defaultSize: 1000,
+    defaultOverlap: 200,
+  },
+  {
+    value: ChunkingStrategies.SEMANTIC,
+    label: "Semantic",
+    description: "Split text based on semantic similarity and meaning",
+    defaultSize: 1500,
+    defaultOverlap: 150,
+  },
+  {
+    value: ChunkingStrategies.SENTENCE,
+    label: "Sentence",
+    description: "Split text at sentence boundaries",
+    defaultSize: 800,
+    defaultOverlap: 100,
+  },
+  {
+    value: ChunkingStrategies.PARAGRAPH,
+    label: "Paragraph",
+    description: "Split text at paragraph boundaries",
+    defaultSize: 1200,
+    defaultOverlap: 100,
+  },
+  {
+    value: ChunkingStrategies.MANUAL,
+    label: "Manual",
+    description: "Manually define chunk boundaries",
+    defaultSize: 0,
+    defaultOverlap: 0,
+  },
+] as const;
+
 export const KnowledgeBaseVectorDatabase: VectorDatabase[] = [
   {
     id: "vdb-1",

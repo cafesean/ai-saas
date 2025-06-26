@@ -5,12 +5,22 @@ import { db } from "@/db";
 import { models, inferences, workflows } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 import { ModelStatus } from "@/constants/general";
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure, getUserOrgId } from "../trpc";
 import { WorkflowStatus } from "@/constants/general";
+import type { ExtendedSession } from "@/db/auth-hydration";
 
 export const dashboardRouter = createTRPCRouter({
-  getStats: publicProcedure.input(z.void()).query(async () => {
+  getStats: protectedProcedure.input(z.void()).query(async ({ ctx }) => {
     try {
+      const session = ctx.session as ExtendedSession;
+      const orgId = await getUserOrgId(session.user.id);
+      if (!orgId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "No org access",
+        });
+      }
+
       const now = new Date();
       const firstDayOfThisMonth = new Date(
         now.getFullYear(),
@@ -24,13 +34,15 @@ export const dashboardRouter = createTRPCRouter({
       );
       const totalModels = await db
         .select({ count: sql<number>`count(*)` })
-        .from(models);
+        .from(models)
+        .where(eq(models.orgId, orgId));
 
       const modelsLastMonth = await db
         .select({ count: sql<number>`count(*)` })
         .from(models)
         .where(
           and(
+            eq(models.orgId, orgId),
             gte(models.createdAt, firstDayOfLastMonth),
             lt(models.createdAt, firstDayOfThisMonth),
           ),
@@ -38,12 +50,18 @@ export const dashboardRouter = createTRPCRouter({
       const activeModels = await db
         .select({ count: sql<number>`count(*)` })
         .from(models)
-        .where(eq(models.status, ModelStatus.ACTIVE));
+        .where(
+          and(
+            eq(models.orgId, orgId),
+            eq(models.status, ModelStatus.ACTIVE)
+          )
+        );
       const activeModelsLastMonth = await db
         .select({ count: sql<number>`count(*)` })
         .from(models)
         .where(
           and(
+            eq(models.orgId, orgId),
             gte(models.createdAt, firstDayOfLastMonth),
             lt(models.createdAt, firstDayOfThisMonth),
             eq(models.status, ModelStatus.ACTIVE),
@@ -52,17 +70,25 @@ export const dashboardRouter = createTRPCRouter({
 
       const totalInferences = await db
         .select({ count: sql<number>`count(*)` })
-        .from(inferences);
+        .from(inferences)
+        .innerJoin(models, eq(inferences.modelId, models.id))
+        .where(eq(models.orgId, orgId));
 
       const publishedWorkflows = await db
         .select({ count: sql<number>`count(*)` })
         .from(workflows)
-        .where(eq(workflows.status, WorkflowStatus.PUBLISHED));
+        .where(
+          and(
+            eq(workflows.orgId, orgId),
+            eq(workflows.status, WorkflowStatus.PUBLISHED)
+          )
+        );
       const publishedWorkflowsLastMonth = await db
         .select({ count: sql<number>`count(*)` })
         .from(workflows)
         .where(
           and(
+            eq(workflows.orgId, orgId),
             gte(workflows.createdAt, firstDayOfLastMonth),
             lt(workflows.createdAt, firstDayOfThisMonth),
             eq(workflows.status, WorkflowStatus.PUBLISHED),
@@ -71,7 +97,12 @@ export const dashboardRouter = createTRPCRouter({
       const latestThreePublishedWorkflows = await db
         .select()
         .from(workflows)
-        .where(eq(workflows.status, WorkflowStatus.PUBLISHED))
+        .where(
+          and(
+            eq(workflows.orgId, orgId),
+            eq(workflows.status, WorkflowStatus.PUBLISHED)
+          )
+        )
         .orderBy(desc(workflows.createdAt))
         .limit(3);
       const latestThreeInferences = await db
@@ -81,6 +112,7 @@ export const dashboardRouter = createTRPCRouter({
         })
         .from(inferences)
         .innerJoin(models, eq(inferences.modelId, models.id))
+        .where(eq(models.orgId, orgId))
         .orderBy(desc(inferences.createdAt))
         .limit(3);
 

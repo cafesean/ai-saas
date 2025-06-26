@@ -263,7 +263,7 @@ export default function EditLookupTablePage({ params }: { params: Promise<{ uuid
   const updateVariable = (type: 'input1' | 'input2' | 'output', variableId: string | null) => {
     if (!currentFrontendData) return
 
-    let updatedData = { ...currentFrontendData }
+    const updatedData = { ...currentFrontendData }
 
     if (type === 'input1' && variableId) {
       const variable = variables?.find(v => v.id.toString() === variableId)
