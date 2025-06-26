@@ -3,9 +3,13 @@ import {
   models,
   model_metrics,
   inferences,
+  modelGroups,
+  modelGroupMemberships,
   modelsRelations,
   model_metricsRelations,
   inferencesRelations,
+  modelGroupsRelations,
+  modelGroupMembershipsRelations,
 } from "./model";
 import {
   workflows,
@@ -104,6 +108,9 @@ import {
   test_scenarios,
   testScenariosRelations,
 } from "./test_scenario";
+import {
+  providers,
+} from "./provider";
 
 export {
   templates,
@@ -111,6 +118,8 @@ export {
   models,
   model_metrics,
   inferences,
+  modelGroups,
+  modelGroupMemberships,
   workflows,
   nodes,
   edges,
@@ -135,6 +144,8 @@ export {
   modelsRelations,
   model_metricsRelations,
   inferencesRelations,
+  modelGroupsRelations,
+  modelGroupMembershipsRelations,
   decision_tables,
   decision_table_rows,
   decision_table_inputs,
@@ -193,6 +204,7 @@ export {
   ruleSetStepsRelations,
   test_scenarios,
   testScenariosRelations,
+  providers,
 };
 
 export default {
@@ -282,4 +294,5 @@ export default {
   ruleSetStepsRelations,
   test_scenarios,
   testScenariosRelations,
+  providers,
 };

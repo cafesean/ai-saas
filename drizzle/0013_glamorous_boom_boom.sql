@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "session_timeout_preference" integer DEFAULT 1440;

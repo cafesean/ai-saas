@@ -7,13 +7,26 @@ import { models, model_metrics } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 import { ModelStatus } from "@/constants/general";
 import { createTRPCRouter, publicProcedure, protectedProcedure, getUserOrgId } from "../trpc";
-import { NOT_FOUND, INTERNAL_SERVER_ERROR } from "@/constants/errorCode";
+import { NOT_FOUND, INTERNAL_SERVER_ERROR, BAD_REQUEST } from "@/constants/errorCode";
 import {
   MODEL_NOT_FOUND_ERROR,
   MODEL_CREATE_ERROR,
   MODEL_UPDATE_ERROR,
 } from "@/constants/errorMessage";
 import type { ExtendedSession } from "@/db/auth-hydration";
+
+// Import enhanced schemas from SAAS-261
+import {
+  flexibleModelImportSchema,
+  aiTransformationRequestSchema,
+  aiTransformationResponseSchema,
+  enhancedModelMetadataSchema,
+  ModelProvider,
+  ModelArchitecture,
+  ModelCapability,
+  type FlexibleModelImportSchema,
+  type AITransformationRequestSchema,
+} from "@/schemas/model.schema";
 
 const modelSchema = z.object({
   uuid: z.string().min(36).optional(), // Optional for creates, required for updates
@@ -285,4 +298,253 @@ export const modelRouter = createTRPCRouter({
 
     return model;
   }),
+
+  // EPIC-4 SAAS-262: Enhanced Model Import Operations
+  
+  // Flexible model import from multiple sources
+  importModel: protectedProcedure
+    .input(flexibleModelImportSchema)
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const session = ctx.session as ExtendedSession;
+        const orgId = await getUserOrgId(session.user.id);
+
+        const newModel = await db.transaction(async (tx) => {
+          // Determine file keys based on source
+          let fileName = "";
+          let fileKey = "";
+          let metadataFileName = null;
+          let metadataFileKey = null;
+
+          if (input.source === ModelProvider.UPLOADED && input.files) {
+            fileName = input.files.model || `${input.name}-model`;
+            fileKey = input.files.model || "";
+            metadataFileName = input.files.metadata || null;
+            metadataFileKey = input.files.metadata || null;
+          } else {
+            // For external providers, use provider configuration as file reference
+            fileName = `${input.source}-${input.name}`;
+            fileKey = `provider:${input.source}`;
+          }
+
+          const [model] = await tx
+            .insert(models)
+            .values({
+              name: input.name,
+              description: input.metadata?.modelInfo?.license || null,
+              fileName,
+              fileKey,
+              metadataFileName,
+              metadataFileKey,
+              status: ModelStatus.INACTIVE,
+              
+              // Enhanced EPIC-4 fields
+              provider: input.source,
+              architecture: input.metadata?.modelInfo?.architecture || null,
+              capabilities: input.metadata?.modelInfo ? JSON.stringify([]) : null,
+              
+              // Enhanced metadata storage
+              modelInfo: input.metadata?.modelInfo ? JSON.stringify(input.metadata.modelInfo) : null,
+              trainingInfo: input.metadata?.trainingInfo ? JSON.stringify(input.metadata.trainingInfo) : null,
+              performanceMetrics: input.metadata?.performanceMetrics ? JSON.stringify(input.metadata.performanceMetrics) : null,
+              providerConfig: input.providerConfig ? JSON.stringify(input.providerConfig) : null,
+              enhancedInputSchema: input.metadata?.inputSchema ? JSON.stringify(input.metadata.inputSchema) : null,
+              enhancedOutputSchema: input.metadata?.outputSchema ? JSON.stringify(input.metadata.outputSchema) : null,
+              
+              // Multi-tenancy
+              orgId,
+            })
+            .returning();
+
+          return model;
+        });
+
+        return {
+          success: true,
+          model: newModel,
+          message: `Model "${input.name}" imported successfully from ${input.source}`,
+        };
+      } catch (error) {
+        console.error("Model import error:", error);
+        throw new TRPCError({
+          code: `${INTERNAL_SERVER_ERROR}` as TRPCError["code"],
+          message: `Failed to import model: ${error instanceof Error ? error.message : "Unknown error"}`,
+        });
+      }
+    }),
+
+  // AI-powered metadata transformation (placeholder for future implementation)
+  transformMetadata: protectedProcedure
+    .input(aiTransformationRequestSchema)
+    .mutation(async ({ input, ctx }) => {
+      try {
+        // TODO: Implement AI transformation service
+        // For now, return a basic transformation
+        
+        const mockTransformation = {
+          success: true,
+          transformedData: input.sourceData, // Pass through for now
+          confidence: 0.85,
+          warnings: input.sourceType === "custom" ? ["Custom format may need manual validation"] : [],
+          suggestions: ["Consider adding performance metrics", "Verify input schema constraints"],
+        };
+
+        return mockTransformation;
+      } catch (error) {
+        console.error("Metadata transformation error:", error);
+        throw new TRPCError({
+          code: `${INTERNAL_SERVER_ERROR}` as TRPCError["code"],
+          message: `Failed to transform metadata: ${error instanceof Error ? error.message : "Unknown error"}`,
+        });
+      }
+    }),
+
+  // Batch model import
+  batchImport: protectedProcedure
+    .input(z.object({
+      models: z.array(flexibleModelImportSchema),
+      options: z.object({
+        skipErrors: z.boolean().default(true),
+        autoActivate: z.boolean().default(false),
+      }).optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const session = ctx.session as ExtendedSession;
+        const orgId = await getUserOrgId(session.user.id);
+        const results = [];
+        
+        for (const modelInput of input.models) {
+          try {
+            const newModel = await db.transaction(async (tx) => {
+              let fileName = "";
+              let fileKey = "";
+              
+              if (modelInput.source === ModelProvider.UPLOADED && modelInput.files) {
+                fileName = modelInput.files.model || `${modelInput.name}-model`;
+                fileKey = modelInput.files.model || "";
+              } else {
+                fileName = `${modelInput.source}-${modelInput.name}`;
+                fileKey = `provider:${modelInput.source}`;
+              }
+
+              const [model] = await tx
+                .insert(models)
+                .values({
+                  name: modelInput.name,
+                  description: modelInput.metadata?.modelInfo?.license || null,
+                  fileName,
+                  fileKey,
+                  status: input.options?.autoActivate ? ModelStatus.ACTIVE : ModelStatus.INACTIVE,
+                  provider: modelInput.source,
+                  architecture: modelInput.metadata?.modelInfo?.architecture || null,
+                  modelInfo: modelInput.metadata?.modelInfo ? JSON.stringify(modelInput.metadata.modelInfo) : null,
+                  providerConfig: modelInput.providerConfig ? JSON.stringify(modelInput.providerConfig) : null,
+                  orgId,
+                })
+                .returning();
+
+              return model;
+            });
+
+            results.push({
+              success: true,
+              model: newModel,
+              name: modelInput.name,
+            });
+          } catch (error) {
+            if (input.options?.skipErrors) {
+              results.push({
+                success: false,
+                error: error instanceof Error ? error.message : "Unknown error",
+                name: modelInput.name,
+              });
+            } else {
+              throw error;
+            }
+          }
+        }
+
+        const successCount = results.filter(r => r.success).length;
+        const errorCount = results.filter(r => !r.success).length;
+
+        return {
+          success: errorCount === 0,
+          results,
+          summary: {
+            total: input.models.length,
+            successful: successCount,
+            failed: errorCount,
+          },
+          message: `Batch import completed: ${successCount} successful, ${errorCount} failed`,
+        };
+      } catch (error) {
+        console.error("Batch import error:", error);
+        throw new TRPCError({
+          code: `${INTERNAL_SERVER_ERROR}` as TRPCError["code"],
+          message: `Batch import failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        });
+      }
+    }),
+
+  // Get models by provider
+  getByProvider: protectedProcedure
+    .input(z.nativeEnum(ModelProvider))
+    .query(async ({ input, ctx }) => {
+      const session = ctx.session as ExtendedSession;
+      const orgId = await getUserOrgId(session.user.id);
+
+      const modelsData = await db.query.models.findMany({
+        where: and(
+          eq(models.provider, input),
+          eq(models.orgId, orgId)
+        ),
+        orderBy: desc(models.updatedAt),
+        with: {
+          metrics: {
+            orderBy: desc(model_metrics.createdAt),
+          },
+        },
+      });
+
+      return modelsData;
+    }),
+
+  // Validate model configuration
+  validateConfig: protectedProcedure
+    .input(z.object({
+      provider: z.nativeEnum(ModelProvider),
+      config: z.record(z.any()),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        // TODO: Implement actual provider validation in SAAS-264
+        // For now, return basic validation
+        
+        const requiredFields: Record<string, string[]> = {
+          [ModelProvider.OPENAI]: ["apiKey", "model"],
+          [ModelProvider.ANTHROPIC]: ["apiKey", "model"],
+          [ModelProvider.GOOGLE]: ["apiKey", "projectId", "model"],
+          [ModelProvider.HUGGINGFACE]: ["model"],
+          [ModelProvider.CUSTOM]: ["endpoint"],
+          [ModelProvider.UPLOADED]: [],
+        };
+
+        const required = requiredFields[input.provider] || [];
+        const missing = required.filter(field => !input.config[field]);
+
+        return {
+          valid: missing.length === 0,
+          missing,
+          warnings: [],
+          suggestions: missing.length > 0 ? [`Missing required fields: ${missing.join(", ")}`] : [],
+        };
+      } catch (error) {
+        console.error("Config validation error:", error);
+        throw new TRPCError({
+          code: `${BAD_REQUEST}` as TRPCError["code"],
+          message: `Configuration validation failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        });
+      }
+    }),
 });

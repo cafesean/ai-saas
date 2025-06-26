@@ -115,6 +115,46 @@ export const MODEL_PERMISSIONS: Permission[] = [
   },
 ];
 
+// Provider Management Permissions
+export const PROVIDER_PERMISSIONS: Permission[] = [
+  {
+    slug: "provider:create",
+    name: "Create Provider",
+    description: "Register new LLM providers and configure their settings",
+    category: "provider",
+  },
+  {
+    slug: "provider:read",
+    name: "View Provider",
+    description: "View provider configurations and status",
+    category: "provider",
+  },
+  {
+    slug: "provider:update",
+    name: "Edit Provider",
+    description: "Update provider configurations and settings",
+    category: "provider",
+  },
+  {
+    slug: "provider:delete",
+    name: "Delete Provider",
+    description: "Remove provider configurations",
+    category: "provider",
+  },
+  {
+    slug: "provider:test",
+    name: "Test Provider",
+    description: "Test provider connections and health status",
+    category: "provider",
+  },
+  {
+    slug: "provider:health",
+    name: "Monitor Provider Health",
+    description: "View provider health metrics and status monitoring",
+    category: "provider",
+  },
+];
+
 // Decision Table Permissions (Rules)
 export const DECISION_TABLE_PERMISSIONS: Permission[] = [
   {
@@ -665,6 +705,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   ...WORKFLOW_PERMISSIONS,
   ...WORKFLOW_ADDITIONAL_PERMISSIONS,
   ...MODEL_PERMISSIONS,
+  ...PROVIDER_PERMISSIONS,
   ...DECISION_TABLE_PERMISSIONS,
   ...RULE_PERMISSIONS,
   // Decision Engine Permissions
@@ -721,6 +762,7 @@ export const DEFAULT_ROLES: RoleConfig[] = [
     description: "Developer with model and technical resource management",
     permissions: [
       ...MODEL_PERMISSIONS.map(p => p.slug),
+      ...PROVIDER_PERMISSIONS.map(p => p.slug),
       ...WORKFLOW_PERMISSIONS.map(p => p.slug),
       ...WORKFLOW_ADDITIONAL_PERMISSIONS.map(p => p.slug),
       ...ENDPOINT_PERMISSIONS.map(p => p.slug),
@@ -742,6 +784,8 @@ export const DEFAULT_ROLES: RoleConfig[] = [
       "workflow:execute",
       "model:read",
       "model:inference",
+      "provider:read",
+      "provider:health",
       "rules:read",
       "rules:test",
       "rule:read",
