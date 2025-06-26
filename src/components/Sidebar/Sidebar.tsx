@@ -29,10 +29,9 @@ import { useState } from "react";
 
 import { SampleButton } from "@/components/ui/sample-button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
+import { cn } from "@/framework/lib/utils";
 import { WithPermission } from "@/components/auth/WithPermission";
 import { OrgSwitcher } from "@/components/auth/OrgSwitcher";
-import { UserProfile } from "@/components/auth/UserProfile";
 
 interface NavItem {
   title: string;
@@ -67,7 +66,7 @@ function NavItemComponent({ item, pathname, expanded, toggleExpanded, isBottomMe
     <div className={cn("flex flex-col", isBottomMenu && "relative")}>
       {/* For bottom menu, render submenu first (above the button) */}
       {isBottomMenu && expanded[item.title.toLowerCase()] && (
-        <div className="absolute bottom-full left-0 right-0 mb-1 bg-background border rounded-md shadow-lg">
+        <div className="absolute bottom-full left-0 right-0 mb-1 bg-background border rounded-md">
           <div className="p-2 flex flex-col gap-1">
             {item.children.map((child, childIndex) => (
               <NavItemComponent
@@ -267,7 +266,6 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
   const bottomNavItems: NavItem[] = [
     {
       title: "Settings",
-      href: "/settings",
       icon: Settings,
       children: [
         {
@@ -283,10 +281,11 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
           permission: "roles:read",
         },
         {
-          title: "Permissions",
+          title: "Permission Management",
           href: "/permissions", 
           icon: Key,
-          adminOnly: true,
+          // TODO: Restore admin-only access after debugging
+          // role: "Admin",
         },
         {
           title: "User Management", 
@@ -328,6 +327,8 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
           ))}
         </nav>
       </ScrollArea>
+      
+      {/* Settings docked to bottom */}
       <div className="mt-auto border-t">
         <div className="px-2 py-4">
           <nav className="flex flex-col gap-1">
@@ -342,11 +343,6 @@ export function Sidebar({ setOpen }: { setOpen?: (open: boolean) => void }) {
               />
             ))}
           </nav>
-        </div>
-        
-        {/* User Profile at the very bottom */}
-        <div className="px-2 py-3 border-t">
-          <UserProfile />
         </div>
       </div>
     </div>

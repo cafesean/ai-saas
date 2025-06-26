@@ -28,6 +28,9 @@ export const users = pgTable(
     avatar: text("avatar"),
     phone: varchar("phone", { length: 50 }),
     isActive: boolean("is_active").default(true).notNull(),
+    // Session timeout preference in minutes (EPIC-6)
+    // Options: 30 (30 minutes), 240 (4 hours), 1440 (1 day), 10080 (7 days)
+    sessionTimeoutPreference: integer("session_timeout_preference").default(1440), // Default: 1 day
     // JSONB field to store user-org relationships and metadata
     // Structure: { currentOrgId: number, orgs: [{ orgId: number, role: string, isActive: boolean, joinedAt: string }] }
     orgData: jsonb("org_data").default('{"currentOrgId": null, "orgs": []}'),

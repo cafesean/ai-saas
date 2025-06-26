@@ -3,6 +3,7 @@
 import React from "react";
 import { cn } from "@/framework/lib/utils";
 import { FormError } from './FormError';
+import { useFormSubmission } from '@/contexts/FormSubmissionContext';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -15,6 +16,7 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 const Input = React.forwardRef<HTMLInputElement, InputProps>((props: InputProps, ref: React.ForwardedRef<HTMLInputElement>) => {
     const { label, error, className, placeholder, ...rest } = props;
     const [isEditing, setIsEditing] = React.useState(false);
+    const { isSubmitting: isFormSubmitting } = useFormSubmission();
 
     return (
       <div className="space-y-1">
@@ -32,6 +34,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>((props: InputProps,
             isEditing ? "border-2" : "border-0"
           )}
           {...rest}
+          disabled={rest.disabled || isFormSubmitting}
           placeholder={placeholder || "Please enter"}
           onClickCapture={() => setIsEditing(true)}
           onBlur={() => setIsEditing(false)}

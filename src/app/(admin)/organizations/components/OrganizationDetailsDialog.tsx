@@ -52,6 +52,7 @@ import {
 import { api } from "@/utils/trpc";
 import { toast } from "sonner";
 import { type OrganizationWithStats } from "@/types/organization";
+import { FormSubmissionProvider, useFormSubmission } from "@/contexts/FormSubmissionContext";
 
 // Organization form schema
 const organizationFormSchema = z.object({
@@ -74,7 +75,7 @@ interface OrganizationDetailsDialogProps {
   mode: "create" | "edit";
 }
 
-export function OrganizationDetailsDialog({
+function OrganizationDetailsDialogContent({
   open,
   onClose,
   onSuccess,
@@ -84,6 +85,7 @@ export function OrganizationDetailsDialog({
   const [activeTab, setActiveTab] = useState("details");
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [selectedRole, setSelectedRole] = useState("member");
+  const { setIsSubmitting } = useFormSubmission();
 
   // Organization form
   const form = useForm<OrganizationFormData>({
@@ -99,30 +101,32 @@ export function OrganizationDetailsDialog({
     },
   });
 
-  // Reset form when organization changes
+  // Reset form when organization changes or dialog opens
   useEffect(() => {
-    if (organization && mode === "edit") {
-      form.reset({
-        name: organization.name,
-        description: organization.description || undefined,
-        slug: organization.slug || "",
-        logoUrl: organization.logoUrl || "",
-        website: organization.website || "",
-        businessAddress: organization.businessAddress || undefined,
-        isActive: organization.isActive,
-      });
-    } else if (mode === "create") {
-      form.reset({
-        name: "",
-        description: "",
-        slug: "",
-        logoUrl: "",
-        website: "",
-        businessAddress: "",
-        isActive: true,
-      });
+    if (open) {
+      if (organization && mode === "edit") {
+        form.reset({
+          name: organization.name,
+          description: organization.description || undefined,
+          slug: organization.slug || "",
+          logoUrl: organization.logoUrl || "",
+          website: organization.website || "",
+          businessAddress: organization.businessAddress || undefined,
+          isActive: organization.isActive,
+        });
+      } else if (mode === "create") {
+        form.reset({
+          name: "",
+          description: "",
+          slug: "",
+          logoUrl: "",
+          website: "",
+          businessAddress: "",
+          isActive: true,
+        });
+      }
     }
-  }, [organization, mode, form]);
+  }, [organization, mode, form, open]);
 
   // Auto-generate slug from name
   const watchedName = form.watch("name");
@@ -141,21 +145,41 @@ export function OrganizationDetailsDialog({
 
   // API queries and mutations
   const createMutation = api.org.create.useMutation({
+    onMutate: () => {
+      setIsSubmitting(true);
+    },
     onSuccess: () => {
+      setIsSubmitting(false);
       toast.success("Organization created successfully");
+      // Reset form to clear values after successful creation
+      form.reset({
+        name: "",
+        description: "",
+        slug: "",
+        logoUrl: "",
+        website: "",
+        businessAddress: "",
+        isActive: true,
+      });
       onSuccess();
     },
     onError: (error) => {
+      setIsSubmitting(false);
       toast.error(`Failed to create organization: ${error.message}`);
     },
   });
 
   const updateMutation = api.org.update.useMutation({
+    onMutate: () => {
+      setIsSubmitting(true);
+    },
     onSuccess: () => {
+      setIsSubmitting(false);
       toast.success("Organization updated successfully");
       onSuccess();
     },
     onError: (error) => {
+      setIsSubmitting(false);
       toast.error(`Failed to update organization: ${error.message}`);
     },
   });
@@ -724,4 +748,12 @@ export function OrganizationDetailsDialog({
       </DialogContent>
     </Dialog>
   );
-} 
+}
+
+export function OrganizationDetailsDialog(props: OrganizationDetailsDialogProps) {
+  return (
+    <FormSubmissionProvider>
+      <OrganizationDetailsDialogContent {...props} />
+    </FormSubmissionProvider>
+  );
+}

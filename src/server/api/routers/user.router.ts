@@ -491,4 +491,89 @@ export const userRouter = createTRPCRouter({
         });
       }
     }),
+
+  // Update session timeout preference (EPIC-6)
+  updateSessionPreference: protectedProcedure
+    .input(z.object({
+      sessionTimeoutMinutes: z.number().refine(
+        (val) => [30, 240, 1440, 10080].includes(val),
+        {
+          message: "Session timeout must be 30 (30 min), 240 (4 hours), 1440 (1 day), or 10080 (7 days)"
+        }
+      )
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const session = ctx.session as ExtendedSession;
+      const userId = session.user.id;
+      const { sessionTimeoutMinutes } = input;
+
+      try {
+        const [updatedUser] = await db.update(users)
+          .set({
+            sessionTimeoutPreference: sessionTimeoutMinutes,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, userId))
+          .returning({
+            id: users.id,
+            sessionTimeoutPreference: users.sessionTimeoutPreference,
+          });
+
+        if (!updatedUser) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'User not found'
+          });
+        }
+
+        return {
+          success: true,
+          sessionTimeoutPreference: updatedUser.sessionTimeoutPreference,
+        };
+      } catch (error) {
+        console.error("Error updating session preference:", error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to update session preference',
+          cause: error,
+        });
+      }
+    }),
+
+  // Get current user's settings (EPIC-6)
+  getCurrentUserSettings: protectedProcedure
+    .query(async ({ ctx }) => {
+      const session = ctx.session as ExtendedSession;
+      const userId = session.user.id;
+
+      try {
+        const user = await db.select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          sessionTimeoutPreference: users.sessionTimeoutPreference,
+          avatar: users.avatar,
+          phone: users.phone,
+        })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+
+        if (!user[0]) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'User not found'
+          });
+        }
+
+        return user[0];
+      } catch (error) {
+        console.error("Error getting user settings:", error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to get user settings',
+          cause: error,
+        });
+      }
+    }),
 }); 

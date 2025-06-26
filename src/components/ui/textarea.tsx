@@ -1,11 +1,14 @@
 import * as React from "react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/framework/lib/utils"
+import { useFormSubmission } from '@/contexts/FormSubmissionContext'
 
 const Textarea = React.forwardRef<
   HTMLTextAreaElement,
   React.ComponentProps<"textarea">
 >(({ className, ...props }, ref) => {
+  const { isSubmitting: isFormSubmitting } = useFormSubmission();
+  
   return (
     <textarea
       className={cn(
@@ -14,6 +17,7 @@ const Textarea = React.forwardRef<
       )}
       ref={ref}
       {...props}
+      disabled={props.disabled || isFormSubmitting}
     />
   )
 })

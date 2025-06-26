@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import {
   DropdownMenu,
@@ -18,9 +18,12 @@ import {
   Building2
 } from 'lucide-react';
 import Link from 'next/link';
+import { SignOutConfirmDialog } from './SignOutConfirmDialog';
 
 export function UserProfile() {
   const { data: session } = useSession();
+  const [showSignOutDialog, setShowSignOutDialog] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   if (!session?.user) {
     return null;
@@ -31,8 +34,22 @@ export function UserProfile() {
   const userInitials = user.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 
                       user.email?.charAt(0).toUpperCase() || 'U';
 
-  const handleSignOut = async () => {
-    await signOut({ callbackUrl: '/login' });
+  const handleSignOutClick = () => {
+    setShowSignOutDialog(true);
+  };
+
+  const handleSignOutConfirm = async () => {
+    setIsSigningOut(true);
+    try {
+      await signOut({ callbackUrl: '/login' });
+    } catch (error) {
+      console.error('Sign out error:', error);
+      setIsSigningOut(false);
+    }
+  };
+
+  const handleSignOutCancel = () => {
+    setShowSignOutDialog(false);
   };
 
   return (
@@ -119,20 +136,6 @@ export function UserProfile() {
         
         <DropdownMenuSeparator />
         
-        <DropdownMenuItem asChild>
-          <Link href="/users" className="flex items-center">
-            <User className="mr-2 h-4 w-4" />
-            <span>Profile</span>
-          </Link>
-        </DropdownMenuItem>
-        
-        <DropdownMenuItem asChild>
-          <Link href="/users" className="flex items-center">
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
-          </Link>
-        </DropdownMenuItem>
-
         {(user as any).availableOrgs && (user as any).availableOrgs.length > 1 && (
           <DropdownMenuItem asChild>
             <Link href="/organizations" className="flex items-center">
@@ -146,12 +149,19 @@ export function UserProfile() {
         
         <DropdownMenuItem 
           className="text-red-600 focus:text-red-600"
-          onClick={handleSignOut}
+          onClick={handleSignOutClick}
         >
           <LogOut className="mr-2 h-4 w-4" />
           <span>Sign out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
+      
+      <SignOutConfirmDialog
+        isOpen={showSignOutDialog}
+        onClose={handleSignOutCancel}
+        onConfirm={handleSignOutConfirm}
+        isLoading={isSigningOut}
+      />
     </DropdownMenu>
   );
 }

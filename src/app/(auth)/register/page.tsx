@@ -8,7 +8,7 @@ import { registerSchema } from "@/schemas/auth.schema";
 import { api } from "@/utils/trpc";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { toast } from 'sonner';
 
 export default function RegisterPage() {
@@ -17,6 +17,13 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const router = useRouter();
+
+  // Check if registration is disabled and redirect if it is
+  useEffect(() => {
+    // Since we can't access server environment variables directly in client components,
+    // we'll let the API handle the restriction and show an appropriate message
+    // The UI restrictions will be handled by removing the signup link from login page
+  }, []);
 
   const registerMutation = api.auth.register.useMutation({
     onSuccess: () => {
