@@ -34,8 +34,6 @@ export const users = pgTable(
     // JSONB field to store user-org relationships and metadata
     // Structure: { currentOrgId: number, orgs: [{ orgId: number, role: string, isActive: boolean, joinedAt: string }] }
     orgData: jsonb("org_data").default('{"currentOrgId": null, "orgs": []}'),
-    // Session timeout preference in minutes (default 24 hours = 1440 minutes)
-    sessionTimeoutPreference: integer("session_timeout_preference").default(1440),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "date",

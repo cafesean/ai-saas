@@ -1,8 +1,22 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { env } from '../../env.mjs';
+import { config } from 'dotenv';
 import { roles, permissions, rolePermissions } from '../schema/rbac';
 import { ALL_PERMISSIONS, DEFAULT_ROLES, type Permission, type RoleConfig } from '../../constants/permissions';
+
+// Load environment variables first
+config({ path: '.env.local' });
+
+// Direct database connection (avoid env.mjs validation issues during seeding)
+const DATABASE_URL = process.env.DATABASE_URL;
+const NODE_ENV = process.env.NODE_ENV;
+
+if (!DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable is required');
+}
+if (!NODE_ENV) {
+  throw new Error('NODE_ENV environment variable is required');
+}
 
 /**
  * RBAC Seeding Script
@@ -13,10 +27,11 @@ import { ALL_PERMISSIONS, DEFAULT_ROLES, type Permission, type RoleConfig } from
  * 3. Role-permission mappings
  */
 
+
 async function seedRBAC() {
   console.log('🚀 Starting RBAC database seeding...');
 
-  const client = postgres(env.DATABASE_URL);
+  const client = postgres(DATABASE_URL!);
   const db = drizzle(client);
 
   try {
@@ -143,7 +158,7 @@ async function seedRBAC() {
 export async function validatePermissionsSync() {
   console.log('🔍 Validating permissions sync...');
   
-  const client = postgres(env.DATABASE_URL);
+  const client = postgres(DATABASE_URL!);
   const db = drizzle(client);
   
   try {

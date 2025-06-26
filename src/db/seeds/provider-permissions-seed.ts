@@ -5,13 +5,18 @@ import { config } from 'dotenv';
 import { roles, permissions, rolePermissions } from '../schema/rbac';
 import { PROVIDER_PERMISSIONS, type Permission } from '../../constants/permissions';
 
-// Load environment variables
+// Load environment variables first
 config({ path: '.env.local' });
 
 // Direct database connection (avoid env.mjs validation issues during seeding)
 const DATABASE_URL = process.env.DATABASE_URL;
+const NODE_ENV = process.env.NODE_ENV;
+
 if (!DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is required');
+}
+if (!NODE_ENV) {
+  throw new Error('NODE_ENV environment variable is required');
 }
 
 /**
