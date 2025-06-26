@@ -55,7 +55,6 @@ test-*.js
 .prettier*
 .docker*
 n8n/
-scripts/
 docs/
 
 .env.local*
