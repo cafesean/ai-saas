@@ -438,6 +438,33 @@ export const modelGroupMemberships = pgTable("model_group_memberships", {
 	unique("model_group_memberships_uuid_unique").on(table.uuid),
 ]);
 
+export const providers = pgTable("providers", {
+	id: serial().primaryKey().notNull(),
+	uuid: uuid().defaultRandom().notNull(),
+	providerId: varchar("provider_id", { length: 100 }).notNull(),
+	name: varchar({ length: 200 }).notNull(),
+	description: text(),
+	type: varchar({ length: 50 }).notNull(),
+	enabled: boolean().default(true).notNull(),
+	apiKey: varchar("api_key", { length: 500 }).notNull(),
+	baseUrl: varchar("base_url", { length: 500 }),
+	timeout: integer().default(30000),
+	maxRetries: integer("max_retries").default(3),
+	config: json(),
+	rateLimiting: json("rate_limiting"),
+	lastHealthCheck: timestamp("last_health_check", { withTimezone: true, mode: 'string' }),
+	healthStatus: varchar("health_status", { length: 50 }).default('unknown'),
+	healthError: text("health_error"),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	index("providers_enabled_idx").using("btree", table.enabled.asc().nullsLast().op("bool_ops")),
+	index("providers_provider_id_idx").using("btree", table.providerId.asc().nullsLast().op("text_ops")),
+	index("providers_type_idx").using("btree", table.type.asc().nullsLast().op("text_ops")),
+	unique("providers_uuid_unique").on(table.uuid),
+	unique("providers_provider_id_unique").on(table.providerId),
+]);
+
 export const nodeTypes = pgTable("node_types", {
 	id: uuid().defaultRandom().notNull(),
 	type: varchar({ length: 256 }).notNull(),
